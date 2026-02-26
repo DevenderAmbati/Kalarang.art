@@ -1,0 +1,291 @@
+.artwork-card {
+  background: linear-gradient(0, #f2fbfc 0%, #c9f3f7 100%);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(11, 31, 42, 0.08);
+  transition: all var(--transition-smooth);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid rgba(47, 164, 169, 0.15);
+  /* Performance optimizations */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  contain: layout style paint;
+}
+
+.artwork-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 16px rgba(11, 31, 42, 0.12);
+}
+
+/* Header Section */
+.artwork-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+.artist-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid var(--color-primary);
+  background-color: var(--color-bg-light);
+}
+
+.artist-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.artist-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-royal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: all var(--transition-base);
+}
+
+.artist-name:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+/* Artwork Image Section */
+.artwork-image-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  padding: 0 12px;
+  margin-bottom: 12px;
+}
+
+.artwork-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+  transition: transform var(--transition-smooth);
+  /* Performance optimizations */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.artwork-card:hover .artwork-image {
+  transform: scale(1.05);
+}
+
+/* Sold Badge for Artwork Card */
+.artwork-card-sold-badge {
+  position: absolute;
+  top: 10px;
+  left: 22px;
+  background: rgba(220, 38, 38, 0.75);
+  color: var(--color-bg-white);
+  padding: 3px 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+  z-index: 10;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Title Section */
+.artwork-title {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: var(--color-royal);
+  margin-bottom: 0.4rem;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Description Section */
+.artwork-description {
+  padding: 0 16px 16px;
+  flex: 1;
+}
+
+.artwork-description p {
+  font-size: 0.75rem !important;
+  color: var(--color-text-dark);
+  line-height: 1.5;
+  margin-bottom: -3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Actions Footer */
+.artwork-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 4px 16px 6px;
+  border-top: 1px solid var(--primary-alpha-20);
+}
+
+.action-icon {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-icon:hover {
+  color: var(--color-primary);
+  background-color: var(--primary-alpha-10);
+  transform: scale(1.1);
+}
+
+.action-icon.active {
+  color: var(--color-primary);
+}
+
+.action-icon.active:hover {
+  color: var(--color-accent);
+}
+
+.action-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Heart animation keyframes */
+@keyframes heartPop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes heartBounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.2);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  75% {
+    transform: scale(1.1);
+  }
+}
+
+.action-icon.active svg {
+  animation: heartPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.action-icon.animating svg {
+  animation: heartBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Image Navigation Buttons */
+.image-nav-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.image-nav-button:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.image-nav-button:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.image-nav-left {
+  left: 20px;
+}
+
+.image-nav-right {
+  right: 20px;
+}
+
+.image-nav-button svg {
+  color: var(--color-royal);
+  width: 12px;
+  height: 12px;
+}
+
+/* Image Indicators */
+.image-indicators {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.image-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.image-indicator.active {
+  background: var(--color-primary);
+  width: 20px;
+  border-radius: 3px;
+}
+
+/* Tablet Responsiveness */
+
+

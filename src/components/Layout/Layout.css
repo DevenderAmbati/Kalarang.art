@@ -1,0 +1,112 @@
+/**
+ * Layout.css
+ * Responsive styles for the Layout component
+ * Handles mobile and desktop view transitions
+ */
+
+/* ============================================
+   HEADER STYLES
+   ============================================ */
+
+.layout-header {
+  background: var(--color-bg-white);
+  transition: background-color var(--transition-base);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+.layout-header .header-right > div:hover {
+  color: var(--color-hover) !important;
+}
+
+@keyframes bellShake {
+  0% { transform: scale(1.15) rotate(0deg); }
+  10% { transform: scale(1.15) rotate(-15deg); }
+  20% { transform: scale(1.15) rotate(15deg); }
+  30% { transform: scale(1.15) rotate(-15deg); }
+  40% { transform: scale(1.15) rotate(15deg); }
+  50% { transform: scale(1.15) rotate(-10deg); }
+  60% { transform: scale(1.15) rotate(10deg); }
+  70% { transform: scale(1.15) rotate(-5deg); }
+  80% { transform: scale(1.15) rotate(5deg); }
+  90% { transform: scale(1.15) rotate(-2deg); }
+  100% { transform: scale(1.15) rotate(0deg); }
+}
+
+.layout-notification-icon:hover {
+  background-color: var(--primary-alpha-10) !important;
+  animation: bellShake 1s ease-in-out;
+}
+
+/* ============================================
+   SMOOTH SCROLLING FOR ALL CONTENT
+   ============================================ */
+
+.layout-main-content {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
+}
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+
+/* Hide desktop sidebar on mobile, adjust main content */
+@media (max-width: 639px) {
+  /* Hide the desktop sidebar completely on mobile */
+  .sidebar-container {
+    display: none !important;
+  }
+  
+  /* Adjust main content area for mobile */
+  .layout-main-content {
+    margin-left: 0 !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+  }
+
+  /* Adjust header for mobile */
+  .layout-header {
+    padding: 0.75rem 1rem !important;
+    position: fixed;
+    width: 100%;
+  }
+
+  .layout-header h1 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Hide profile icon on mobile */
+  /* .layout-profile-icon {
+    display: none !important;
+  } */
+}
+
+/* Desktop view - ensure bottom nav is hidden */
+@media (min-width: 640px) {
+  .layout-main-content {
+    padding-bottom: 0;
+    scroll-behavior: smooth;
+  }
+}
+
+/* ============================================
+   SAFE AREA SUPPORT (for iPhone notch, etc.)
+   ============================================ */
+
+@supports (padding: max(0px)) {
+  @media (max-width: 480px) {
+    .layout-main-content {
+      /* Adjust max-height for devices with safe areas */
+      max-height: calc(100vh - max(env(safe-area-inset-bottom, 0px), 65px));    }
+  }
+}

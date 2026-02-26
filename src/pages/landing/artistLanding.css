@@ -1,0 +1,969 @@
+artistLanding.css
+
+.artist-landing {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #e0f2f7 50%, #d4eef5 100%);
+  padding: 2rem 1rem;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.artist-landing::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 30%, rgba(47, 164, 169, 0.05) 0%, transparent 50%),
+              radial-gradient(circle at 80% 70%, rgba(30, 79, 163, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.artist-landing > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Scroll Animation Classes */
+.artist-landing section {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+  will-change: transform, opacity;
+}
+
+.artist-landing section.animate-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hero-section.animate-in {
+  animation: artist-fadeInUp 0.8s ease-out forwards;
+}
+
+.vision-section.animate-in {
+  animation: artist-fadeInUp 0.8s ease-out 0.1s backwards;
+}
+
+.features-section.animate-in {
+  animation: artist-fadeInUp 0.8s ease-out 0.2s backwards;
+}
+
+.features-section.animate-in .artist-feature-card {
+  animation: artist-fadeInUp 0.6s ease-out forwards;
+}
+
+.features-section.animate-in .artist-feature-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.features-section.animate-in .artist-feature-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.features-section.animate-in .artist-feature-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.features-section.animate-in .artist-feature-card:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+.features-section.animate-in .artist-feature-card:nth-child(5) {
+  animation-delay: 0.5s;
+}
+
+.features-section.animate-in .artist-feature-card:nth-child(6) {
+  animation-delay: 0.6s;
+}
+
+.journey-section.animate-in {
+  animation: artist-fadeInUp 0.8s ease-out 0.2s backwards;
+}
+
+.journey-section.animate-in .journey-card {
+  animation: artist-fadeInUp 0.6s ease-out forwards;
+}
+
+.journey-section.animate-in .journey-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.journey-section.animate-in .journey-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.journey-section.animate-in .journey-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.journey-section.animate-in .journey-card:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+.buyer-features-section.animate-in {
+  animation: artist-fadeInUp 0.8s ease-out 0.2s backwards;
+}
+
+.buyer-features-section.animate-in .buyer-feature-item {
+  animation: artist-fadeInUp 0.6s ease-out forwards;
+}
+
+.buyer-features-section.animate-in .buyer-feature-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.buyer-features-section.animate-in .buyer-feature-item:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.buyer-features-section.animate-in .buyer-feature-item:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.buyer-features-section.animate-in .buyer-feature-item:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+.early-access-section.animate-in {
+  animation: artist-fadeInUp 0.8s ease-out 0.2s backwards;
+}
+
+.cta-section.animate-in {
+  animation: artist-fadeInUp 0.8s ease-out 0.2s backwards;
+}
+
+/* Logout Button */
+.logout-button {
+  margin-top: 2rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text-primary-dark);
+  background: var(--gradient-button);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--transition-smooth);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  letter-spacing: 0.3px;
+  box-shadow: var(--shadow-md);
+}
+
+.logout-button:hover {
+  background: var(--gradient-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.logout-button:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-md);
+}
+
+/* Hero Section */
+.hero-section {
+  text-align: center;
+  padding: 4rem 1rem 5rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.hero-content {
+  position: relative;
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--color-royal) 0%, var(--color-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1.25rem;
+  line-height: 1.2;
+  padding-top: 0rem;
+}
+
+.hero-subtitle {
+  font-size: 1.375rem;
+  color: var(--color-text-dark);
+  max-width: 650px;
+  margin: 0 auto;
+  line-height: 1.7;
+  font-weight: 400;
+}
+
+/* Vision Section */
+.vision-section {
+  max-width: 900px;
+  margin: 0 auto 4rem;
+  padding: 0 1rem;
+}
+
+.vision-container {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+  border-radius: 20px;
+  padding: 3.5rem 3rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(47, 164, 169, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.vision-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+  background: var(--gradient-button);
+}
+
+.vision-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary-light);
+  margin-bottom: 1.75rem;
+  text-align: center;
+  position: relative;
+}
+
+.vision-text {
+  font-size: 1.15rem;
+  color: var(--color-text-dark);
+  line-height: 1.9;
+  margin-bottom: 1.5rem;
+}
+
+.vision-text:last-child {
+  margin-bottom: 0;
+}
+
+.vision-text strong {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* Features Section */
+.features-section {
+  max-width: 1200px;
+  margin: 0 auto 4rem;
+  padding: 0 1rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.artist-feature-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f9fcff 100%);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(47, 164, 169, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.artist-feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-button);
+  transform: scaleX(0);
+  transition: transform 0.4s ease;
+}
+
+.artist-feature-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 32px rgba(47, 164, 169, 0.15), 0 4px 12px rgba(47, 164, 169, 0.1);
+  border-color: var(--color-accent);
+}
+
+.artist-feature-card:hover::before {
+  transform: scaleX(1);
+}
+
+.feature-icon {
+  color: var(--color-primary);
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.feature-title {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--color-text-primary-light);
+  margin-bottom: 0.875rem;
+}
+
+.feature-description {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
+
+/* Journey Section */
+.journey-section {
+  max-width: 1200px;
+  margin: 0 auto 4rem;
+  padding: 0 1rem;
+}
+
+.artist-landing .section-title {
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary-light);
+  margin-bottom: 1rem;
+  position: relative;
+  padding-bottom: 1.5rem;
+}
+
+.artist-landing .section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 4px;
+  background: var(--gradient-button);
+  border-radius: 2px;
+}
+
+.artist-landing .section-subtitle {
+  text-align: center;
+  font-size: 1.125rem;
+  color: var(--color-text-muted);
+  margin-bottom: 2.5rem;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.journey-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.journey-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f9fcff 100%);
+  border-radius: 16px;
+  padding: 2.5rem 1.75rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(47, 164, 169, 0.08);
+  position: relative;
+}
+
+.journey-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 16px 32px rgba(47, 164, 169, 0.15), 0 4px 12px rgba(47, 164, 169, 0.1);
+  border-color: var(--color-accent);
+}
+
+.journey-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 3px;
+  background: var(--gradient-button);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.journey-card:hover::before {
+  opacity: 1;
+}
+
+.journey-icon {
+  color: var(--color-primary);
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.journey-number {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.journey-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text-primary-light);
+  margin-bottom: 0.75rem;
+}
+
+.journey-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.journey-description {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+/* Buyer Features Section */
+.buyer-features-section {
+  max-width: 1200px;
+  margin: 0 auto 4rem;
+  padding: 0 1rem;
+
+}
+
+.buyer-features-container {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 3.5rem 3rem;
+  box-shadow: 0 8px 24px rgba(30, 79, 163, 0.1), 0 2px 8px rgba(30, 79, 163, 0.05);
+  border: 1px solid rgba(30, 79, 163, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.buyer-features-container::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(30, 79, 163, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.buyer-section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text-primary-light);
+  margin-bottom: 1.25rem;
+  text-align: center;
+  position: relative;
+}
+
+.buyer-section-intro {
+  font-size: 1.0625rem;
+  color: var(--color-text-dark);
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto 2.5rem;
+  line-height: 1.7;
+}
+
+.buyer-features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.buyer-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 1.75rem;
+  background: #f0f7ff;
+  backdrop-filter: none;
+  border-radius: 14px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(30, 79, 163, 0.06);
+  border: 1px solid rgba(30, 79, 163, 0.1);
+}
+
+.buyer-feature-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(30, 79, 163, 0.12);
+  background: #e6f2ff;
+  border-color: rgba(30, 79, 163, 0.2);
+}
+
+.buyer-feature-icon {
+  color: var(--color-royal);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
+.buyer-feature-content {
+  flex: 1;
+}
+
+.buyer-feature-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--color-text-primary-light);
+  margin-bottom: 0.5rem;
+}
+
+.buyer-feature-desc {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.buyer-tagline {
+  text-align: center;
+  font-size: 1.125rem;
+  color: var(--color-text-dark);
+  margin-top: 1.5rem;
+}
+
+.buyer-tagline strong {
+  color: var(--color-royal);
+  font-weight: 700;
+}
+
+/* Early Access Section */
+.early-access-section {
+  max-width: 900px;
+  margin: 0 auto 4rem;
+  padding: 0 1rem;
+}
+
+.early-access-container {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #cfe9fc 100%);
+  border-radius: 20px;
+  padding: 3.5rem 3rem;
+  box-shadow: 0 8px 24px rgba(95, 209, 216, 0.15), 0 2px 8px rgba(95, 209, 216, 0.1);
+  border: 2px solid rgba(95, 209, 216, 0.3);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.early-access-container::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  left: -100px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(95, 209, 216, 0.1) 0%, transparent 70%);
+  animation: artist-float 6s ease-in-out infinite;
+}
+
+.early-access-badge {
+  display: inline-block;
+  background: var(--gradient-button);
+  color: white;
+  padding: 0.625rem 1.5rem;
+  border-radius: 50px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 1.75rem;
+  box-shadow: 0 4px 12px rgba(47, 164, 169, 0.3);
+  animation: artist-pulse 2s ease-in-out infinite;
+}
+
+.early-access-title {
+  font-size: 1.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary-light);
+  margin-bottom: 1.5rem;
+}
+
+.early-access-text {
+  font-size: 1.125rem;
+  color: var(--color-text-dark);
+  line-height: 1.8;
+  margin-bottom: 1.25rem;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.early-access-text:last-child {
+  margin-bottom: 0;
+}
+
+.early-access-text strong {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* CTA Section */
+.cta-section {
+  text-align: center;
+  padding: 2rem 1rem 4rem;
+}
+
+.cta-button {
+  background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+  color: #64748b;
+  border: none;
+  padding: 1.125rem 3rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  border-radius: 14px;
+  cursor: not-allowed;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.cta-button:not(:disabled) {
+  background: var(--gradient-button);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(47, 164, 169, 0.35);
+}
+
+.cta-button:not(:disabled):hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px rgba(47, 164, 169, 0.45);
+}
+
+.cta-button:not(:disabled):hover::before {
+  left: 100%;
+}
+
+.cta-note {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  margin-top: 0.75rem;
+}
+
+/* Animations */
+@keyframes artist-fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes artist-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes artist-float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(50px, 50px); }
+}
+
+/* Tablet Responsiveness */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.125rem;
+  }
+
+  .vision-container {
+    padding: 2.5rem 2rem;
+  }
+
+  .vision-title {
+    font-size: 1.75rem;
+  }
+
+  .vision-text {
+    font-size: 1rem;
+  }
+
+  .artist-landing .section-title {
+    font-size: 2rem;
+  }
+
+  .artist-landing .section-subtitle {
+    font-size: 1rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .artist-feature-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .journey-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .journey-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .buyer-features-container {
+    padding: 2.5rem 2rem;
+  }
+
+  .buyer-section-title {
+    font-size: 1.5rem;
+  }
+
+  .buyer-section-intro {
+    font-size: 1rem;
+  }
+
+  .buyer-features-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .buyer-feature-item {
+    padding: 1.5rem;
+  }
+
+  .buyer-feature-title {
+    font-size: 1rem;
+  }
+
+  .buyer-feature-desc {
+    font-size: 0.875rem;
+  }
+
+  .buyer-tagline {
+    font-size: 1rem;
+  }
+
+  .early-access-container {
+    padding: 2.5rem 2rem;
+  }
+
+  .early-access-title {
+    font-size: 1.5rem;
+  }
+
+  .early-access-text {
+    font-size: 1rem;
+  }
+
+  .cta-button {
+    width: 100%;
+    max-width: 400px;
+    padding: 1rem 2.5rem;
+    font-size: 1rem;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 639px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.125rem;
+  }
+
+  .vision-container {
+    padding: 2.5rem 2rem;
+  }
+
+  .vision-title {
+    font-size: 1.75rem;
+  }
+
+  .vision-text {
+    font-size: 1rem;
+  }
+
+  .artist-landing .section-title {
+    font-size: 2rem;
+  }
+
+  .artist-landing .section-subtitle {
+    font-size: 1rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .artist-feature-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .journey-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .journey-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .buyer-features-container {
+    padding: 2.5rem 2rem;
+  }
+
+  .buyer-section-title {
+    font-size: 1.5rem;
+  }
+
+  .buyer-section-intro {
+    font-size: 1rem;
+  }
+
+  .buyer-features-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .buyer-feature-item {
+    padding: 1.5rem;
+  }
+
+  .buyer-feature-title {
+    font-size: 1rem;
+  }
+
+  .buyer-feature-desc {
+    font-size: 0.875rem;
+  }
+
+  .buyer-tagline {
+    font-size: 1rem;
+  }
+
+  .early-access-container {
+    padding: 2.5rem 2rem;
+  }
+
+  .early-access-title {
+    font-size: 1.5rem;
+  }
+
+  .early-access-text {
+    font-size: 1rem;
+  }
+
+  .cta-button {
+    width: 100%;
+    max-width: 400px;
+    padding: 1rem 2.5rem;
+    font-size: 1rem;
+  }
+}
+
+/* Spacing and font adjustments for extra small screens */
+@media (max-width: 480px) {
+  .artist-landing {
+    padding: 1.5rem 0.75rem;
+  }
+
+  .logout-button {
+    top: 1rem;
+    right: 1rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.8125rem;
+  }
+
+  .hero-section {
+    padding: 3rem 0.5rem 4rem;
+  }
+
+  .hero-title {
+    font-size: 1.75rem;
+    padding-top: 1.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .vision-container {
+    padding: 2rem 1.5rem;
+  }
+
+  .vision-title {
+    font-size: 1.5rem;
+  }
+
+  .artist-landing .section-title {
+    font-size: 1.75rem;
+  }
+
+  .artist-landing .feature-card,
+  .artist-landing .journey-card {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .buyer-features-container {
+    padding: 2rem 1.5rem;
+  }
+
+  .buyer-section-title {
+    font-size: 1.375rem;
+  }
+
+  .buyer-feature-icon {
+    margin-top: 0;
+  }
+
+  .early-access-container {
+    padding: 2rem 1.5rem;
+  }
+
+  .early-access-title {
+    font-size: 1.375rem;
+  }
+
+  .early-access-badge {
+    font-size: 0.75rem;
+    padding: 0.5rem 1.25rem;
+  }
+
+  .cta-button {
+    padding: 0.875rem 2rem;
+  }
+}

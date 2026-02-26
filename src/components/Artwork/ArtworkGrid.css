@@ -1,0 +1,71 @@
+.artwork-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  width: 100%;
+  margin-top: 24px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  /* Performance optimizations */
+  contain: layout style;
+  content-visibility: auto;
+}
+
+/* Virtualized grid container */
+.artwork-grid-virtualized {
+  width: 100%;
+  height: 100%;
+  contain: layout style paint;
+}
+
+.artwork-virtual-grid {
+  /* Remove default outline */
+  outline: none;
+}
+
+.artwork-virtual-grid > div {
+  /* Smooth scrolling */
+  scroll-behavior: smooth;
+}
+
+/* Desktop Large - 4 columns */
+@media (min-width: 1440px) {
+  .artwork-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Desktop - 3 columns */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .artwork-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Tablet - 2 columns */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .artwork-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Mobile - 2 columns */
+@media (max-width: 639px) {
+  .artwork-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  /* HomeFeed: 1 column on mobile */
+  .artwork-grid-homefeed {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Discover, Published, Favourites: 2 columns on mobile (default) */
+  .artwork-grid-discover,
+  .artwork-grid-published,
+  .artwork-grid-favourites {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}

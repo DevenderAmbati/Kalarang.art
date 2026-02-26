@@ -1,0 +1,222 @@
+.followers-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.followers-modal-content {
+  background: var(--color-bg-primary, white);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlideUp 0.3s ease-out;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.followers-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.followers-modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-royal, #1E4FA3);
+}
+
+.followers-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--color-text-secondary, #6b7280);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.followers-modal-close:hover {
+  background-color: var(--color-bg-secondary, #f3f4f6);
+  color: var(--color-text-primary, #1f2937);
+}
+
+.followers-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem 0;
+}
+
+.followers-modal-loading,
+.followers-modal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-border, #e5e7eb);
+  border-top-color: var(--color-primary, #2fa4a9);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.followers-list {
+  padding: 0;
+}
+
+.follower-item {
+  display: flex;
+  align-items: center;
+  padding: 0.875rem 1.5rem;
+  transition: background-color 0.2s ease;
+  gap: 1rem;
+}
+
+.follower-item:hover {
+  background-color: var(--color-bg-secondary, #f9fafb);
+}
+
+.follower-item-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.follower-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 1rem;
+  border: 2px solid var(--color-border, #e5e7eb);
+}
+
+.follower-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.follower-name {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #1f2937);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.follower-username {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.85rem;
+  color: var(--color-primary, #2fa4a9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.follower-action-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.remove-btn {
+  background-color: transparent;
+  color: var(--color-teal, #0d9488);
+  border: 1.5px solid var(--color-teal, #0d9488);
+}
+
+.remove-btn:hover {
+  background-color: var(--color-teal, #0d9488);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.unfollow-btn {
+  background-color: transparent;
+  color: var(--color-teal, #0d9488);
+  border: 1.5px solid var(--color-teal, #0d9488);
+}
+
+.unfollow-btn:hover {
+  background-color: var(--color-teal, #0d9488);
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .followers-modal-content {
+    width: 95%;
+    max-height: 85vh;
+    border-radius: 12px;
+  }
+
+  .followers-modal-header {
+    padding: 1.25rem;
+  }
+
+  .followers-modal-header h2 {
+    font-size: 1.125rem;
+  }
+
+  .follower-item {
+    padding: 0.75rem 1.25rem;
+  }
+
+  .follower-avatar {
+    width: 44px;
+    height: 44px;
+  }
+}

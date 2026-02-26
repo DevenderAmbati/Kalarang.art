@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "kalarang-eff3c"
+  },
+  "targets": {
+    "kalarang-eff3c": {
+      "hosting": {
+        "staging": [
+          "kalarang-staging"
+        ],
+        "production": [
+          "kalarang-eff3c"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

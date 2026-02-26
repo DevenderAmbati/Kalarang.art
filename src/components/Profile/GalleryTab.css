@@ -1,0 +1,345 @@
+/* Gallery Tab Component Styles */
+
+.gallery-tab {
+  width: 100%;
+  padding: 0;
+  margin-top: -1rem;
+  scale: 0.99;
+}
+
+/* Grid Layout - CSS Columns Masonry */
+.gallery-tab-grid {
+  columns: 3;
+  column-gap: 8px;
+  width: 100%;
+}
+
+/* Individual Gallery Items */
+.gallery-tab-item {
+  break-inside: avoid;
+  margin-bottom: 8px;
+  display: inline-block;
+  width: 100%;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.6s ease forwards;
+  cursor: pointer;
+  transition: all var(--transition-smooth);
+}
+
+.gallery-tab-item.loaded {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.gallery-tab-item.error {
+  opacity: 0.3;
+}
+
+.gallery-tab-item.error .gallery-tab-image-wrapper {
+  background: var(--color-bg-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.gallery-tab-item.error .gallery-tab-image-wrapper::after {
+  content: '🖼️';
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+.gallery-tab-item:hover {
+  transform: translateY(-4px);
+}
+
+/* Image Container */
+.gallery-tab-image-wrapper {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--color-bg-white);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-smooth);
+}
+
+.gallery-tab-image-wrapper:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Gallery Images */
+.gallery-tab-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  transition: transform var(--transition-smooth);
+}
+
+.gallery-tab-item:hover .gallery-tab-image {
+  transform: scale(1.02);
+}
+
+/* Hover Overlay */
+.gallery-tab-image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg, 
+    transparent 0%, 
+    var(--dark-alpha-05) 100%
+  );
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  pointer-events: none;
+}
+
+.gallery-tab-item:hover .gallery-tab-image-overlay {
+  opacity: 1;
+}
+
+/* Unpublished Badge */
+.gallery-unpublished-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: transparent;
+  backdrop-filter: blur(40px);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  z-index: 2;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* Commission Badge */
+.gallery-commission-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: transparent;
+  backdrop-filter: blur(40px);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  z-index: 2;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* Empty State */
+.gallery-tab-empty {
+  text-align: center;
+  padding: 5rem 2rem;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border-radius: 20px;
+  border: 2px dashed rgba(102, 126, 234, 0.3);
+  margin: 2rem 0;
+  animation: fadeInScale 0.6s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.gallery-tab-empty::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+  animation: rotate 20s linear infinite;
+}
+
+.gallery-tab-empty-content {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.gallery-tab-empty-icon {
+  font-size: 5rem;
+  display: block;
+  margin-bottom: 1.5rem;
+  opacity: 0.6;
+  animation: float 3s ease-in-out infinite;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+.gallery-tab-empty-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
+  line-height: 1.2;
+}
+
+.gallery-tab-empty-text {
+  font-size: 1.1rem;
+  color: var(--color-primary);
+  line-height: 1.7;
+  max-width: 450px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+  font-weight: 400;
+}
+
+/* Animation Keyframes */
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+
+/* Large Desktop - 4 columns */
+@media (min-width: 1440px) {
+  .gallery-tab-grid {
+    columns: 4;
+    column-gap: 8px;
+  }
+  
+  .gallery-tab-item {
+    margin-bottom: 8px;
+  }
+}
+
+/* Desktop - 3 columns */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .gallery-tab-grid {
+    columns: 3;
+    column-gap: 8px !important;
+  }
+  
+  .gallery-tab-item {
+    margin-bottom: 8px !important;
+  }
+}
+
+/* Tablet - 2 columns */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .gallery-tab {
+    padding: 0 0rem!important;
+    position: relative !important;
+  }
+  
+  .gallery-tab-grid {
+    columns: 3;
+    column-gap: 8px;
+  }
+  
+  .gallery-tab-item {
+    margin-bottom: 8px !important;
+  }
+}
+
+/* Mobile - 2 columns */
+@media (max-width: 639px) {
+  .gallery-tab {
+    padding: 0 0rem!important;
+    position: relative !important;
+  }
+  
+  .gallery-tab-grid {
+    columns: 2;
+    column-gap: 6px !important;
+  }
+  
+  .gallery-tab-item {
+    margin-bottom: 4px !important;
+  }
+  
+  .gallery-tab-image-wrapper {
+    border-radius: 8px;
+  }
+
+  .gallery-tab-empty {
+    padding: 3rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+  
+  .gallery-tab-empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 550px) {
+  .layout-main-content .gallery-tab,
+  .gallery-tab {
+    padding: 0 0rem !important;
+    position: relative !important;
+  }
+}
+
+/* Focus states for accessibility */
+.gallery-tab-item:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .gallery-tab-item {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  
+  .gallery-tab-item:hover {
+    transform: none;
+  }
+  
+  .gallery-tab-item:hover .gallery-tab-image {
+    transform: none;
+  }
+  
+  .gallery-tab-image-wrapper,
+  .gallery-tab-image,
+  .gallery-tab-image-overlay {
+    transition: none;
+  }
+}

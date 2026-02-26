@@ -1,0 +1,15 @@
+/* PublishedWorks Component Styles */
+
+.published-works-wrapper {
+  margin-top: -10px;
+}
+
+.published-works-container {
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.published-works-content {
+  width: 100%;
+}

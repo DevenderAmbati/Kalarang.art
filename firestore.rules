@@ -1,0 +1,74 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if true; // Anyone can read user profiles
+      allow write: if request.auth != null && request.auth.uid == userId; // Only owner can update
+    }
+    
+    // Artworks collection
+    match /artworks/{artworkId} {
+      allow read: if true; // Anyone can read artworks
+      allow create: if request.auth != null && request.resource.data.artistId == request.auth.uid; // Only authenticated users can create their own artworks
+      allow update: if request.auth != null && (
+        resource.data.artistId == request.auth.uid || // Owner can update all fields
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])) // Anyone can update only views field
+      );
+      allow delete: if request.auth != null && resource.data.artistId == request.auth.uid; // Only owner can delete
+    }
+    
+    // Likes collection
+    match /likes/{likeId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Favorites collection
+    match /favorites/{favoriteId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    
+    // Follows collection
+    match /follows/{followId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Comments collection (if you have it)
+    match /comments/{commentId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Stories collection
+    match /stories/{storyId} {
+      allow read: if true; // Anyone can read stories
+      allow create: if request.auth != null && request.resource.data.artistId == request.auth.uid; // Only authenticated users can create their own stories
+      allow delete: if request.auth != null && resource.data.artistId == request.auth.uid; // Only owner can delete
+    }
+    
+    // Story Views collection
+    match /storyViews/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId; // Users can only read their own views
+      allow write: if request.auth != null && request.auth.uid == userId; // Users can only write their own views
+    }
+    
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.recipientId; // Users can only read their own notifications
+      allow create: if request.auth != null; // Any authenticated user can create notifications
+      allow update: if request.auth != null && request.auth.uid == resource.data.recipientId; // Only recipient can update (mark as read)
+      allow delete: if request.auth != null && request.auth.uid == resource.data.recipientId; // Only recipient can delete
+    }
+    
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

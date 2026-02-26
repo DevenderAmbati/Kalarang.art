@@ -1,0 +1,29 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow authenticated users to upload artworks
+    match /artworks/{userId}/{fileName} {
+      allow read: if true; // Anyone can read artworks
+      allow write: if request.auth != null && request.auth.uid == userId; // Only the owner can upload
+    }
+    
+    // Allow authenticated users to upload user profile images (avatar and banner)
+    match /users/{userId}/{fileName} {
+      allow read: if true; // Anyone can read profile images
+      allow write: if request.auth != null && request.auth.uid == userId; // Only the owner can upload
+    }
+    
+    // Allow authenticated users to upload profile images (legacy path)
+    match /profiles/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Default deny all other paths
+    match /{allPaths=**} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}

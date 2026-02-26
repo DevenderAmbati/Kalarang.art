@@ -1,0 +1,667 @@
+.artwork-detail {
+  background: var(--color-bg-light);
+  padding: 16px;
+}
+
+/* Top Bar */
+.artwork-detail-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--primary-alpha-20);
+}
+
+.artist-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.artist-avatar-wrapper {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--color-primary);
+  flex-shrink: 0;
+}
+
+.artist-avatar-detail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.artist-name-detail {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-primary-light);
+  transition: all var(--transition-base);
+}
+
+.artist-name-detail:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.follow-button {
+  padding: 6px 18px;
+  border: 1.5px solid var(--color-primary);
+  background: transparent;
+  color: var(--color-primary);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.follow-button:hover {
+  background: var(--color-primary);
+  color: var(--color-bg-white);
+  transform: translateY(-1px);
+}
+
+.follow-button:active {
+  transform: translateY(0);
+}
+
+/* Back Button */
+.back-button-circular {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--color-bg-white);
+  border: 2px solid var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  color: var(--color-primary);
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: -4px;
+}
+
+.back-button-circular:hover {
+  background: var(--color-primary);
+  color: var(--color-bg-white);
+  transform: translateX(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.back-button-circular:active {
+  transform: translateX(-3px) scale(0.95);
+}
+
+.back-button-circular svg {
+  transition: transform 0.3s ease;
+}
+
+.back-button-circular:hover svg {
+  transform: translateX(-2px);
+}
+
+.user-avatar-wrapper {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.user-avatar-detail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Main Content Layout */
+.artwork-detail-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+/* Left Section - Image Gallery */
+.artwork-detail-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.artwork-main-image-wrapper {
+  width: 100%;
+  height: 500px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  background: var(--color-bg-white);
+  border: 1px solid var(--color-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.artwork-main-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+/* Sold Badge for Detail Page */
+.artwork-detail-sold-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: rgba(220, 38, 38, 0.75);
+  color: var(--color-bg-white);
+  padding: 3px 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+  z-index: 10;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.artwork-thumbnails {
+  display: flex;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.thumbnail-wrapper {
+  flex: 1;
+  max-width: 100px;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.thumbnail-wrapper:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
+}
+
+.thumbnail-wrapper.active {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.thumbnail-image {
+  width: 100%;
+  height: 65px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Right Section - Details */
+.artwork-detail-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.artwork-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.artwork-detail-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--color-text-primary-light);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.artwork-divider {
+  height: 1.5px;
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    transparent 100%
+  );
+  border-radius: 2px;
+}
+
+/* Metadata Section */
+.artwork-metadata {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: var(--color-bg-white);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-light);
+}
+
+.metadata-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.metadata-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.metadata-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metadata-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-dark);
+}
+
+.metadata-price {
+  color: var(--color-primary);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* Description */
+.artwork-description-detail {
+  padding: 16px;
+  background: var(--color-bg-white);
+  border-radius: 10px;
+  border: 1px solid var(--color-border-light);
+}
+
+.artwork-description-detail p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--color-text-dark);
+  margin: 0;
+}
+
+/* Action Area */
+.artwork-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.action-icons {
+  display: flex;
+  gap: 10px;
+}
+
+.action-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--color-bg-white);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  cursor: pointer;
+  color: var(--color-primary);
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.action-icon-btn:hover {
+  color: var(--color-hover);
+  border-color: var(--color-primary);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
+  background: var(--primary-alpha-10);
+}
+
+.action-icon-btn:active {
+  transform: scale(1.05);
+}
+
+.action-icon-btn.liked {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--primary-alpha-10);
+}
+
+.action-icon-btn.saved {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--primary-alpha-10);
+}
+
+.action-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.action-btn-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.reach-out-button {
+  flex: 1;
+  padding: 11px 12px;
+  background: var(--gradient-button);
+  color: var(--color-bg-white);
+  border: none;
+  border-radius: 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
+  letter-spacing: 0.3px;
+}
+
+.reach-out-button:hover {
+  background: var(--gradient-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.reach-out-button:active {
+  transform: translateY(0);
+}
+
+/* Tablet Responsiveness */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .artwork-detail-content {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .artwork-detail-title {
+    font-size: 1.6rem;
+  }
+
+  .artwork-main-image-wrapper {
+    height: 400px;
+  }
+  
+  .artwork-detail {
+    padding: 12px;
+  }
+
+  .artwork-detail-top-bar {
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+  }
+
+  .artist-info {
+    flex: 1;
+    flex-wrap: wrap;
+  }
+
+  .user-avatar-wrapper {
+    align-self: flex-end;
+  }
+
+  .back-button-circular {
+    width: 36px;
+    height: 36px;
+  }
+
+  .back-button-circular svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .artwork-main-image-wrapper {
+    height: 350px;
+  }
+
+  .artwork-detail-content {
+    gap: 20px;
+  }
+
+  .artwork-detail-right {
+    gap: 16px;
+  }
+
+  .artwork-detail-title {
+    font-size: 1.4rem;
+  }
+
+  .artwork-metadata {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .metadata-item {
+    padding-bottom: 10px;
+  }
+
+  .metadata-label {
+    font-size: 0.75rem;
+  }
+
+  .metadata-value {
+    font-size: 0.9rem;
+  }
+
+  .metadata-price {
+    font-size: 1rem;
+  }
+
+  .artwork-description-detail {
+    padding: 14px;
+  }
+
+  .artwork-description-detail p {
+    font-size: 0.85rem;
+  }
+
+  .artwork-actions {
+    gap: 10px;
+  }
+
+  .action-icons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .reach-out-button {
+    flex: 1;
+  }
+
+  .thumbnail-wrapper {
+    flex-shrink: 0;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 639px) {
+  .artwork-detail-content {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .artwork-detail-title {
+    font-size: 1.6rem;
+  }
+
+  .artwork-main-image-wrapper {
+    height: 400px;
+  }
+  
+  .artwork-detail {
+    padding: 12px;
+  }
+
+  .artwork-detail-top-bar {
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+  }
+
+  .artist-info {
+    flex: 1;
+    flex-wrap: wrap;
+  }
+
+  .user-avatar-wrapper {
+    align-self: flex-end;
+  }
+
+  .back-button-circular {
+    width: 36px;
+    height: 36px;
+  }
+
+  .back-button-circular svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .artwork-main-image-wrapper {
+    height: 350px;
+  }
+
+  .artwork-detail-content {
+    gap: 20px;
+  }
+
+  .artwork-detail-right {
+    gap: 16px;
+  }
+
+  .artwork-detail-title {
+    font-size: 1.4rem;
+  }
+
+  .artwork-metadata {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .metadata-item {
+    padding-bottom: 10px;
+  }
+
+  .metadata-label {
+    font-size: 0.75rem;
+  }
+
+  .metadata-value {
+    font-size: 0.9rem;
+  }
+
+  .metadata-price {
+    font-size: 1rem;
+  }
+
+  .artwork-description-detail {
+    padding: 14px;
+  }
+
+  .artwork-description-detail p {
+    font-size: 0.85rem;
+  }
+
+  .artwork-actions {
+    gap: 10px;
+  }
+
+  .action-icons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .reach-out-button {
+    flex: 1;
+  }
+
+  .thumbnail-wrapper {
+    flex-shrink: 0;
+  }
+}
+
+/* Spacing and font adjustments for extra small screens */
+@media (max-width: 480px) {
+  .artwork-detail {
+    padding: 10px;
+  }
+
+  .artist-info {
+    gap: 8px;
+  }
+
+  .artist-avatar-wrapper {
+    width: 34px;
+    height: 34px;
+  }
+
+  .artist-name-detail {
+    font-size: 0.85rem;
+  }
+
+  .follow-button {
+    padding: 5px 14px;
+    font-size: 0.75rem;
+  }
+
+  .back-button-circular {
+    width: 34px;
+    height: 34px;
+  }
+
+  .back-button-circular svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .artwork-detail-title {
+    font-size: 1.2rem;
+  }
+
+  .artwork-main-image-wrapper {
+    height: 280px;
+  }
+
+  .thumbnail-image {
+    height: 55px;
+  }
+
+  .action-icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .action-icon-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+}

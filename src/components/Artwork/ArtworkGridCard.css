@@ -1,0 +1,683 @@
+/* Card Container */
+.artwork-grid-card {
+  background: linear-gradient(135deg, #E8F4F5 0%, #D0EAEC 100%);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-smooth);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid rgba(47, 164, 169, 0.2);
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  /* Performance optimizations */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.artwork-grid-card:hover {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-lg);
+  z-index: 1;
+}
+
+/* Prevent hover transform when menu is open */
+.artwork-grid-card.menu-open {
+  z-index: 9999;
+  overflow: visible;
+}
+
+.artwork-grid-card.menu-open:hover {
+  transform: none;
+}
+
+/* Image Section */
+.artwork-grid-card-image-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 12px 12px 0 0;
+}
+
+.artwork-grid-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform var(--transition-smooth);
+  /* Performance optimizations */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.artwork-grid-card:hover .artwork-grid-card-image {
+  transform: scale(1.05);
+}
+
+/* Title Overlay */
+.artwork-grid-card-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+ 
+  padding: 6px 6px 6px;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  transition: all var(--transition-smooth);
+}
+
+
+
+/* Heart Icon Overlay */
+.artwork-grid-card-heart {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  color: var(--color-bg-white);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: var(--shadow-sm);
+}
+
+.artwork-grid-card-heart:hover {
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--color-accent);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
+}
+
+.artwork-grid-card-heart.liked {
+  color: var(--color-primary);
+}
+
+.artwork-grid-card-heart svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.1s ease;
+}
+
+/* Heart animation keyframes */
+@keyframes heartPopIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes heartBounceOut {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.2);
+  }
+  50% {
+    transform: scale(0.9);
+  }
+  75% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.artwork-grid-card-heart.liked svg {
+  animation: heartPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.artwork-grid-card-heart.animating svg {
+  animation: heartBounceOut 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Sold Badge */
+.artwork-sold-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(220, 38, 38, 0.75);
+  color: var(--color-bg-white);
+  padding: 3px 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+  z-index: 10;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Content Section */
+.artwork-grid-card-content {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  border-radius: 0 0 12px 12px;
+  overflow: visible;
+  position: relative;
+}
+
+/* Title */
+.artwork-grid-card-title {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-bg-white);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+  text-shadow: 0 2px 8px rgba(11, 31, 42, 0.5);
+  transition: all var(--transition-base);
+}
+
+
+
+/* Artist Section */
+.artwork-grid-card-artist {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.artwork-grid-card-price-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.artwork-grid-card-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid var(--color-border-light);
+}
+
+.artwork-grid-card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.artwork-grid-card-artist-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-royal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  transition: all var(--transition-base);
+}
+
+.artwork-grid-card-artist-name:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+/* Price Badge */
+.artwork-grid-card-price {
+  background: var(--color-primary);
+  color: var(--color-text-primary-dark);
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: background-color var(--transition-base);
+}
+
+/* Menu Wrapper */
+.artwork-grid-card-menu-wrapper {
+  position: relative;
+  z-index: 10000;
+}
+
+/* Menu Button */
+.artwork-grid-card-menu-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-royal);
+  transition: all var(--transition-base);
+  border-radius: 50%;
+}
+
+.artwork-grid-card-menu-button:hover {
+  background: rgba(47, 164, 169, 0.1);
+  color: var(--color-primary);
+  transform: scale(1.1);
+}
+
+/* Dropdown Menu */
+.artwork-grid-card-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--color-bg-white);
+  border: 1px solid rgba(47, 164, 169, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(47, 164, 169, 0.1);
+  z-index: 10001;
+  min-width: 160px;
+  overflow: hidden;
+  animation: dropdownFadeIn 0.2s ease-out;
+}
+
+/* Dropdown opening upwards for bottom rows */
+.artwork-grid-card-dropdown.dropdown-up {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 4px;
+  animation: dropdownFadeInUp 0.2s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dropdownFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dropdown Items */
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-royal);
+  text-align: left;
+  transition: all var(--transition-base);
+}
+
+.dropdown-item:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.dropdown-item svg {
+  flex-shrink: 0;
+}
+
+.dropdown-item:not(:last-child) {
+  border-bottom: 1px solid rgba(47, 164, 169, 0.1);
+}
+
+/* Tablet Styles */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .artwork-grid-card-content {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .artwork-grid-card-title {
+    font-size: 0.8rem;
+  }
+
+  .artwork-grid-card-avatar {
+    width: 22px;
+    height: 22px;
+  }
+
+  .artwork-grid-card-artist-name {
+    font-size: 0.85rem;
+  }
+
+  .artwork-grid-card-price {
+    font-size: 0.85rem;
+    padding: 7px 14px;
+  }
+
+  .artwork-grid-card-heart {
+    width: 36px;
+    height: 36px;
+    top: 10px;
+    right: 10px;
+  }
+
+  .artwork-grid-card-heart svg {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* Mobile Styles */
+@media (max-width: 639px) {
+  .artwork-grid-card-content {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .artwork-grid-card-title {
+    font-size: 0.8rem;
+  }
+
+  .artwork-grid-card-avatar {
+    width: 20px;
+    height: 20px;
+  }
+
+  .artwork-grid-card-artist-name {
+    font-size: 0.7rem;
+  }
+
+  .artwork-grid-card-price {
+    font-size: 0.65rem;
+    padding: 4px 8px;
+  }
+
+  .artwork-grid-card-heart {
+    width: 34px;
+    height: 34px;
+    top: 8px;
+    right: 8px;
+  }
+
+  .artwork-grid-card-heart svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Fullscreen Story Modal - Reuse HomeFeed styles */
+.story-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.95);
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.story-fullscreen-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0;
+  gap: 1.5rem;
+}
+
+.story-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10000;
+  color: #333;
+}
+
+.story-close-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: scale(1.1);
+}
+
+.story-image-wrapper {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.story-fullscreen-image {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 0;
+}
+
+.story-fullscreen-info {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.75rem 1.25rem;
+  border-radius: 50px;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.story-fullscreen-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  object-fit: cover;
+  margin-left: -0.25rem;
+}
+
+.story-fullscreen-name {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.story-price {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.5rem 1.25rem;
+  border-radius: 50px;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.story-fullscreen-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 500px;
+  padding: 0 1rem;
+  flex-shrink: 0;
+  margin-bottom: 1rem;
+}
+
+.story-buttons {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+}
+
+.story-btn {
+  flex: 1;
+  padding: 0.85rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.story-btn-primary {
+  color: var(--color-text-primary-dark);
+  background: var(--gradient-button);
+  box-shadow: 0 4px 12px rgba(47, 164, 169, 0.25);
+}
+
+.story-btn-primary:hover {
+  background: var(--gradient-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.1);
+}
+
+.story-btn-primary:active {
+  transform: translateY(0);
+}
+
+.story-btn-secondary {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+}
+
+.story-btn-secondary:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 255, 255, 0.4);
+}
+
+.story-btn-secondary:active {
+  transform: translateY(0);
+}
+
+/* Mobile Responsive for Story Modal */
+@media (max-width: 639px) {
+  .story-fullscreen-content {
+    padding: 0.5rem 0;
+  }
+
+  .story-close-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.25rem;
+  }
+
+  .story-fullscreen-info {
+    top: 1rem;
+    left: 1rem;
+    padding: 0.5rem 1rem;
+    gap: 0.5rem;
+  }
+
+  .story-fullscreen-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .story-fullscreen-name {
+    font-size: 0.9rem;
+  }
+
+  .story-price {
+    font-size: 1rem;
+    padding: 0.4rem 1rem;
+  }
+
+  .story-fullscreen-actions {
+    padding: 0 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .story-buttons {
+    gap: 0.75rem;
+  }
+
+  .story-btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.85rem;
+  }
+}

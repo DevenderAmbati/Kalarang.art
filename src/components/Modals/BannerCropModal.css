@@ -1,0 +1,336 @@
+/* BannerCropModal.css */
+
+.banner-crop-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.banner-crop-modal {
+  background: var(--color-bg-white);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.banner-crop-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.banner-crop-modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(-color-royal);
+}
+
+.banner-crop-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.banner-crop-close-btn:hover {
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+}
+
+.banner-crop-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  gap: 1rem;
+}
+
+.banner-crop-container {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 300px;
+  background-color: #000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Hide the dark overlay around crop area */
+.banner-crop-container .reactEasyCrop_Container::before {
+  display: none !important;
+}
+
+.banner-crop-container .reactEasyCrop_Container::after {
+  display: none !important;
+}
+
+/* Make the overlay transparent */
+.reactEasyCrop_CropArea {
+  box-shadow: none !important;
+}
+
+.reactEasyCrop_Container > div:first-child {
+  background: transparent !important;
+}
+
+/* Remove all overlays */
+.banner-crop-container [class*="reactEasyCrop"] {
+  box-shadow: none !important;
+}
+
+/* Custom classes to remove overlay */
+.custom-cropper-container {
+  box-shadow: 0 0 0 9999em transparent !important;
+}
+
+.custom-crop-area {
+  box-shadow: none !important;
+}
+
+.banner-crop-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: var(--color-text-secondary);
+  gap: 1rem;
+}
+
+.banner-crop-placeholder p {
+  font-size: 1.125rem;
+  margin: 0;
+}
+
+.banner-crop-zoom-control {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1rem;
+}
+
+.banner-crop-zoom-control label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  min-width: 50px;
+}
+
+.banner-crop-zoom-control input[type="range"] {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-bg-surface);
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.banner-crop-zoom-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.banner-crop-zoom-control input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px var(--primary-alpha-10);
+}
+
+.banner-crop-zoom-control input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.banner-crop-zoom-control input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px var(--primary-alpha-10);
+}
+
+.banner-crop-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.banner-crop-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+  outline: none;
+}
+
+.banner-crop-btn-primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.banner-crop-btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.banner-crop-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.banner-crop-btn-secondary {
+  background: transparent;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+}
+
+.banner-crop-btn-secondary:hover {
+  background: var(--primary-alpha-10);
+  transform: translateY(-1px);
+}
+
+/* Tablet Responsiveness */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .banner-crop-modal {
+    max-width: 95%;
+    max-height: 95vh;
+  }
+
+  .banner-crop-modal-header {
+    padding: 1rem;
+  }
+
+  .banner-crop-modal-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .banner-crop-content {
+    padding: 1rem;
+  }
+
+  .banner-crop-container {
+    min-height: 200px;
+  }
+
+  .banner-crop-placeholder {
+    height: 300px;
+  }
+
+  .banner-crop-modal-footer {
+    padding: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .banner-crop-btn {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 639px) {
+  .banner-crop-modal {
+    max-width: 95%;
+    max-height: 95vh;
+  }
+
+  .banner-crop-modal-header {
+    padding: 1rem;
+  }
+
+  .banner-crop-modal-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .banner-crop-content {
+    padding: 1rem;
+  }
+
+  .banner-crop-container {
+    min-height: 200px;
+  }
+
+  .banner-crop-placeholder {
+    height: 300px;
+  }
+
+  .banner-crop-modal-footer {
+    padding: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .banner-crop-btn {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+}
+
+/* Spacing and font adjustments for extra small screens */
+@media (max-width: 480px) {
+  .banner-crop-modal-header h2 {
+    font-size: 1.125rem;
+  }
+
+  .banner-crop-btn {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .banner-crop-container {
+    min-height: 180px;
+  }
+
+  .banner-crop-placeholder {
+    height: 250px;
+  }
+
+  .banner-crop-placeholder svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .banner-crop-placeholder p {
+    font-size: 1rem;
+  }
+}
