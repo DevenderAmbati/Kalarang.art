@@ -17,7 +17,7 @@ const Footer: React.FC = () => {
       alignItems: 'center',
       borderTop: '1px solid var(--primary-alpha-20)',
       backgroundColor: 'var(--color-bg-dark-surface)',
-      zIndex: 100
+      zIndex: 100,
     }}>
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>

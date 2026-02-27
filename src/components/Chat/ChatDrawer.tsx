@@ -471,6 +471,19 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
     }
   }, [isOpen]);
 
+  // Lock body scroll + set viewport interactive-widget so keyboard resizes the fixed overlay
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.style.overflow = 'hidden';
+    const viewport = document.querySelector('meta[name="viewport"]');
+    const prevContent = viewport?.getAttribute('content') ?? '';
+    viewport?.setAttribute('content', prevContent + ', interactive-widget=resizes-content');
+    return () => {
+      document.body.style.overflow = '';
+      if (viewport) viewport.setAttribute('content', prevContent);
+    };
+  }, [isOpen]);
+
   const handleBack = () => {
     // If we were opened with an initialContact, back = close drawer
     if (initialContact) {

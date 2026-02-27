@@ -7,7 +7,7 @@ kalarang/functions/node_modules/
 /.pnp
 .pnp.js
 
-
+.firebase/
 # testing
 /coverage
 
