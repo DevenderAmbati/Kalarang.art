@@ -17,5 +17,12 @@ export default function ProtectedRoute({
     return <Navigate to="/" replace />;
   }
 
+  if (
+    appUser.provider === "password" &&
+    (!appUser.passwordPolicyVersion || appUser.passwordPolicyVersion < 2)
+  ) {
+    return <Navigate to="/update-password" replace />;
+  }
+
   return children;
 }

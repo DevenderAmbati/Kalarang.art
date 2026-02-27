@@ -12,6 +12,7 @@ import Login from "./pages/auth/Login";
 import SignUp from "./pages/auth/SignUp";
 import ResetPassword from "./pages/auth/ResetPassword";
 import SetNewPassword from "./pages/auth/SetNewPassword";
+import UpdatePassword from "./pages/auth/UpdatePassword";
 import Upload from "./pages/artwork/Upload";
 import HomeFeed from "./pages/feed/HomeFeed";
 import Discover from "./pages/feed/Discover";
@@ -82,6 +83,12 @@ function App() {
   // Helper function to check if artist needs to create username
   const needsUsernameCreation = () => {
     return appUser?.role === "artist" && !appUser?.username;
+  };
+
+  const needsPasswordUpdate = () => {
+    if (!appUser) return false;
+    if (appUser.provider !== "password") return false;
+    return !appUser.passwordPolicyVersion || appUser.passwordPolicyVersion < 2;
   };
 
   const handleLogin = () => {
@@ -160,7 +167,7 @@ function App() {
 
               <Route
                 path="/signup"
-                element={isAuthenticated() ? <Navigate to="/home" /> : <SignUp onSignUp={handleSignUp} />}
+                element={isAuthenticated() ? <Navigate to={appUser!.role === "artist" ? "/artist" : appUser!.role === "buyer" ? "/buyer" : "/home"} replace /> : <SignUp onSignUp={handleSignUp} />}
               />
 
               {/* Username creation route for artists */}
@@ -190,6 +197,17 @@ function App() {
               <Route
                 path="/reset-password"
                 element={isAuthenticated() ? <Navigate to={appUser!.role === "artist" ? "/artist" : appUser!.role === "buyer" ? "/buyer" : "/dashboard"} /> : <SetNewPassword />}
+              />
+
+              <Route
+                path="/update-password"
+                element={
+                  isAuthenticated() ? (
+                    needsPasswordUpdate() ? <UpdatePassword /> : <Navigate to="/home" replace />
+                  ) : (
+                    <Navigate to="/login" replace />
+                  )
+                }
               />
 
               {/* Protected routes */}

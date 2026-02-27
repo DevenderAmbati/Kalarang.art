@@ -135,9 +135,9 @@ artistLanding.css
   animation: artist-fadeInUp 0.8s ease-out 0.2s backwards;
 }
 
-/* Logout Button */
-.logout-button {
-  margin-top: 2rem;
+/* Enter Feed CTA Button */
+.cta-enter-button {
+  margin-top: 0.5rem;
   padding: 0.75rem 1.5rem;
   font-size: 0.875rem;
   font-weight: 700;
@@ -155,13 +155,13 @@ artistLanding.css
   box-shadow: var(--shadow-md);
 }
 
-.logout-button:hover {
+.cta-enter-button:hover {
   background: var(--gradient-primary-hover);
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
 
-.logout-button:active {
+.cta-enter-button:active {
   transform: translateY(0);
   box-shadow: var(--shadow-md);
 }
@@ -258,9 +258,10 @@ artistLanding.css
   padding: 0 1rem;
 }
 
-.features-grid {
+.features-grid,
+.artist-landing .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 2rem;
   margin-top: 3rem;
 }
@@ -358,9 +359,10 @@ artistLanding.css
   margin-right: auto;
 }
 
-.journey-grid {
+.journey-grid,
+.artist-landing .journey-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
 }
 
@@ -619,7 +621,9 @@ artistLanding.css
 /* CTA Section */
 .cta-section {
   text-align: center;
-  padding: 2rem 1rem 4rem;
+  padding: 0.5rem 1rem 1.5rem;
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 .cta-button {
@@ -724,7 +728,7 @@ artistLanding.css
   }
 
   .features-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 1.5rem;
   }
 
@@ -733,7 +737,7 @@ artistLanding.css
   }
 
   .journey-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 1.25rem;
   }
 
@@ -754,7 +758,7 @@ artistLanding.css
   }
 
   .buyer-features-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 1.25rem;
   }
 
@@ -901,9 +905,7 @@ artistLanding.css
     padding: 1.5rem 0.75rem;
   }
 
-  .logout-button {
-    top: 1rem;
-    right: 1rem;
+  .cta-enter-button {
     padding: 0.625rem 1rem;
     font-size: 0.8125rem;
   }

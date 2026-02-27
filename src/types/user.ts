@@ -14,4 +14,5 @@ export interface AppUser {
   whatsappVerified?: boolean; // Whether WhatsApp number is verified
   whatsappAddedAt?: Date; // When WhatsApp number was added
   dontAskWhatsApp?: boolean; // User preference to not show WhatsApp prompt
+  passwordPolicyVersion?: number;
 }

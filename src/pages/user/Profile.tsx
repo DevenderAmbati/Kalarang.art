@@ -402,52 +402,50 @@ const Profile: React.FC = () => {
                 </div>
                 
                 {/* Following Stats */}
-                {appUser?.role === 'artist' && (
-                  <div 
-                    onClick={handleFollowingClick}
-                    className="following-box-mobile"
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      cursor: 'pointer',
-                      padding: '0.5rem 1rem',
-                      backgroundColor: 'rgba(47, 164, 169, 0.05)',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(47, 164, 169, 0.2)',
-                      transition: 'all 0.2s ease',
-                      minWidth: '90px',
-                      flexShrink: 0
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(47, 164, 169, 0.1)';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(47, 164, 169, 0.05)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    <span className="following-number-mobile" style={{ 
-                      fontSize: '1.5rem', 
-                      fontWeight: 700, 
-                      color: 'var(--color-teal, #0d9488)',
-                      lineHeight: 1
-                    }}>
-                      {formatNumber(stats.following)}
-                    </span>
-                    <span className="following-label-mobile" style={{ 
-                      fontSize: '0.7rem', 
-                      color: 'var(--color-text-secondary)',
-                      marginTop: '0.25rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      fontWeight: 600
-                    }}>
-                      Following
-                    </span>
-                  </div>
-                )}
+                <div 
+                  onClick={handleFollowingClick}
+                  className="following-box-mobile"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    padding: '0.5rem 1rem',
+                    backgroundColor: 'rgba(47, 164, 169, 0.05)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(47, 164, 169, 0.2)',
+                    transition: 'all 0.2s ease',
+                    minWidth: '90px',
+                    flexShrink: 0
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(47, 164, 169, 0.1)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(47, 164, 169, 0.05)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  <span className="following-number-mobile" style={{ 
+                    fontSize: '1.5rem', 
+                    fontWeight: 700, 
+                    color: 'var(--color-teal, #0d9488)',
+                    lineHeight: 1
+                  }}>
+                    {formatNumber(stats.following)}
+                  </span>
+                  <span className="following-label-mobile" style={{ 
+                    fontSize: '0.7rem', 
+                    color: 'var(--color-text-secondary)',
+                    marginTop: '0.25rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    fontWeight: 600
+                  }}>
+                    Following
+                  </span>
+                </div>
               </div>
               
               <div style={styles.badgeRow}>

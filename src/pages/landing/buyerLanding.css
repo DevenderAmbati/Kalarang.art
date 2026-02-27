@@ -2,10 +2,9 @@
 
 .buyer-landing {
   min-height: 100vh;
-    /* background: linear-gradient(135deg, #f8fafc 0%, #e0f2f7 50%, #d4eef5 100%); */
-  padding: 0rem 1rem;
+  padding: 2rem 1rem;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 .buyer-landing::before {
@@ -127,9 +126,9 @@
   animation: buyer-fadeInUp 0.8s ease-out 0.2s backwards;
 }
 
-/* Logout Button */
-.logout-button {
-  margin-top: 2rem;
+/* Enter Feed CTA Button */
+.buyer-landing .cta-enter-button {
+  margin-top: 0.5rem;
   padding: 0.75rem 1.5rem;
   font-size: 0.875rem;
   font-weight: 700;
@@ -147,13 +146,13 @@
   box-shadow: var(--shadow-md);
 }
 
-.logout-button:hover {
+.buyer-landing .cta-enter-button:hover {
   background: var(--gradient-primary-hover);
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
 
-.logout-button:active {
+.buyer-landing .cta-enter-button:active {
   transform: translateY(0);
   box-shadow: var(--shadow-md);
 }
@@ -252,7 +251,7 @@
 
 .buyer-landing .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 2rem;
   margin-top: 3rem;
 }
@@ -352,7 +351,7 @@
 
 .buyer-landing .journey-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
 }
 
@@ -592,7 +591,9 @@
 /* CTA Section */
 .buyer-landing .cta-section {
   text-align: center;
-  padding: 2rem 1rem 4rem;
+  padding: 0.5rem 1rem 1.5rem;
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 .buyer-landing .cta-button {
@@ -668,12 +669,24 @@
 
 /* Tablet Responsiveness */
 @media (min-width: 640px) and (max-width: 1023px) {
-  .hero-title {
+  .buyer-landing .hero-title {
     font-size: 2rem;
   }
 
-  .hero-subtitle {
+  .buyer-landing .hero-subtitle {
     font-size: 1.125rem;
+  }
+
+  .buyer-landing .vision-container {
+    padding: 2.5rem 2rem;
+  }
+
+  .buyer-landing .vision-title {
+    font-size: 1.75rem;
+  }
+
+  .buyer-landing .vision-text {
+    font-size: 1rem;
   }
 
   .buyer-landing .section-title {
@@ -684,66 +697,66 @@
     font-size: 1rem;
   }
 
-  .features-grid {
+  .buyer-landing .features-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 1.5rem;
   }
 
-  .buyer-feature-card {
+  .buyer-landing .buyer-feature-card {
     padding: 2rem 1.5rem;
   }
 
-  .journey-grid {
+  .buyer-landing .journey-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 1.25rem;
   }
 
-  .journey-card {
+  .buyer-landing .journey-card {
     padding: 2rem 1.5rem;
   }
 
-  .community-container {
+  .buyer-landing .community-container {
     padding: 2.5rem 2rem;
   }
 
-  .community-title {
+  .buyer-landing .community-title {
     font-size: 1.5rem;
   }
 
-  .community-intro {
+  .buyer-landing .community-intro {
     font-size: 1rem;
   }
 
   .buyer-landing .community-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 1.25rem;
   }
 
-  .community-feature-item {
+  .buyer-landing .community-feature-item {
     padding: 1.5rem;
   }
 
-  .community-feature-title {
+  .buyer-landing .community-feature-title {
     font-size: 1rem;
   }
 
-  .community-feature-desc {
+  .buyer-landing .community-feature-desc {
     font-size: 0.875rem;
   }
 
-  .early-access-container {
+  .buyer-landing .early-access-container {
     padding: 2.5rem 2rem;
   }
 
-  .early-access-title {
+  .buyer-landing .early-access-title {
     font-size: 1.5rem;
   }
 
-  .early-access-text {
+  .buyer-landing .early-access-text {
     font-size: 1rem;
   }
 
-  .cta-button {
+  .buyer-landing .cta-button {
     width: 100%;
     max-width: 400px;
     padding: 1rem 2.5rem;
@@ -753,12 +766,24 @@
 
 /* Mobile Responsiveness */
 @media (max-width: 639px) {
-  .hero-title {
+  .buyer-landing .hero-title {
     font-size: 2rem;
   }
 
-  .hero-subtitle {
+  .buyer-landing .hero-subtitle {
     font-size: 1.125rem;
+  }
+
+  .buyer-landing .vision-container {
+    padding: 2.5rem 2rem;
+  }
+
+  .buyer-landing .vision-title {
+    font-size: 1.75rem;
+  }
+
+  .buyer-landing .vision-text {
+    font-size: 1rem;
   }
 
   .buyer-landing .section-title {
@@ -769,33 +794,33 @@
     font-size: 1rem;
   }
 
-  .features-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .buyer-landing .features-grid {
+    grid-template-columns: 1fr;
     gap: 1.5rem;
   }
 
-  .buyer-feature-card {
+  .buyer-landing .buyer-feature-card {
     padding: 2rem 1.5rem;
   }
 
-  .journey-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .buyer-landing .journey-grid {
+    grid-template-columns: 1fr;
     gap: 1.25rem;
   }
 
-  .journey-card {
+  .buyer-landing .journey-card {
     padding: 2rem 1.5rem;
   }
 
-  .community-container {
+  .buyer-landing .community-container {
     padding: 2.5rem 2rem;
   }
 
-  .community-title {
+  .buyer-landing .community-title {
     font-size: 1.5rem;
   }
 
-  .community-intro {
+  .buyer-landing .community-intro {
     font-size: 1rem;
   }
 
@@ -804,31 +829,31 @@
     gap: 1.25rem;
   }
 
-  .community-feature-item {
+  .buyer-landing .community-feature-item {
     padding: 1.5rem;
   }
 
-  .community-feature-title {
+  .buyer-landing .community-feature-title {
     font-size: 1rem;
   }
 
-  .community-feature-desc {
+  .buyer-landing .community-feature-desc {
     font-size: 0.875rem;
   }
 
-  .early-access-container {
+  .buyer-landing .early-access-container {
     padding: 2.5rem 2rem;
   }
 
-  .early-access-title {
+  .buyer-landing .early-access-title {
     font-size: 1.5rem;
   }
 
-  .early-access-text {
+  .buyer-landing .early-access-text {
     font-size: 1rem;
   }
 
-  .cta-button {
+  .buyer-landing .cta-button {
     width: 100%;
     max-width: 400px;
     padding: 1rem 2.5rem;
@@ -842,54 +867,62 @@
     padding: 1.5rem 0.75rem;
   }
 
-  .hero-section {
+  .buyer-landing .hero-section {
     padding: 3rem 0.5rem 4rem;
   }
 
-  .hero-title {
+  .buyer-landing .hero-title {
     font-size: 1.75rem;
     padding-top: 1.5rem;
   }
 
-  .hero-subtitle {
+  .buyer-landing .hero-subtitle {
     font-size: 1rem;
+  }
+
+  .buyer-landing .vision-container {
+    padding: 2rem 1.5rem;
+  }
+
+  .buyer-landing .vision-title {
+    font-size: 1.5rem;
   }
 
   .buyer-landing .section-title {
     font-size: 1.75rem;
   }
 
-  .buyer-feature-card,
-  .journey-card {
+  .buyer-landing .buyer-feature-card,
+  .buyer-landing .journey-card {
     padding: 1.75rem 1.25rem;
   }
 
-  .community-container {
+  .buyer-landing .community-container {
     padding: 2rem 1.5rem;
   }
 
-  .community-title {
+  .buyer-landing .community-title {
     font-size: 1.375rem;
   }
 
-  .community-feature-icon {
+  .buyer-landing .community-feature-icon {
     margin-top: 0;
   }
 
-  .early-access-container {
+  .buyer-landing .early-access-container {
     padding: 2rem 1.5rem;
   }
 
-  .early-access-title {
+  .buyer-landing .early-access-title {
     font-size: 1.375rem;
   }
 
-  .early-access-badge {
+  .buyer-landing .early-access-badge {
     font-size: 0.75rem;
     padding: 0.5rem 1.25rem;
   }
 
-  .cta-button {
+  .buyer-landing .cta-button {
     padding: 0.875rem 2rem;
   }
 }

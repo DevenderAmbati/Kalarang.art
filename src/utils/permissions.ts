@@ -59,10 +59,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   ],
   
   buyer: [
-    // Buyers cannot create artwork
-    // Portfolio viewing only (not management)
-    Permission.VIEW_PORTFOLIO,
-    
     // Profile
     Permission.VIEW_BUYER_PROFILE,
     

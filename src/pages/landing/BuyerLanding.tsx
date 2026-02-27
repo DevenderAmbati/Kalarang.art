@@ -1,5 +1,4 @@
 import { useAuth } from "../../context/AuthContext";
-import { logout } from "../../services/authService";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -7,11 +6,13 @@ import {
   MdFavorite,
   MdPerson,
   MdShoppingCart,
-  MdLogout,
+  MdChat,
+  MdRocketLaunch,
   MdAutoAwesome,
   MdVerified,
   MdCollections,
-  MdTrendingUp
+  MdTrendingUp,
+  MdPeopleOutline
 } from "react-icons/md";
 import "./buyerLanding.css";
 
@@ -72,9 +73,8 @@ export default function BuyerLanding() {
     return () => observer.disconnect();
   }, []);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/");
+  const handleEnterFeed = () => {
+    navigate("/home");
   };
 
   const buyerFeatures = [
@@ -97,10 +97,16 @@ export default function BuyerLanding() {
         "Learn about the artists behind the art. Explore artist profiles, their stories, and creative journeys.",
     },
     {
-      title: "Purchase original art",
-      icon: MdShoppingCart,
+      title: "Follow & reach out to artists",
+      icon: MdPeopleOutline,
       description:
-        "Buy original artwork directly from artists. Secure transactions and direct artist support.",
+        "Follow your favorite artists, stay updated on their new work, and can reachout to them directly.",
+    },
+    {
+      title: "Chat with artists",
+      icon: MdChat,
+      description:
+        "Start a conversation with artists directly. Ask about their work, process, or commissions.",
     },
   ];
 
@@ -125,9 +131,9 @@ export default function BuyerLanding() {
     },
     {
       number: "4",
-      title: "Purchase",
-      description: "Acquire original art directly from artists",
-      icon: MdShoppingCart,
+      title: "Reach out",
+      description: "Chat with artists to learn about their work and the buying process",
+      icon: MdChat,
     },
   ];
 
@@ -185,7 +191,7 @@ export default function BuyerLanding() {
             and collecting art should feel thoughtful and meaningful—not driven by algorithms, or popularity.
           </p>
           <p className="vision-text">
-            We're creating a space where collectors can explore original art, 
+            We have created a space where collectors can explore original art, 
             connect directly with the artists behind the work, and invest in pieces that truly 
             resonate with them.
           </p>
@@ -198,7 +204,7 @@ export default function BuyerLanding() {
         data-section="features"
         ref={(el) => { sectionRefs.current.features = el; }}
       >
-        <h2 className="section-title">What's Coming Up</h2>
+        <h2 className="section-title">What's there for Buyers</h2>
         <div className="features-grid">
           {buyerFeatures.map((feature, index) => (
             <div key={index} className="buyer-feature-card">
@@ -267,27 +273,6 @@ export default function BuyerLanding() {
       </section>
 
       {/* Early Access Notice */}
-      <section 
-        className={`early-access-section ${visibleSections.has('early-access') ? 'animate-in' : ''}`}
-        data-section="early-access"
-        ref={(el) => { sectionRefs.current['early-access'] = el; }}
-      >
-        <div className="early-access-container">
-          <div className="early-access-badge">Early Access</div>
-          <h2 className="early-access-title">
-            Users are being onboarded gradually
-          </h2>
-          <p className="early-access-text">
-            We're building Kalarang thoughtfully and carefully onboarding artists to ensure 
-            the best experience for everyone. The explore section will grow as more artists 
-            join and publish their work.
-          </p>
-          <p className="early-access-text">
-            <strong>Thank you for your patience.</strong> We're creating something special 
-            for both artists and art lovers—a platform that truly respects the creative process.
-          </p>
-        </div>
-      </section>
 
       {/* CTA Section */}
       <section 
@@ -295,10 +280,9 @@ export default function BuyerLanding() {
         data-section="cta"
         ref={(el) => { sectionRefs.current.cta = el; }}
       >
-        <p className="cta-note">We'll notify you when the platform is ready</p>
-        <button className="logout-button" onClick={handleLogout}>
-          {MdLogout({ size: 20 })}
-          <span>Logout</span>
+        <button className="cta-enter-button" onClick={handleEnterFeed}>
+          {MdRocketLaunch({ size: 22 })}
+          <span>Start Your Journey</span>
         </button>
       </section>
     </div>

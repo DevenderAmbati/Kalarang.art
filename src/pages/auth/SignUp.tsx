@@ -118,12 +118,6 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
         // All validations passed, now signup
         await signup(formData.fullName, formData.email, formData.password, userType);
         
-        // Wait for auth state to update, then navigate
-        setTimeout(() => {
-          const targetRoute = userType === 'artist' ? '/artist' : '/buyer';
-          navigate(targetRoute);
-        }, 2000);
-        
         onSignUp();
       } catch (error: any) {
         console.error('Sign up failed:', error);
@@ -174,14 +168,6 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
       
       // All validations passed, proceed with Google sign-in
       await signInWithGoogle(userType); // role = artist | buyer
-      
-      // Wait for auth state to update, then navigate
-      setTimeout(() => {
-        const targetRoute = userType === 'artist' ? '/artist' : '/buyer';
-        navigate(targetRoute);
-      }, 2000);
-      
-      // Navigate based on user role - Navigation will be handled by AuthContext
     } catch (err: any) {
       setIsLoading(false);
       setRandomAnimation(null);

@@ -1,6 +1,5 @@
 
 import { useAuth } from "../../context/AuthContext";
-import { logout } from "../../services/authService";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -13,10 +12,9 @@ import {
   MdCollections,
   MdAutoAwesome,
   MdPublic,
-  MdLogout,
   MdExplore,
   MdFavorite,
-  MdShoppingCart,
+  MdChat,
   MdPeopleOutline
 } from "react-icons/md";
 import "./artistLanding.css";
@@ -80,9 +78,8 @@ export default function ArtistLanding() {
     return () => observer.disconnect();
   }, []);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/");
+  const handleEnterFeed = () => {
+    navigate("/home");
   };
 
   const journeySteps = [
@@ -167,14 +164,14 @@ export default function ArtistLanding() {
       description: "Create collections of art you love and revisit them anytime.",
     },
     {
-      title: "Purchase Art",
-      icon: MdShoppingCart,
-      description: "Buy original artwork directly from artists (coming in future phase).",
+      title: "Chat with artists",
+      icon: MdChat,
+      description: "Reach out to artists directly via chat to learn about their work and the buying process.",
     },
     {
       title: "Follow & Support Artists",
       icon: MdPeopleOutline,
-      description: "Connect with your favorite artists and stay updated on their work (planned).",
+      description: "Connect with your favorite artists and stay updated on their work.",
     },
   ];
 
@@ -209,7 +206,7 @@ export default function ArtistLanding() {
             Artists are not content creators, and their work is not meant to compete for attention.
           </p>
           <p className="vision-text">
-            We're creating a platform where artists have full control, transparent
+            We have created a platform where artists have full control, transparent
             pricing, and direct connection with collectors who value original art.
           </p>
         </div>
@@ -221,7 +218,7 @@ export default function ArtistLanding() {
         data-section="features"
         ref={(el) => { sectionRefs.current.features = el; }}
       >
-        <h2 className="section-title">What's Coming for Artists</h2>
+        <h2 className="section-title">What's there for Artists</h2>
         <div className="features-grid">
           {upcomingFeatures.map((feature, index) => (
             <div key={index} className="artist-feature-card">
@@ -297,28 +294,7 @@ export default function ArtistLanding() {
         </div>
       </section>
 
-      {/* Early Access Notice */}
-      <section 
-        className={`early-access-section ${visibleSections.has('early-access') ? 'animate-in' : ''}`}
-        data-section="early-access"
-        ref={(el) => { sectionRefs.current['early-access'] = el; }}
-      >
-        <div className="early-access-container">
-          <div className="early-access-badge">Early Access</div>
-          <h2 className="early-access-title">
-            🚧 We're carefully onboarding artists
-          </h2>
-          <p className="early-access-text">
-            We're building Kalarang thoughtfully, ensuring every feature works
-            beautifully for artists. Upload functionality and additional features
-            will roll out gradually.
-          </p>
-          <p className="early-access-text">
-            <strong>Thank you for your patience.</strong> We're creating something special 
-            for both artists and art lovers—a platform that truly respects the creative process.
-          </p>
-        </div>
-      </section>
+   
 
       {/* CTA Section */}
       <section 
@@ -326,11 +302,9 @@ export default function ArtistLanding() {
         data-section="cta"
         ref={(el) => { sectionRefs.current.cta = el; }}
       >
-       
-        <p className="cta-note">We'll notify you when the platform is ready</p>
-        <button className="logout-button" onClick={handleLogout}>
-          {MdLogout({ size: 20 })}
-          <span>Logout</span>
+        <button className="cta-enter-button" onClick={handleEnterFeed}>
+          {MdRocketLaunch({ size: 22 })}
+          <span>Start Your Journey</span>
         </button>
       </section>
     </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MdHome, MdLock, MdCheckCircle, MdCancel } from 'react-icons/md';
 import { toast } from 'react-toastify';
-import { confirmPasswordReset, verifyPasswordResetCode, signInWithEmailAndPassword } from 'firebase/auth';
+import { confirmPasswordReset, verifyPasswordResetCode, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, db } from '../../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import './login.css';
@@ -96,11 +96,12 @@ const SetNewPassword: React.FC = () => {
       // Reset the password
       await confirmPasswordReset(auth, oobCode, password);
 
-      // Sign in with new password so we have auth context for Firestore update
+      // Briefly sign in to get auth context for Firestore update, then sign out
       const userCred = await signInWithEmailAndPassword(auth, email, password);
       await updateDoc(doc(db, 'users', userCred.user.uid), {
         passwordPolicyVersion: 2,
       });
+      await signOut(auth);
 
       toast.success('Password reset successful! You can now login with your new password.', {
         position: 'top-right',
