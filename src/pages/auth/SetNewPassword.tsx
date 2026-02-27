@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MdHome, MdLock, MdCheckCircle, MdCancel } from 'react-icons/md';
 import { toast } from 'react-toastify';
-import { confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
+import { confirmPasswordReset, verifyPasswordResetCode, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../../firebase';
-import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import './login.css';
 import './reset-password.css';
 
@@ -95,19 +95,13 @@ const SetNewPassword: React.FC = () => {
     try {
       // Reset the password
       await confirmPasswordReset(auth, oobCode, password);
-      
-      // Find user by email to update Firestore (without signing in)
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', email));
-      const querySnapshot = await getDocs(q);
-      
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        await updateDoc(doc(db, 'users', userDoc.id), {
-          passwordPolicyVersion: 2,
-        });
-      }
-      
+
+      // Sign in with new password so we have auth context for Firestore update
+      const userCred = await signInWithEmailAndPassword(auth, email, password);
+      await updateDoc(doc(db, 'users', userCred.user.uid), {
+        passwordPolicyVersion: 2,
+      });
+
       toast.success('Password reset successful! You can now login with your new password.', {
         position: 'top-right',
         autoClose: 4000,
