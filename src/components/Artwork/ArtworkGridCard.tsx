@@ -7,6 +7,7 @@ import LazyImage from '../Common/LazyImage';
 export interface ArtworkGridCardProps {
   artwork: Artwork;
   onArtworkClick: (id: string) => void;
+  onArtistClick?: (artistId: string) => void;
   isOwner?: boolean;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
@@ -21,6 +22,7 @@ export interface ArtworkGridCardProps {
 const ArtworkGridCard: React.FC<ArtworkGridCardProps> = ({ 
   artwork, 
   onArtworkClick,
+  onArtistClick,
   isOwner = false,
   onEdit,
   onDelete,
@@ -52,6 +54,10 @@ const ArtworkGridCard: React.FC<ArtworkGridCardProps> = ({
 
   const handleArtistClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (onArtistClick) {
+      onArtistClick(artwork.artistId || '');
+      return;
+    }
     if (artwork.artistId) {
       const isOwnProfile = artwork.artistId === currentUserId;
       if (!isOwnProfile) {

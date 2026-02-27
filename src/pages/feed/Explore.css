@@ -1,0 +1,179 @@
+/* Explore Page — public artwork browsing page */
+
+.explore-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-height: 100vh;
+  background: var(--color-bg-light);
+  overflow: hidden;
+}
+
+/* ── Top bar ── */
+.explore-top-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1.25rem;
+  background: linear-gradient(90deg, #E8F4F5 0%, #c1f8fdff 100%);
+  border-bottom: 1px solid rgba(47, 164, 169, 0.2);
+  box-shadow: 0 2px 12px rgba(47, 164, 169, 0.12);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.explore-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-primary);
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(47, 164, 169, 0.25);
+}
+
+.explore-back-btn:hover {
+  background: var(--primary-alpha-10);
+  box-shadow: 0 4px 14px rgba(47, 164, 169, 0.4), 0 0 0 3px var(--primary-alpha-10);
+}
+
+.explore-top-logo {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.explore-signin-btn {
+  padding: 0.5rem 1.1rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: white;
+  background: var(--color-primary);
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.explore-signin-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(47, 164, 169, 0.35);
+}
+
+/* ── Scroll container ── */
+.explore-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  padding-bottom: 2rem;
+}
+
+/* ── Extra padding for the whole explore content ── */
+.explore-container {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .explore-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .explore-container {
+    padding-left: 3.5rem;
+    padding-right: 3.5rem;
+  }
+}
+
+/* ── Page header row ── */
+.explore-page-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 0.25rem 0.5rem;
+}
+
+.explore-page-title {
+  margin: 0 0 2px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text-primary-light);
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  letter-spacing: -0.3px;
+}
+
+/* ── Login prompt banner ── */
+.explore-login-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 1rem 1rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, rgba(47, 164, 169, 0.08) 0%, rgba(30, 79, 163, 0.06) 100%);
+  border: 1px solid rgba(47, 164, 169, 0.2);
+  border-radius: 12px;
+  font-size: 0.875rem;
+  color: var(--color-text-dark);
+}
+
+.explore-login-banner button {
+  padding: 0.4rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: white;
+  background: var(--color-primary);
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.explore-login-banner button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(47, 164, 169, 0.35);
+}
+
+/* Mobile adjustments */
+@media (max-width: 639px) {
+  .explore-top-bar {
+    padding: 0.5rem 1rem;
+    gap: 0.5rem;
+  }
+
+  .explore-back-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .explore-login-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .explore-login-banner button {
+    align-self: flex-end;
+  }
+}
+
+/* Spinner animation (shared with Discover) */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

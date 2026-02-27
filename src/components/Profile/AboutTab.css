@@ -34,7 +34,8 @@
 
 .bio-text {
   font-size: 1rem;
-  color: #000000;
+  font-style: italic;
+  color: #374151;
   line-height: 1.7;
   margin-bottom: 1.25rem;
   text-align: justify;
@@ -70,7 +71,8 @@
 
 .achievement-text {
   font-size: 0.95rem;
-  color: #000000;
+  font-style: italic;
+  color: #374151;
 }
 
 .links-list {
@@ -128,7 +130,8 @@
   padding-left: 1.25rem;
   margin-bottom: 0.5rem;
   font-size: 0.95rem;
-  color: #000000;
+  font-style: italic;
+  color: #374151;
   line-height: 1.5;
 }
 
@@ -286,7 +289,7 @@
 /* Philosophy Text */
 .philosophy-text {
   font-size: 1rem;
-  color: #000000;
+  color: #374151;
   line-height: 1.7;
   font-style: italic;
   margin: 0;
@@ -325,7 +328,8 @@
 
 .exhibition-title {
   font-size: 0.95rem;
-  color: #000000;
+  font-style: italic;
+  color: #374151;
 }
 
 /* Commissions Card */
@@ -364,7 +368,8 @@
 
 .commission-description {
   font-size: 1rem;
-  color: #000000;
+  font-style: italic;
+  color: #374151;
   line-height: 1.6;
   margin: 0 0 1.25rem 0;
   text-align: justify;

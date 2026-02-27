@@ -18,6 +18,7 @@ export interface Artwork {
 export interface ArtworkGridProps {
   artworks: Artwork[];
   onArtworkClick: (id: string) => void;
+  onArtistClick?: (artistId: string) => void;
   isOwner?: boolean;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
@@ -33,6 +34,7 @@ export interface ArtworkGridProps {
 const ArtworkGrid: React.FC<ArtworkGridProps> = ({ 
   artworks, 
   onArtworkClick,
+  onArtistClick,
   isOwner = false,
   onEdit,
   onDelete,
@@ -77,6 +79,7 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
         <ArtworkGridCard
           artwork={artwork}
           onArtworkClick={onArtworkClick}
+          onArtistClick={onArtistClick}
           isOwner={isOwner}
           onEdit={onEdit}
           onDelete={onDelete}
@@ -100,6 +103,7 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
             key={artwork.id}
             artwork={artwork}
             onArtworkClick={onArtworkClick}
+            onArtistClick={onArtistClick}
             isOwner={isOwner}
             onEdit={onEdit}
             onDelete={onDelete}

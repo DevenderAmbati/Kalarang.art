@@ -18,9 +18,9 @@ import artAnimation from '../../animations/no content.json';
 import africanArtAnimation from '../../animations/African American Art.json';
 import { cache, cacheKeys } from '../../utils/cache';
 import { getActiveStories, getActiveStoriesFromFollowing, Story as StoryType, groupStoriesByUser, GroupedStory, getViewedStories, markStoriesAsViewed, deleteStory, subscribeToActiveStories, subscribeToFollowingStories } from '../../services/storyService';
-import { getFollowingArtistIds, getUserProfile } from '../../services/userService';
+import { getFollowingArtistIds } from '../../services/userService';
 import ConfirmModal from '../../components/Modals/ConfirmModal';
-import ReachOutModal from '../../components/Modals/ReachOutModal';
+import ChatDrawer, { ChatContact, ReachOutMetadata } from '../../components/Chat/ChatDrawer';
 import './homeFeed.css';
 
 interface Story {
@@ -55,10 +55,11 @@ const HomeFeed: React.FC = () => {
     storyId: '',
   });
 
-  // Reach out modal state
-  const [reachOutModalOpen, setReachOutModalOpen] = useState(false);
-  const [artistEmail, setArtistEmail] = useState('');
-  const [artistWhatsApp, setArtistWhatsApp] = useState<string | undefined>(undefined);
+  // Reach out → chat drawer state
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const [reachOutContact, setReachOutContact] = useState<ChatContact | null>(null);
+  const [reachOutMessage, setReachOutMessage] = useState('');
+  const [reachOutMetadata, setReachOutMetadata] = useState<ReachOutMetadata | null>(null);
 
   // Infinite scroll state
   const [artworks, setArtworks] = useState<Artwork[]>([]);
@@ -600,34 +601,29 @@ const HomeFeed: React.FC = () => {
     }
   };
 
-  // Handle reach out to artist from story
-  const handleReachOut = async () => {
+  // Handle reach out to artist from story — open chat drawer with prefilled message
+  const handleReachOut = () => {
     if (!selectedStory || !appUser) {
       toast.error('Please log in to reach out to artists');
       return;
     }
 
-    // Pause the timer while modal is open
-    setIsPaused(true);
-
-    try {
-      // Fetch artist profile to get email and WhatsApp
-      const artistProfile = await getUserProfile(selectedStory.artistId);
-      
-      if (!artistProfile || !artistProfile.email) {
-        toast.error('Unable to fetch artist contact information');
-        setIsPaused(false);
-        return;
-      }
-
-      setArtistEmail(artistProfile.email);
-      setArtistWhatsApp(artistProfile.whatsappNumber);
-      setReachOutModalOpen(true);
-    } catch (error) {
-      console.error('[HomeFeed] Error fetching artist profile:', error);
-      toast.error('Failed to load artist information');
-      setIsPaused(false);
+    if (selectedStory.artistId === appUser.uid) {
+      toast.info('You cannot reach out to yourself');
+      return;
     }
+
+    setIsPaused(true);
+    const contact: ChatContact = {
+      uid: selectedStory.artistId,
+      name: selectedStory.name,
+      avatar: selectedStory.userIcon,
+    };
+    const message = `Hi ${selectedStory.name}, I came across your Artwork "${selectedStory.artworkTitle}" and I am really impressed, I would like to learn more about it.`;
+    setReachOutContact(contact);
+    setReachOutMessage(message);
+    setReachOutMetadata({ artworkId: selectedStory.artworkId, artworkTitle: selectedStory.artworkTitle, artworkImage: selectedStory.image });
+    setChatDrawerOpen(true);
   };
 
   const handlePreviousStory = async () => {
@@ -1106,25 +1102,19 @@ const HomeFeed: React.FC = () => {
         cancelText="Cancel"
       />
 
-      {selectedStory && appUser && (
-        <ReachOutModal
-          isOpen={reachOutModalOpen}
+      {chatDrawerOpen && reachOutContact && appUser && (
+        <ChatDrawer
+          isOpen={chatDrawerOpen}
           onClose={() => {
-            setReachOutModalOpen(false);
+            setChatDrawerOpen(false);
+            setReachOutContact(null);
+            setReachOutMessage('');
+            setReachOutMetadata(null);
             setIsPaused(false);
           }}
-          artistId={selectedStory.artistId}
-          artistName={selectedStory.name}
-          artistEmail={artistEmail}
-          artistAvatar={selectedStory.userIcon}
-          artistWhatsApp={artistWhatsApp}
-          artworkId={selectedStory.artworkId}
-          artworkTitle={selectedStory.artworkTitle}
-          artworkImage={selectedStory.image}
-          userId={appUser.uid}
-          userName={appUser.name}
-          userEmail={appUser.email}
-          userAvatar={appUser.avatar}
+          initialContact={reachOutContact}
+          initialMessage={reachOutMessage || undefined}
+          reachOutMetadata={reachOutMetadata}
         />
       )}
     </>

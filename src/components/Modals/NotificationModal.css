@@ -163,12 +163,8 @@
   color: var(--color-primary);
 }
 
-.notification-icon.reachout.whatsapp {
-  color: #25D366;
-}
-
-.notification-icon.reachout.email {
-  color: #EA4335;
+.notification-icon.reachout.chat {
+  color: var(--color-primary);
 }
 
 .notification-icon.favourite {

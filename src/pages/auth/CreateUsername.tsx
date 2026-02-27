@@ -5,7 +5,6 @@ import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/fire
 import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
 import { MdPerson } from 'react-icons/md';
-import WhatsAppPromptModal from '../../components/Modals/WhatsAppPromptModal';
 import './login.css';
 
 const CreateUsername: React.FC = () => {
@@ -14,7 +13,6 @@ const CreateUsername: React.FC = () => {
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showWhatsAppPrompt, setShowWhatsAppPrompt] = useState(false);
   const { appUser, refreshUserProfile } = useAuth();
   const navigate = useNavigate();
 
@@ -134,55 +132,14 @@ const CreateUsername: React.FC = () => {
       // Refresh user profile to get updated data
       await refreshUserProfile();
       
-      // Show WhatsApp prompt modal
       setIsSubmitting(false);
-      setShowWhatsAppPrompt(true);
+      navigate('/home');
     } catch (err) {
       console.error('Error creating username:', err);
       toast.error('Failed to create username. Please try again.');
       setIsSubmitting(false);
     }
   };
-
-  const handleWhatsAppPromptClose = () => {
-    setShowWhatsAppPrompt(false);
-    // Navigate to home page after closing the prompt
-    navigate('/home');
-  };
-
-  const handleWhatsAppSaved = async (phoneNumber: string) => {
-    console.log('WhatsApp number added:', phoneNumber);
-    await refreshUserProfile();
-    setShowWhatsAppPrompt(false);
-    // Navigate to home page after adding WhatsApp
-    navigate('/home');
-  };
-
-  // If WhatsApp prompt is showing, render it in the same layout
-  if (showWhatsAppPrompt && appUser) {
-    return (
-      <div className="login-right-section" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', width: '100%', position: 'relative' }}>
-        {/* Decorative geometric background shapes - same as username form */}
-        <div className="login-bg-shape-1"></div>
-        <div className="login-bg-shape-2"></div>
-        <div className="login-bg-shape-3"></div>
-        <div className="login-bg-shape-4"></div>
-        <div className="login-bg-shape-5"></div>
-        <div className="login-bg-circle-1"></div>
-        <div className="login-bg-circle-2"></div>
-        <div className="login-bg-dot-pattern"></div>
-        
-        {/* WhatsApp Form replacing the username form */}
-        <WhatsAppPromptModal
-          isOpen={true}
-          onClose={handleWhatsAppPromptClose}
-          onSaved={handleWhatsAppSaved}
-          userId={appUser.uid}
-          inline={true}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="login-right-section" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', width: '100%', position: 'relative' }}>

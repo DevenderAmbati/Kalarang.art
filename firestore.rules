@@ -66,6 +66,25 @@ service cloud.firestore {
       allow delete: if request.auth != null && request.auth.uid == resource.data.recipientId; // Only recipient can delete
     }
     
+    // Chats collection — only participants may read/write
+    match /chats/{chatId} {
+      allow read: if request.auth != null
+                  && request.auth.uid in resource.data.participants;
+      allow create: if request.auth != null
+                    && request.auth.uid in request.resource.data.participants;
+      allow update: if request.auth != null
+                    && request.auth.uid in resource.data.participants;
+
+      // Messages subcollection — participants only, senderId must match auth
+      match /messages/{messageId} {
+        allow read: if request.auth != null
+                    && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow create: if request.auth != null
+                      && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+                      && request.resource.data.senderId == request.auth.uid;
+      }
+    }
+
     // Default deny all other collections
     match /{document=**} {
       allow read, write: if false;

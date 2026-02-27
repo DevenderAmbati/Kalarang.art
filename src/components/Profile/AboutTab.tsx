@@ -16,6 +16,7 @@ interface AboutArtistProps {
     description: string;
     ctaText?: string;
   };
+  onGetInTouch?: () => void;
   links?: Array<{
     label: string;
     url: string;
@@ -61,6 +62,7 @@ const AboutArtist: React.FC<AboutArtistProps> = ({
     description: "",
     ctaText: "Get in Touch"
   },
+  onGetInTouch,
   links = []
 }) => {
   const getIcon = (iconName: string, className: string) => {
@@ -166,16 +168,9 @@ const AboutArtist: React.FC<AboutArtistProps> = ({
         <section className="section">
           <h2 className="section-heading">Commissions</h2>
           <div className="commissions-card">
-            {commissions.status && (
-              <div className="commission-header">
-                <span className={`commission-status ${commissions.status.toLowerCase()}`}>
-                  {commissions.status}
-                </span>
-              </div>
-            )}
             <p className="commission-description">{commissions.description}</p>
             {commissions.status === 'Open' && (
-              <button className="commission-cta">
+              <button className="commission-cta" onClick={onGetInTouch}>
                 {commissions.ctaText || 'Get in Touch'}
               </button>
             )}

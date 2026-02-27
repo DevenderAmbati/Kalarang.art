@@ -1078,31 +1078,6 @@ a:hover {
 }
 
 /* Home Page Mobile Responsive Styles */
-/* Tablet Responsive */
-@media (min-width: 640px) and (max-width: 1023px) {
-  /* Ensure Home page background shows on tablet */
-  /* body {
-    background: var(--gradient-dark-bg);
-  } */
-  
-  .home-header {
-    position: relative !important;
-    flex-direction: column !important;
-    gap: 0.75rem !important;
-    padding: 0.75rem 1rem !important;
-    left: 0 !important;
-    right: 0 !important;
-    top: 0 !important;
-  }
-  
-  .home-header-left {
-    width: 100%;
-    flex-direction: column !important;
-    gap: 0.5rem !important;
-  }
-}
-
-/* Home Page Mobile Responsive Styles */
 /* Mobile Responsive */
 @media (max-width: 639px) {
   /* Ensure Home page background shows on mobile */

@@ -52,16 +52,6 @@ export async function login(email: string, password: string) {
 }
 
 export async function logout() {
-  // Clear session storage for WhatsApp modal dismissal
-  const keysToRemove = [];
-  for (let i = 0; i < sessionStorage.length; i++) {
-    const key = sessionStorage.key(i);
-    if (key && key.startsWith('whatsapp_dismissed_')) {
-      keysToRemove.push(key);
-    }
-  }
-  keysToRemove.forEach(key => sessionStorage.removeItem(key));
-  
   await signOut(auth);
 }
 

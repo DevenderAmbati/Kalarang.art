@@ -180,7 +180,8 @@
   border-radius: 8px;
   font-size: 0.95rem;
   font-family: inherit;
-  color: var(--color-text-dark);
+  font-style: italic;
+  color: #374151;
   background: var(--color-bg-white);
   transition: all var(--transition-base);
 }
@@ -192,7 +193,9 @@
 }
 
 .form-input::placeholder {
-  color: var(--color-text-secondary);
+  color: #6b7280;
+  font-style: italic;
+  opacity: 0.8;
 }
 
 .form-input.small {
@@ -210,11 +213,18 @@
   border-radius: 8px;
   font-size: 0.95rem;
   font-family: inherit;
-  color: var(--color-text-dark);
+  font-style: italic;
+  color: #374151;
   background: var(--color-bg-white);
   resize: vertical;
   min-height: 100px;
   transition: all var(--transition-base);
+}
+
+.form-textarea::placeholder {
+  color: #6b7280;
+  font-style: italic;
+  opacity: 0.8;
 }
 
 .form-textarea:focus {
@@ -229,7 +239,8 @@
   border-radius: 8px;
   font-size: 0.95rem;
   font-family: inherit;
-  color: var(--color-text-dark);
+  font-style: italic;
+  color: #374151;
   background: var(--color-bg-white);
   cursor: pointer;
   transition: all var(--transition-base);

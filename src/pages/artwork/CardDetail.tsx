@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import ArtworkDetail, { Artwork as ArtworkDetailType, Artist } from '../../components/Artwork/ArtworkDetail';
 import LoadingState from '../../components/State/LoadingState';
-import ReachOutModal from '../../components/Modals/ReachOutModal';
+import ChatDrawer, { ChatContact } from '../../components/Chat/ChatDrawer';
 import { useAuth } from '../../context/AuthContext';
 import { getArtwork, incrementArtworkViews } from '../../services/artworkService';
 import { useFavorites } from '../../hooks/useCachedData';
@@ -15,7 +15,6 @@ import {
   unfollowArtist, 
   isFollowingArtist
 } from '../../services/interactionService';
-import { getUserProfile } from '../../services/userService';
 import { toast } from 'react-toastify';
 import lineArt1Animation from '../../animations/Line art (1).json';
 
@@ -28,9 +27,8 @@ const CardDetail: React.FC = () => {
   const [artist, setArtist] = useState<Artist | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [reachOutModalOpen, setReachOutModalOpen] = useState(false);
-  const [artistEmail, setArtistEmail] = useState<string>('');
-  const [artistWhatsApp, setArtistWhatsApp] = useState<string | undefined>(undefined);
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const [reachOutMessage, setReachOutMessage] = useState<string>('');
   
   const { data: favoriteIds, updateCache: updateFavoritesCache, refetch: refetchFavorites } = useFavorites(appUser?.uid);
 
@@ -109,21 +107,6 @@ const CardDetail: React.FC = () => {
         avatar: fetchedArtwork.artistAvatar || 'https://i.pravatar.cc/150?img=1',
         isFollowing: false,
       };
-
-      // Fetch full artist profile to get email and WhatsApp
-      try {
-        const artistProfile = await getUserProfile(fetchedArtwork.artistId);
-        if (artistProfile) {
-          setArtistEmail(artistProfile.email);
-          setArtistWhatsApp(artistProfile.whatsappNumber);
-          console.log('[CardDetail] Artist profile loaded:', {
-            email: artistProfile.email,
-            hasWhatsApp: !!artistProfile.whatsappNumber
-          });
-        }
-      } catch (error) {
-        console.error('[CardDetail] Error fetching artist profile:', error);
-      }
 
       // Check if user is following artist and if artwork is in favorites
       if (appUser && appUser.uid !== fetchedArtwork.artistId) {
@@ -225,12 +208,11 @@ const CardDetail: React.FC = () => {
       return;
     }
 
-    if (!artistEmail) {
-      toast.error('Artist contact information not available');
-      return;
-    }
+    if (!artist || !artwork) return;
 
-    setReachOutModalOpen(true);
+    const message = `Hi ${artist.name}, I came across your Artwork "${artwork.title}" and I am really impressed, I would like to learn more about it.`;
+    setReachOutMessage(message);
+    setChatDrawerOpen(true);
   };
 
   const handleFollow = async (artistId: string) => {
@@ -303,21 +285,15 @@ const CardDetail: React.FC = () => {
       />
 
       {appUser && artwork && artist && (
-        <ReachOutModal
-          isOpen={reachOutModalOpen}
-          onClose={() => setReachOutModalOpen(false)}
-          artistId={artist.id}
-          artistName={artist.name}
-          artistEmail={artistEmail}
-          artistAvatar={artist.avatar}
-          artistWhatsApp={artistWhatsApp}
-          artworkId={String(artwork.id)}
-          artworkTitle={artwork.title}
-          artworkImage={artwork.artworkImage}
-          userId={appUser.uid}
-          userName={appUser.name}
-          userEmail={appUser.email}
-          userAvatar={appUser.avatar}
+        <ChatDrawer
+          isOpen={chatDrawerOpen}
+          onClose={() => {
+            setChatDrawerOpen(false);
+            setReachOutMessage('');
+          }}
+          initialContact={{ uid: artist.id, name: artist.name, avatar: artist.avatar } as ChatContact}
+          initialMessage={reachOutMessage || undefined}
+          reachOutMetadata={{ artworkId: String(artwork.id), artworkTitle: artwork.title, artworkImage: artwork.artworkImage }}
         />
       )}
     </>

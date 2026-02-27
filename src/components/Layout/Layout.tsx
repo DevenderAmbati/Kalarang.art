@@ -8,8 +8,11 @@ import { useSidebar } from '../../context/SidebarContext';
 import { useAuth } from '../../context/AuthContext';
 import { FaUserCircle } from 'react-icons/fa';
 import { IoMdNotifications } from 'react-icons/io';
+import { PiChatsBold } from 'react-icons/pi';
 import NotificationModal from '../Modals/NotificationModal';
+import ChatDrawer from '../Chat/ChatDrawer';
 import { subscribeToUnreadCount } from '../../services/notificationService';
+import { useChatContext } from '../../context/ChatContext';
 import './Layout.css';
 
 interface LayoutProps {
@@ -41,17 +44,19 @@ const Layout: React.FC<LayoutProps> = ({
   const [, forceUpdate] = useState({});
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
+  const { unreadCount: unreadChatCount } = useChatContext();
 
   // Subscribe to unread notification count
   useEffect(() => {
-    if (!appUser) return;
-    
+    if (!appUser?.uid) return;
+
     const unsubscribe = subscribeToUnreadCount(appUser.uid, (count) => {
       setUnreadCount(count);
     });
 
     return () => unsubscribe();
-  }, [appUser]);
+  }, [appUser?.uid]);
 
   // Force re-render when document title changes (for dynamic portfolio titles)
   useEffect(() => {
@@ -116,6 +121,21 @@ const Layout: React.FC<LayoutProps> = ({
             <h1 style={styles.pageTitle}>{getPageTitle()}</h1>
           </div>
           <div className="header-right" style={styles.headerRight}>
+            {appUser && (
+              <div
+                onClick={() => setIsChatDrawerOpen(true)}
+                style={{...styles.notificationIcon, position: 'relative'}}
+                className="layout-notification-icon"
+                aria-label="Messages"
+              >
+                {PiChatsBold({ size: 26 })}
+                {unreadChatCount > 0 && (
+                  <div style={styles.unreadBadge}>
+                    {unreadChatCount > 99 ? '99+' : unreadChatCount}
+                  </div>
+                )}
+              </div>
+            )}
             {appUser?.role === 'artist' && (
               <>
                 <div 
@@ -123,7 +143,7 @@ const Layout: React.FC<LayoutProps> = ({
                   style={{...styles.notificationIcon, position: 'relative'}} 
                   className="layout-notification-icon"
                 >
-                  {IoMdNotifications({ size: 24 })}
+                  {IoMdNotifications({ size: 28 })}
                   {unreadCount > 0 && (
                     <div style={styles.unreadBadge}>
                       {unreadCount > 99 ? '99+' : unreadCount}
@@ -180,6 +200,12 @@ const Layout: React.FC<LayoutProps> = ({
         <NotificationModal 
           isOpen={isNotificationModalOpen}
           onClose={() => setIsNotificationModalOpen(false)}
+        />
+
+        {/* WhatsApp-style Chat Drawer — opens directly from header icon */}
+        <ChatDrawer
+          isOpen={isChatDrawerOpen}
+          onClose={() => setIsChatDrawerOpen(false)}
         />
       </main>
       {/* Mobile Bottom Navigation - Only visible on mobile devices */}
@@ -254,24 +280,24 @@ const styles = {
     borderRadius: '50%',
     transition: 'all 0.3s ease',
     marginRight: '0.5rem',
+    marginLeft: '-0.5rem',
   } as React.CSSProperties,
   unreadBadge: {
     position: 'absolute',
     top: '-2px',
     right: '-2px',
-    background: '#E91E63',
+    background: 'var(--color-primary)',
     color: 'white',
     fontSize: '0.65rem',
     fontWeight: 700,
-    padding: '0.15rem 0.35rem',
+    padding: '0.15rem 0.15rem',
     borderRadius: '10px',
     minWidth: '18px',
     height: '18px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    border: '2px solid var(--color-bg-white)',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+    border: '1.5px solid var(--color-bg-white)',
   } as React.CSSProperties,
   main: {
     marginLeft: '260px',

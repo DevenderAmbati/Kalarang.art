@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaUserPlus, FaHeart } from 'react-icons/fa';
-import { IoLogoWhatsapp } from 'react-icons/io';
-import { MdEmail, MdClose } from 'react-icons/md';
+import { IoIosChatbubbles } from 'react-icons/io';
+import { MdClose } from 'react-icons/md';
 import { useAuth } from '../../context/AuthContext';
 import { 
   subscribeToNotifications, 
@@ -66,14 +66,12 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
     }
   };
 
-  const getNotificationIcon = (type: string, contactMethod?: string) => {
+  const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'follow':
         return FaUserPlus({ size: 20, className: 'notification-icon follow' });
       case 'reachout':
-        return contactMethod === 'whatsapp' 
-          ? IoLogoWhatsapp({ size: 20, className: 'notification-icon reachout whatsapp' })
-          : MdEmail({ size: 20, className: 'notification-icon reachout email' });
+        return IoIosChatbubbles({ size: 20, className: 'notification-icon reachout chat' });
       case 'favourite':
         return FaHeart({ size: 20, className: 'notification-icon favourite' });
       default:
@@ -92,7 +90,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
       case 'reachout':
         return (
           <>
-            <strong>{notification.actorName}</strong> reached out via {notification.contactMethod === 'whatsapp' ? 'WhatsApp' : 'Email'} for{' '}
+            <strong>{notification.actorName}</strong> reached out for{' '}
             <strong>{notification.artworkTitle}</strong>
           </>
         );
@@ -150,7 +148,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
                   <div className="notification-avatar">
                     <img src={notification.actorAvatar || '/artist.png'} alt={notification.actorName} />
                     <div className="notification-icon-badge">
-                      {getNotificationIcon(notification.type, notification.contactMethod)}
+                      {getNotificationIcon(notification.type)}
                     </div>
                   </div>
                   

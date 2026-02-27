@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { logout, deleteAccount } from '../../services/authService';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import WhatsAppVerificationModal from '../../components/Modals/WhatsAppVerificationModal';
 import { getUserStats, getFollowersList, getFollowingList } from '../../services/userService';
 import { unfollowArtist } from '../../services/interactionService';
 import FollowersModal from '../../components/Modals/FollowersModal';
@@ -21,8 +20,6 @@ const Profile: React.FC = () => {
   const navigate = useNavigate();
   const { appUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const [whatsappNumber, setWhatsappNumber] = useState('');
-  const [isEditingWhatsApp, setIsEditingWhatsApp] = useState(false);
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const [supportMessage, setSupportMessage] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
@@ -57,24 +54,9 @@ const Profile: React.FC = () => {
     loadStats();
   }, [appUser?.uid]);
 
-  // Load WhatsApp number from appUser
-  useEffect(() => {
-    if (appUser?.whatsappNumber) {
-      setWhatsappNumber(appUser.whatsappNumber);
-    } else {
-      setWhatsappNumber('');
-    }
-  }, [appUser]);
-
   const handleLogout = async () => {
     await logout();
     navigate('/');
-  };
-
-  const handleSaveWhatsApp = () => {
-    // TODO: Save WhatsApp number to database
-    console.log('Saving WhatsApp number:', whatsappNumber);
-    setIsEditingWhatsApp(false);
   };
 
   const handleSendMessage = async () => {
@@ -281,33 +263,6 @@ const Profile: React.FC = () => {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
   };
-
-  const handleDeleteWhatsApp = async () => {
-    if (!appUser?.uid) return;
-
-    try {
-      const userRef = doc(db, 'users', appUser.uid);
-      await updateDoc(userRef, {
-        whatsappNumber: null,
-        whatsappVerified: false,
-        whatsappAddedAt: null,
-      });
-
-      toast.success('WhatsApp number removed successfully!', {
-        position: 'top-center',
-        autoClose: 3000,
-      });
-
-      setWhatsappNumber('');
-      setShowDeleteWhatsAppConfirm(false);
-    } catch (err: any) {
-      console.error('❌ Error removing WhatsApp number:', err);
-      toast.error(err.message || 'Failed to remove WhatsApp number');
-    }
-  };
-
-  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
-  const [showDeleteWhatsAppConfirm, setShowDeleteWhatsAppConfirm] = useState(false);
 
   const formatNumber = (num: number): string => {
     if (num >= 1000000) {
@@ -538,94 +493,6 @@ const Profile: React.FC = () => {
             </div>
           </div> */}
 
-          {/* WhatsApp Section for Artists */}
-          {appUser?.role === 'artist' && (
-            <div style={styles.whatsappSection}>
-              <div style={styles.whatsappHeader}>
-                <span style={styles.whatsappLabel}> WhatsApp Number</span>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {whatsappNumber && (
-                    <button
-                      onClick={() => setShowDeleteWhatsAppConfirm(true)}
-                      style={{
-                        ...styles.deleteIconButton,
-                        ...(hoveredButton === 'deleteWhatsApp' ? {
-                          background: 'rgba(220, 38, 38, 0.1)',
-                          transform: 'translateY(-1px)',
-                        } : {})
-                      }}
-                      onMouseEnter={() => setHoveredButton('deleteWhatsApp')}
-                      onMouseLeave={() => setHoveredButton(null)}
-                    >
-                      🗑️
-                    </button>
-                  )}
-                  {!isEditingWhatsApp && (
-                    <button
-                      onClick={() => setIsWhatsAppModalOpen(true)}
-                      style={{
-                        ...styles.editButton,
-                        ...(hoveredButton === 'edit' ? {
-                          background: 'var(--gradient-primary-hover)',
-                          transform: 'translateY(-1px)',
-                          boxShadow: '0 4px 8px rgba(47, 164, 169, 0.3)',
-                        } : {})
-                      }}
-                      onMouseEnter={() => setHoveredButton('edit')}
-                      onMouseLeave={() => setHoveredButton(null)}
-                    >
-                      {whatsappNumber ? 'Edit' : 'Add  +'}
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div style={styles.whatsappDisplay}>
-                {whatsappNumber || 'Not added yet'}
-              </div>
-
-              {/* Delete WhatsApp Confirmation */}
-              {showDeleteWhatsAppConfirm && (
-                <div style={styles.deleteConfirmContainer}>
-                  <p style={styles.supportDescription}>
-                    Are you sure you want to remove your WhatsApp number?
-                  </p>
-                  <div style={styles.actionButtonsContainer}>
-                    <button
-                      onClick={handleDeleteWhatsApp}
-                      style={{
-                        ...styles.confirmDeleteButton,
-                        ...(hoveredButton === 'confirmDeleteWhatsApp' ? {
-                          backgroundColor: 'rgba(220, 38, 38, 0.1)',
-                          transform: 'translateY(-1px)',
-                          boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)',
-                        } : {})
-                      }}
-                      onMouseEnter={() => setHoveredButton('confirmDeleteWhatsApp')}
-                      onMouseLeave={() => setHoveredButton(null)}
-                    >
-                      Yes, Remove
-                    </button>
-                    <button
-                      onClick={() => setShowDeleteWhatsAppConfirm(false)}
-                      style={{
-                        ...styles.cancelButton,
-                        ...(hoveredButton === 'cancelDeleteWhatsApp' ? {
-                          background: 'var(--primary-alpha-10)',
-                          transform: 'translateY(-1px)',
-                          boxShadow: '0 2px 4px rgba(47, 164, 169, 0.2)',
-                        } : {})
-                      }}
-                      onMouseEnter={() => setHoveredButton('cancelDeleteWhatsApp')}
-                      onMouseLeave={() => setHoveredButton(null)}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Support & Suggestions Section */}
           <div style={styles.supportSection}>
             <div style={styles.supportHeader}>
@@ -760,19 +627,6 @@ const Profile: React.FC = () => {
           </div>
         </div>
       </div>
-    {
-      isWhatsAppModalOpen && (
-      <WhatsAppVerificationModal
-        isOpen={isWhatsAppModalOpen}
-        onClose={() => setIsWhatsAppModalOpen(false)}
-        onVerified={(verifiedNumber: string) => {
-          setWhatsappNumber(verifiedNumber);
-          setIsWhatsAppModalOpen(false);
-        }}
-        />
-      )
-    }
-    
     {/* Followers Modal */}
     <FollowersModal
       isOpen={followersModal.isOpen}
@@ -880,29 +734,6 @@ const styles = {
     fontSize: '0.85rem',
     fontWeight: 600,
   },
-  whatsappSection: {
-    padding: '1.5rem',
-    backgroundColor: 'var(--color-bg-white)',
-    borderRadius: '10px',
-    boxShadow: 'var(--shadow-sm)',
-    marginBottom: '1.5rem',
-  },
-  whatsappHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '0.75rem',
-  },
-  whatsappLabel: {
-    fontSize: '1rem',
-    fontWeight: 600,
-    color: 'var(--color-text-primary-light)',
-  },
-  whatsappDisplay: {
-    fontSize: '0.95rem',
-    color: 'var(--color-text-secondary)',
-    fontStyle: 'italic',
-  },
   themeSection: {
     padding: '1.5rem',
     backgroundColor: 'var(--color-bg-white)',
@@ -941,26 +772,6 @@ const styles = {
     transition: 'all 0.2s ease',
     boxShadow: '0 2px 4px rgba(47, 164, 169, 0.2)',
     whiteSpace: 'nowrap' as const,
-  },
-  whatsappEditContainer: {
-    display: 'flex',
-    gap: '0.5rem',
-    flexWrap: 'wrap' as const,
-  },
-  whatsappInput: {
-    flex: '1',
-    minWidth: '200px',
-    padding: '0.5rem 0.8rem',
-    fontSize: '0.95rem',
-    border: '2px solid var(--color-border)',
-    borderRadius: '8px',
-    outline: 'none',
-    color: 'var(--color-text-dark)',
-    transition: 'all 0.2s ease',
-  },
-  'whatsappInput:focus': {
-    borderColor: 'var(--color-focus)',
-    boxShadow: '0 0 0 3px var(--color-focus-glow)',
   },
   editButton: {
     padding: '0.4rem 1rem',

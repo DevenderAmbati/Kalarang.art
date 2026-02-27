@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout/Layout';
 import ProfileHeader from '../../components/Profile/ProfileHeader';
 import AboutTab from '../../components/Profile/AboutTab';
+import ChatDrawer, { ChatContact } from '../../components/Chat/ChatDrawer';
 import PublishedWorks from '../artwork/PublishedWorks';
 import Gallery from './Gallery';
 import { logout } from '../../services/authService';
@@ -46,6 +47,10 @@ const OtherUserPortfolio: React.FC = () => {
     commissionCtaText: 'Get in Touch',
     links: [] as { label: string; url: string; icon: string }[],
   });
+
+  const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
+  const [commissionReachOutContact, setCommissionReachOutContact] = useState<ChatContact | null>(null);
+  const [commissionReachOutMessage, setCommissionReachOutMessage] = useState('');
 
   useEffect(() => {
     if (!userId) {
@@ -148,6 +153,28 @@ const OtherUserPortfolio: React.FC = () => {
     }
   };
 
+  const handleGetInTouch = () => {
+    if (!appUser || !userId) {
+      toast.error('Please log in to get in touch with artists');
+      return;
+    }
+
+    if (appUser.uid === userId) {
+      toast.info('You cannot message yourself');
+      return;
+    }
+
+    const contact: ChatContact = {
+      uid: userId,
+      name: profileUser.name,
+      avatar: profileUser.avatar,
+    };
+    const message = `Hi ${profileUser.name}, I'm interested in commissioning work and would like to learn more about your process and availability. Could you share the details?`;
+    setCommissionReachOutContact(contact);
+    setCommissionReachOutMessage(message);
+    setChatDrawerOpen(true);
+  };
+
   const handleFollow = async () => {
     if (!appUser || !userId) {
       toast.error('Please log in to follow artists');
@@ -202,6 +229,7 @@ const OtherUserPortfolio: React.FC = () => {
               description: profileUser.commissionDescription,
               ctaText: profileUser.commissionCtaText
             }}
+            onGetInTouch={handleGetInTouch}
             links={profileUser.links}
           />
         </div>
@@ -292,6 +320,20 @@ const OtherUserPortfolio: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {chatDrawerOpen && commissionReachOutContact && appUser && (
+          <ChatDrawer
+            isOpen={chatDrawerOpen}
+            onClose={() => {
+              setChatDrawerOpen(false);
+              setCommissionReachOutContact(null);
+              setCommissionReachOutMessage('');
+            }}
+            initialContact={commissionReachOutContact}
+            initialMessage={commissionReachOutMessage || undefined}
+            reachOutMetadata={{ artworkId: 'commission', artworkTitle: 'Commission inquiry' }}
+          />
+        )}
       </PortfolioProvider>
     </div>
   );

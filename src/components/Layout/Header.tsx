@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineSearch } from 'react-icons/hi';
 import { MdArrowForward } from 'react-icons/md';
@@ -6,11 +6,8 @@ import { FaUserCircle } from 'react-icons/fa';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  const [showComingSoon, setShowComingSoon] = useState(false);
-
   const handleExploreClick = () => {
-    setShowComingSoon(true);
-    setTimeout(() => setShowComingSoon(false), 3000);
+    navigate('/explore');
   };
 
   return (
@@ -152,26 +149,6 @@ const Header: React.FC = () => {
         </button>
       </div>
 
-      {/* Coming Soon Modal */}
-      {showComingSoon && (
-        <div className="coming-soon-overlay">
-          <div className="coming-soon-modal">
-            <div className="coming-soon-icon">
-              {HiOutlineSearch({ size: 64 })}
-            </div>
-            <h2 className="coming-soon-title">Coming Soon!</h2>
-            <p className="coming-soon-message">
-              We're curating an amazing collection of artworks for you.
-              Our explore feature will be available soon!
-            </p>
-            <div className="coming-soon-sparkles">
-              <span className="sparkle">✨</span>
-              <span className="sparkle">🎨</span>
-              <span className="sparkle">✨</span>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 };

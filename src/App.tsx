@@ -21,12 +21,13 @@ import OtherUserPortfolio from "./pages/user/OtherUserPortfolio";
 import Profile from "./pages/user/Profile";
 import CardDetail from "./pages/artwork/CardDetail";
 import CreateUsername from "./pages/auth/CreateUsername";
-import WhatsAppPromptModal from "./components/Modals/WhatsAppPromptModal";
+import Explore from "./pages/feed/Explore";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { PermissionGuard } from "./components/Permissions/PermissionGuard";
 import { useAuth } from "./context/AuthContext";
 import { SidebarProvider } from "./context/SidebarContext";
+import { ChatProvider } from "./context/ChatContext";
 import { Permission } from "./utils/permissions";
 import { ThemeProvider } from "./context/ThemeContext";
 import { logout } from "./services/authService";
@@ -71,37 +72,7 @@ const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 };
 
 function App() {
-  const { firebaseUser, appUser, loading, refreshUserProfile } = useAuth();
-  const [showWhatsAppPrompt, setShowWhatsAppPrompt] = useState(false);
-
-  // Check if we should show WhatsApp prompt modal
-  useEffect(() => {
-    if (!loading && appUser) {
-      // Check if dismissed in this session
-      const dismissedThisSession = sessionStorage.getItem(`whatsapp_dismissed_${appUser.uid}`) === 'true';
-      
-      // Show prompt only for artists who:
-      // 1. Have a username (not in username creation flow)
-      // 2. Don't have a WhatsApp number
-      // 3. Haven't opted out (dontAskWhatsApp is not true)
-      // 4. Haven't dismissed it in this session
-      const shouldShowPrompt = 
-        appUser.role === 'artist' &&
-        appUser.username &&
-        !appUser.whatsappNumber &&
-        !appUser.dontAskWhatsApp &&
-        !dismissedThisSession;
-      
-      if (shouldShowPrompt) {
-        // Small delay to let the page load first
-        const timer = setTimeout(() => {
-          setShowWhatsAppPrompt(true);
-        }, 1000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [appUser, loading]);
-
+  const { firebaseUser, appUser, loading } = useAuth();
 
   // Helper function to check if user is authenticated
   const isAuthenticated = () => {
@@ -123,19 +94,6 @@ function App() {
 
   const handleLogout = async () => {
     await logout();
-  };
-
-  const handleWhatsAppPromptClose = () => {
-    setShowWhatsAppPrompt(false);
-    if (appUser?.uid) {
-      sessionStorage.setItem(`whatsapp_dismissed_${appUser.uid}`, 'true');
-    }
-  };
-
-  const handleWhatsAppSaved = async (phoneNumber: string) => {
-    console.log('WhatsApp number added:', phoneNumber);
-    await refreshUserProfile();
-    setShowWhatsAppPrompt(false);
   };
 
   if (loading) {
@@ -171,6 +129,7 @@ function App() {
       <ThemeProvider>
         <Router>
           <SidebarProvider>
+            <ChatProvider>
             <ToastContainer 
               position="top-center"
               autoClose={2000}
@@ -191,6 +150,8 @@ function App() {
               />
 
               <Route path="/about" element={<About />} />
+
+              <Route path="/explore" element={<Explore />} />
 
               <Route
                 path="/login"
@@ -440,16 +401,7 @@ function App() {
               />
 
             </Routes>
-
-            {/* WhatsApp Prompt Modal - shown globally when conditions are met */}
-            {appUser && (
-              <WhatsAppPromptModal
-                isOpen={showWhatsAppPrompt}
-                onClose={handleWhatsAppPromptClose}
-                onSaved={handleWhatsAppSaved}
-                userId={appUser.uid}
-              />
-            )}
+            </ChatProvider>
           </SidebarProvider>
         </Router>
       </ThemeProvider>

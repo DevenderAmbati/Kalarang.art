@@ -704,6 +704,7 @@ const Discover: React.FC = () => {
                     fontWeight: '600',
                     marginBottom: '16px',
                     color: 'var(--color-royal)',
+                    paddingLeft: '1rem',
                   }}>
                     Artists
                   </h3>
@@ -789,6 +790,7 @@ const Discover: React.FC = () => {
                       fontWeight: '600',
                       marginBottom: '16px',
                       color: 'var(--color-royal)',
+                      paddingLeft: '1rem',
                     }}>
                       Artworks
                     </h3>
