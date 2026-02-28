@@ -196,7 +196,7 @@ function App() {
 
               <Route
                 path="/reset-password"
-                element={isAuthenticated() ? <Navigate to={appUser!.role === "artist" ? "/artist" : appUser!.role === "buyer" ? "/buyer" : "/dashboard"} /> : <SetNewPassword />}
+                element={isAuthenticated() ? <Navigate to="/home" replace /> : <SetNewPassword />}
               />
 
               <Route

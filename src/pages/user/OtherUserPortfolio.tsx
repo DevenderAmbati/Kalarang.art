@@ -122,10 +122,10 @@ const OtherUserPortfolio: React.FC = () => {
       // Load artworks
       const artworks = await getArtworksByArtist(userId);
       const published = artworks.filter(art => art.published);
-      const gallery = artworks.filter(art => !art.published);
       
       setPublishedArtworks(published);
-      setGalleryArtworks(gallery);
+      // Gallery shows all published artworks for other users (unpublished are private drafts)
+      setGalleryArtworks(published);
 
     } catch (error) {
       console.error('Error loading user profile:', error);
