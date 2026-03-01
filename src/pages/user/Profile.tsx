@@ -10,6 +10,7 @@ import FollowersModal from '../../components/Modals/FollowersModal';
 import ConfirmModal from '../../components/Modals/ConfirmModal';
 import ReauthModal from '../../components/Modals/ReauthModal';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
+import { usePwaInstall } from '../../hooks/usePwaInstall';
 import { toast } from 'react-toastify';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../../firebase';
@@ -33,6 +34,7 @@ const Profile: React.FC = () => {
   const [reauthProvider, setReauthProvider] = useState<'password' | 'google'>('password');
   const [isReauthenticating, setIsReauthenticating] = useState(false);
   const [stats, setStats] = useState({ followers: 0, following: 0, artworks: 0 });
+  const { canInstall, isInstalled, triggerInstall } = usePwaInstall();
   const [followersModal, setFollowersModal] = useState<{
     isOpen: boolean;
     type: 'followers' | 'following';
@@ -526,6 +528,45 @@ const Profile: React.FC = () => {
             >
               {isSendingMessage ? 'Sending...' : messageSent ? '✓ Sent!' : 'Send Message'}
             </button>
+          </div>
+
+          {/* Install App Section */}
+          <div style={styles.supportSection}>
+            <div style={styles.supportHeader}>
+              <span style={styles.supportLabel}>
+                {isInstalled ? 'App Installed' : 'Install App'}
+              </span>
+            </div>
+            {isInstalled ? (
+              <p style={styles.supportDescription}>
+                Kalarang is installed on your device. Enjoy the full app experience!
+              </p>
+            ) : canInstall ? (
+              <>
+                <p style={styles.supportDescription}>
+                  Install Kalarang on your device for faster access, offline support, and a native app experience.
+                </p>
+                <button
+                  onClick={triggerInstall}
+                  style={{
+                    ...styles.sendButton,
+                    ...(hoveredButton === 'installApp' ? {
+                      background: 'var(--gradient-primary-hover)',
+                      transform: 'translateY(-1px)',
+                      boxShadow: '0 4px 8px rgba(47, 164, 169, 0.3)',
+                    } : {})
+                  }}
+                  onMouseEnter={() => setHoveredButton('installApp')}
+                  onMouseLeave={() => setHoveredButton(null)}
+                >
+                  Install Kalarang
+                </button>
+              </>
+            ) : (
+              <p style={styles.supportDescription}>
+                To install Kalarang, open this site in Chrome or Edge on your device. If already installed, you're all set!
+              </p>
+            )}
           </div>
 
           {/* Account Actions Section */}

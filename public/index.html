@@ -9,35 +9,124 @@
       name="description"
       content="Kalarang - Where Art Meets Its People. Discover and share original art with the world."
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo1.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/sq_mobile.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
-
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
     <title>Kalarang</title>
+    <style>
+      #splash-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #0B1F2A;
+        transition: opacity 0.5s ease, visibility 0.5s ease;
+      }
+      #splash-screen.splash-hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .splash-logo {
+        width: 300px;
+        height: 300px;
+        object-fit: contain;
+        animation: splash-logo-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+
+      .splash-tagline {
+        margin-top: 0.75rem;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 1.2rem;
+        font-weight: 400;
+        color: rgba(143, 166, 179, 0.85);
+        letter-spacing: 2.5px;
+        text-transform: uppercase;
+        opacity: 0;
+        animation: splash-text-fade 0.4s ease-out 0.3s forwards,
+                   splash-text-glow 2s ease-in-out 0.7s infinite;
+      }
+
+      .splash-loader {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        overflow: hidden;
+      }
+      .splash-loader-bar {
+        width: 40%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, #2FA4A9, #5FD1D8, #1E4FA3, transparent);
+        animation: splash-loader-slide 1.5s ease-in-out infinite;
+      }
+
+      @keyframes splash-logo-in {
+        from {
+          opacity: 0;
+          transform: scale(0.6);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes splash-text-fade {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+          letter-spacing: 6px;
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+          letter-spacing: 2.5px;
+        }
+      }
+      @keyframes splash-text-glow {
+        0%, 100% { color: rgba(143, 166, 179, 0.85); }
+        50% { color: rgba(95, 209, 216, 0.95); }
+      }
+      @keyframes splash-loader-slide {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(350%); }
+      }
+
+      @media (max-width: 480px) {
+        .splash-logo {
+          width: 240px;
+          height: 240px;
+        }
+        .splash-tagline {
+          font-size: 1rem;
+          letter-spacing: 2px;
+        }
+      }
+    </style>
   </head>
-  <body>
+  <body style="margin:0;background:#0B1F2A">
     <noscript>You need to enable JavaScript to run this app.</noscript>
+
+    <div id="splash-screen">
+      <img src="%PUBLIC_URL%/logo1.png" alt="Kalarang" class="splash-logo" />
+      <div class="splash-tagline">Where Art Meets Its People</div>
+      <div class="splash-loader">
+        <div class="splash-loader-bar"></div>
+      </div>
+    </div>
+    <script>
+      if (sessionStorage.getItem('kalarang-splash-shown')) {
+        document.getElementById('splash-screen').remove();
+        document.body.style.background = '';
+      } else {
+        sessionStorage.setItem('kalarang-splash-shown', '1');
+      }
+    </script>
+
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
   </body>
 </html>

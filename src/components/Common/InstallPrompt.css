@@ -1,0 +1,166 @@
+.install-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: installFadeIn 0.25s ease-out;
+  backdrop-filter: blur(8px);
+  padding: 1rem;
+}
+
+@keyframes installFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.install-modal {
+  background: var(--color-bg-white);
+  border-radius: 20px;
+  padding: 2rem 1.75rem;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: installSlideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+}
+
+@keyframes installSlideUp {
+  from {
+    transform: translateY(30px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.install-modal-logo {
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+  margin: 0 auto -0.25rem;
+  display: block;
+}
+
+.install-modal-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-royal);
+  margin: 0 0 0.5rem;
+}
+
+.install-modal-description {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  margin: 0 0 0.35rem;
+}
+
+.install-modal-profile-hint {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+  margin: 0 0 1.5rem;
+  font-style: italic;
+}
+
+.install-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.install-modal-btn-install {
+  background: var(--gradient-primary);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.8rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(47, 164, 169, 0.25);
+}
+
+.install-modal-btn-install:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(47, 164, 169, 0.35);
+}
+
+.install-modal-btn-install:active {
+  transform: translateY(0);
+}
+
+.install-modal-btn-skip {
+  background: var(--color-bg-light);
+  color: var(--color-text-primary-light);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.install-modal-btn-skip:hover {
+  background: var(--color-border-light);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.install-modal-btn-skip:active {
+  transform: translateY(0);
+}
+
+.install-modal-never-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.install-modal-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.install-modal-never-label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Mobile */
+@media (max-width: 639px) {
+  .install-modal {
+    padding: 1.5rem 1.25rem;
+    max-width: 340px;
+  }
+
+  .install-modal-logo {
+    width: 90px;
+    height: 90px;
+  }
+
+  .install-modal-title {
+    font-size: 1.15rem;
+  }
+
+  .install-modal-description {
+    font-size: 0.85rem;
+  }
+}

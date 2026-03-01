@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from 'react';
-import Lottie from 'lottie-react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './toastStyles.css';
@@ -32,9 +31,9 @@ import { ChatProvider } from "./context/ChatContext";
 import { Permission } from "./utils/permissions";
 import { ThemeProvider } from "./context/ThemeContext";
 import { logout } from "./services/authService";
-import laptopDrawing from './animations/Laptop-Drawing 1.json';
 import ArtistLanding from "./pages/landing/ArtistLanding";
 import BuyerLanding from "./pages/landing/BuyerLanding";
+import InstallPrompt from "./components/Common/InstallPrompt";
 
 // Persistent Feed Container Component
 const PersistentFeedContainer: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
@@ -103,31 +102,19 @@ function App() {
     await logout();
   };
 
+  useEffect(() => {
+    if (!loading) {
+      document.body.style.background = '';
+      const splash = document.getElementById('splash-screen');
+      if (splash) {
+        splash.classList.add('splash-hidden');
+        setTimeout(() => splash.remove(), 500);
+      }
+    }
+  }, [loading]);
+
   if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        backgroundColor: '#f5f5f5'
-      }}>
-        <Lottie
-          animationData={laptopDrawing}
-          loop={true}
-          style={{ width: '400px', height: '400px' }}
-        />
-        <p style={{
-          marginTop: '1rem',
-          fontSize: '1.2rem',
-          color: '#008B8B',
-          fontWeight: 500
-        }}>
-          Preparing your canvas...
-        </p>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -419,6 +406,7 @@ function App() {
               />
 
             </Routes>
+            <InstallPrompt />
             </ChatProvider>
           </SidebarProvider>
         </Router>
