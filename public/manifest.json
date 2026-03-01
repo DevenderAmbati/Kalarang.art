@@ -19,12 +19,6 @@
       "purpose": "any"
     },
     {
-      "src": "sq_mobile.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "maskable"
-    },
-    {
       "src": "square logo.png",
       "type": "image/png",
       "sizes": "512x512",
