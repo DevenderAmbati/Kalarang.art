@@ -13,12 +13,6 @@
       "purpose": "any"
     },
     {
-      "src": "square logo.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any"
-    },
-    {
       "src": "sq_mobile1.png",
       "type": "image/png",
       "sizes": "192x192",
