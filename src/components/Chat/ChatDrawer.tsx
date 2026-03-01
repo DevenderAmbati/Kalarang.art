@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../hooks/useChat';
+import { useDrawerBackNavigation } from '../../hooks/useDrawerBackNavigation';
 import { markChatRead, getChatId } from '../../services/chatService';
 import { useChatContext } from '../../context/ChatContext';
 import { getUserProfile } from '../../services/userService';
@@ -457,6 +458,41 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
   const { appUser } = useAuth();
   const [activeContact, setActiveContact] = useState<ChatContact | null>(null);
   const [isClosing, setIsClosing] = useState(false);
+  const isClosingRef = useRef(false);
+
+  const activeChatId = activeContact && appUser
+    ? getChatId(appUser.uid, activeContact.uid)
+    : null;
+
+  const clearActiveContact = useCallback(() => {
+    if (activeContact && appUser) {
+      const chatId = getChatId(appUser.uid, activeContact.uid);
+      markChatRead(chatId, appUser.uid).then(() => setActiveContact(null));
+    } else {
+      setActiveContact(null);
+    }
+  }, [activeContact, appUser]);
+
+  // Animated close (for UI buttons / overlay click)
+  const closeDrawer = useCallback(() => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    setIsClosing(true);
+    setTimeout(() => onClose(), CLOSE_ANIMATION_MS);
+  }, [onClose]);
+
+  useDrawerBackNavigation({
+    drawerOpen: isOpen,
+    activeChatId,
+    onCloseDrawer: closeDrawer,
+    onExitChat: () => {
+      if (initialContact) {
+        closeDrawer();
+      } else {
+        clearActiveContact();
+      }
+    },
+  });
 
   // When opened with an initialContact (from CardDetail), jump straight to chat and mark read
   useEffect(() => {
@@ -472,14 +508,11 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
     if (!isOpen) {
       setActiveContact(null);
       setIsClosing(false);
+      isClosingRef.current = false;
     }
   }, [isOpen]);
 
-  const handleClose = () => {
-    if (isClosing) return;
-    setIsClosing(true);
-    setTimeout(() => onClose(), CLOSE_ANIMATION_MS);
-  };
+  const handleClose = closeDrawer;
 
   // Lock body scroll + set viewport interactive-widget so keyboard resizes the fixed overlay
   useEffect(() => {
@@ -495,16 +528,10 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
   }, [isOpen]);
 
   const handleBack = () => {
-    // If we were opened with an initialContact, back = close drawer
     if (initialContact) {
-      onClose();
+      closeDrawer();
     } else {
-      if (activeContact && appUser) {
-        const chatId = getChatId(appUser.uid, activeContact.uid);
-        markChatRead(chatId, appUser.uid).then(() => setActiveContact(null));
-      } else {
-        setActiveContact(null);
-      }
+      clearActiveContact();
     }
   };
 
