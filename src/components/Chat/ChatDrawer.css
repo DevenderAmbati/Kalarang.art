@@ -456,6 +456,11 @@
   border-radius: 12px;
 }
 
+/* Hide emoji category headings (Smileys, People, etc.) */
+.cd-emoji-picker-wrapper .epr-emoji-category-label {
+  display: none;
+}
+
 .cd-chat-input-row {
   display: flex;
   align-items: flex-end;

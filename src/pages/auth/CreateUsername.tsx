@@ -133,7 +133,7 @@ const CreateUsername: React.FC = () => {
       await refreshUserProfile();
       
       setIsSubmitting(false);
-      navigate('/home');
+      navigate('/artist');
     } catch (err) {
       console.error('Error creating username:', err);
       toast.error('Failed to create username. Please try again.');
