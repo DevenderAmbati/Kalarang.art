@@ -40,6 +40,20 @@
   to   { transform: translateX(0); }
 }
 
+.cd-drawer-closing {
+  animation: cdSlideOut 0.26s ease-in forwards;
+}
+
+@keyframes cdSlideOut {
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
+}
+
+.cd-overlay-closing {
+  /* Keep overlay at full opacity until drawer has slid off */
+  opacity: 1;
+}
+
 /* ---------- Drawer header (matches layout header gradient) ---------- */
 
 .cd-drawer-header {

@@ -451,9 +451,12 @@ const ChatView: React.FC<{
    Main ChatDrawer — unified WhatsApp-style panel
    ────────────────────────────────────────────── */
 
+const CLOSE_ANIMATION_MS = 260;
+
 const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact, initialMessage, reachOutMetadata }) => {
   const { appUser } = useAuth();
   const [activeContact, setActiveContact] = useState<ChatContact | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
 
   // When opened with an initialContact (from CardDetail), jump straight to chat and mark read
   useEffect(() => {
@@ -468,8 +471,15 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
   useEffect(() => {
     if (!isOpen) {
       setActiveContact(null);
+      setIsClosing(false);
     }
   }, [isOpen]);
+
+  const handleClose = () => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(() => onClose(), CLOSE_ANIMATION_MS);
+  };
 
   // Lock body scroll + set viewport interactive-widget so keyboard resizes the fixed overlay
   useEffect(() => {
@@ -504,9 +514,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
   const showListPanel = !initialContact; // hide list when opened as a direct chat
 
   return createPortal(
-    <div className="cd-overlay" onClick={onClose}>
+    <div className={`cd-overlay ${isClosing ? 'cd-overlay-closing' : ''}`} onClick={handleClose}>
       <aside
-        className={`cd-drawer ${showingChat && showListPanel ? 'cd-drawer-expanded' : ''}`}
+        className={`cd-drawer ${showingChat && showListPanel ? 'cd-drawer-expanded' : ''} ${isClosing ? 'cd-drawer-closing' : ''}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label="Messages"
@@ -528,7 +538,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
           ) : (
             <h2 className="cd-drawer-title">Messages</h2>
           )}
-          <button className="cd-drawer-close" onClick={onClose} aria-label="Close messages">
+          <button className="cd-drawer-close" onClick={handleClose} aria-label="Close messages">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
