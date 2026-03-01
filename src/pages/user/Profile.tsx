@@ -347,7 +347,7 @@ const Profile: React.FC = () => {
   return (
     <div>
       <style>{`
-        @media (min-width: 481px) and (max-width: 768px) {
+        @media (min-width: 401px) and (max-width: 768px) {
           .profile-header-mobile {
             padding: 1rem !important;
             gap: 0.75rem !important;
@@ -384,6 +384,68 @@ const Profile: React.FC = () => {
           .member-since-mobile {
             font-size: 0.7rem !important;
           }
+          .profile-info-row-mobile {
+            gap: 0.5rem !important;
+          }
+        }
+        @media (max-width: 400px) {
+          .profile-info-row-mobile {
+            gap: 0.35rem !important;
+          }
+          .profile-header-mobile {
+            padding: 0.75rem !important;
+            gap: 0.5rem !important;
+          }
+          .profile-image-mobile {
+            width: 50px !important;
+            height: 50px !important;
+          }
+          .profile-name-mobile {
+            font-size: 1rem !important;
+          }
+          .profile-email-mobile {
+            font-size: 0.75rem !important;
+          }
+          .following-box-mobile {
+            padding: 0.3rem 0.5rem !important;
+            min-width: 55px !important;
+            flex-shrink: 1 !important;
+          }
+          .following-number-mobile {
+            font-size: 0.95rem !important;
+          }
+          .following-label-mobile {
+            font-size: 0.55rem !important;
+          }
+        }
+        @media (max-width: 360px) {
+          .profile-info-row-mobile {
+            gap: 0.25rem !important;
+          }
+          .profile-header-mobile {
+            padding: 0.6rem !important;
+            gap: 0.4rem !important;
+          }
+          .profile-image-mobile {
+            width: 44px !important;
+            height: 44px !important;
+          }
+          .profile-name-mobile {
+            font-size: 0.95rem !important;
+          }
+          .profile-email-mobile {
+            font-size: 0.7rem !important;
+          }
+          .following-box-mobile {
+            padding: 0.25rem 0.4rem !important;
+            min-width: 48px !important;
+          }
+          .following-number-mobile {
+            font-size: 0.85rem !important;
+          }
+          .following-label-mobile {
+            font-size: 0.5rem !important;
+          }
         }
       `}</style>
       <div style={styles.container}>
@@ -397,10 +459,10 @@ const Profile: React.FC = () => {
               )}
             </div>
             <div style={styles.profileInfo}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-                <div>
-                  <h2 style={styles.name} className="profile-name-mobile">{appUser?.name ? capitalizeName(appUser.name) : 'User'}</h2>
-                  <p style={styles.email} className="profile-email-mobile">{appUser?.email}</p>
+              <div className="profile-info-row-mobile" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', minWidth: 0, flex: 1 }}>
+                <div style={{ minWidth: 0, overflow: 'hidden', flex: 1 }}>
+                  <h2 style={{ ...styles.name, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} className="profile-name-mobile">{appUser?.name ? capitalizeName(appUser.name) : 'User'}</h2>
+                  <p style={{ ...styles.email, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} className="profile-email-mobile">{appUser?.email}</p>
                 </div>
                 
                 {/* Following Stats */}
@@ -729,6 +791,8 @@ const styles = {
     backgroundColor: 'var(--color-bg-white)',
     borderRadius: '10px',
     boxShadow: 'var(--shadow-sm)',
+    minWidth: 0,
+    overflow: 'hidden',
   },
   profileImageContainer: {
     flexShrink: 0,
@@ -742,6 +806,8 @@ const styles = {
   },
   profileInfo: {
     flex: 1,
+    minWidth: 0,
+    overflow: 'hidden',
   },
   name: {
     fontSize: '1.5rem',

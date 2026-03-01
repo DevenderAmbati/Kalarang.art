@@ -268,7 +268,7 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
               }))}
               viewType="published"
               onArtworkClick={handleArtworkClick}
-              isOwner={true}
+              isOwner={isOwnProfile}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onMarkAsSold={handleMarkAsSold}

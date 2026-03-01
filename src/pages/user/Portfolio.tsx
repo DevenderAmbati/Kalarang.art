@@ -17,6 +17,7 @@ import { Artwork } from '../../types/artwork';
 import { createStory, getUserStories } from '../../services/storyService';
 import FollowersModal from '../../components/Modals/FollowersModal';
 import '../../components/Artwork/ArtworkGridCard.css'; // Import for story modal styles
+import './Portfolio.css';
 
 const Portfolio: React.FC = () => {
   const navigate = useNavigate();
@@ -518,11 +519,12 @@ const Portfolio: React.FC = () => {
             />
             
             <div style={styles.tabSection}>
-              <div style={styles.tabContainer}>
+              <div style={styles.tabContainer} className="portfolio-tab-container">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
+                    className="portfolio-tab-button"
                     style={{
                       ...styles.tabButton,
                       ...(activeTab === tab.id ? styles.activeTabButton : {}),

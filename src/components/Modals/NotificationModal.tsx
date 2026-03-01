@@ -48,6 +48,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
     try {
       await markAllNotificationsAsRead(appUser.uid);
       setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+      onClose();
     } catch (error) {
       console.error('Error marking all as read:', error);
     }
@@ -60,6 +61,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
         setNotifications(notifications.map(n => 
           n.id === notification.id ? { ...n, isRead: true } : n
         ));
+        onClose();
       } catch (error) {
         console.error('Error marking notification as read:', error);
       }

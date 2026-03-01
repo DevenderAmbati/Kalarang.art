@@ -15,6 +15,7 @@ import { toast } from 'react-toastify';
 import { getArtworksByArtist } from '../../services/artworkService';
 import LoadingState from '../../components/State/LoadingState';
 import lineArt1Animation from '../../animations/Line art (1).json';
+import './Portfolio.css';
 
 const OtherUserPortfolio: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -299,11 +300,12 @@ const OtherUserPortfolio: React.FC = () => {
             />
             
             <div style={styles.tabSection}>
-              <div style={styles.tabContainer}>
+              <div style={styles.tabContainer} className="portfolio-tab-container">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
+                    className="portfolio-tab-button"
                     style={{
                       ...styles.tabButton,
                       ...(activeTab === tab.id ? styles.activeTabButton : {}),

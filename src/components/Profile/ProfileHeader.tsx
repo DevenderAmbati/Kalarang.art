@@ -150,7 +150,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         }}>
           {/* Avatar Section */}
           <div className="avatar-section" style={{
-            marginTop: '-65px',
             marginBottom: '1rem',
             position: 'relative',
             zIndex: 1,
@@ -161,20 +160,16 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               display: 'inline-block',
               marginBottom: '0.5rem',
               background: 'white',
-              borderRadius: '50%',
-              padding: '4px'
+              borderRadius: '50%'
             }}>
               <img
                 src={user.avatar || '/artist.png'}
                 alt={`${user.name}'s avatar`}
                 className="profile-avatar"
                 style={{
-                  width: '120px',
-                  height: '120px',
                   borderRadius: '50%',
                   objectFit: 'cover',
                   display: 'block',
-                  border: '4px solid white',
                   backgroundColor: '#f3f4f6'
                 }}
                 onLoad={() => console.log('Avatar loaded successfully:', user.avatar || '/artist.png')}
@@ -197,14 +192,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 }}
               />
               <div
+                className="profile-avatar profile-avatar-initials"
                 style={{
                   display: 'none',
-                  width: '120px',
-                  height: '120px',
-                  borderRadius: '50%',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: '4px solid white',
                   backgroundColor: getAvatarBackgroundColor(user.name),
                   fontSize: '2.5rem',
                   fontWeight: 'bold',

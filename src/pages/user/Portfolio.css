@@ -1,0 +1,13 @@
+/* Tab switcher - smaller on mobile below 401px */
+@media (max-width: 400px) {
+  .portfolio-tab-container {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .portfolio-tab-button {
+    padding: 0.6rem 0.9rem !important;
+    font-size: 0.8rem !important;
+  }
+}
