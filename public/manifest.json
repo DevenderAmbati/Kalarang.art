@@ -7,7 +7,7 @@
   "theme_color": "#0C232F",
   "icons": [
     {
-      "src": "sq_mobile.png",
+      "src": "sq_mobile1.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
@@ -19,9 +19,9 @@
       "purpose": "any"
     },
     {
-      "src": "square logo.png",
+      "src": "sq_mobile1.png",
       "type": "image/png",
-      "sizes": "512x512",
+      "sizes": "192x192",
       "purpose": "maskable"
     }
   ],
