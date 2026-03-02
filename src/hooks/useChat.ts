@@ -62,12 +62,12 @@ export function useChat(
   const paginationCursorRef = useRef<DocumentSnapshot | null>(null);
   const isInitialised = useRef(false);
 
-  // Set chatId immediately (deterministic) and ensure chat doc exists in background
+  // Ensure chat doc exists before setting chatId (which triggers the onSnapshot listener)
   useEffect(() => {
     if (!currentUserId || !otherUserId) return;
 
-    const id = getChatId(currentUserId, otherUserId);
-    setChatId(id);
+    let cancelled = false;
+
     setLoading(true);
     isInitialised.current = false;
     setRealtimeMessages([]);
@@ -75,9 +75,19 @@ export function useChat(
     setHasMore(true);
     paginationCursorRef.current = null;
 
-    createOrGetChat(currentUserId, otherUserId).catch(() => {});
+    createOrGetChat(currentUserId, otherUserId)
+      .then(() => {
+        if (!cancelled) {
+          setChatId(getChatId(currentUserId, otherUserId));
+        }
+      })
+      .catch((err) => {
+        console.error('[useChat] Failed to create/get chat:', err);
+        if (!cancelled) setLoading(false);
+      });
 
     return () => {
+      cancelled = true;
       setChatId(null);
       setRealtimeMessages([]);
       setOlderMessages([]);
