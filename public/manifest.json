@@ -3,8 +3,8 @@
   "short_name": "Kalarang",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0B1F2A",
-  "theme_color": "#0C232F",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "sq_mobile1.png",
