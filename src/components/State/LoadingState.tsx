@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import Lottie from 'lottie-react';
 import './LoadingState.css';
 
@@ -13,6 +13,14 @@ const LoadingState: React.FC<LoadingStateProps> = ({
   fullHeight = false,
   animation
 }) => {
+  const lottieRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!animation) return;
+    const t = setTimeout(() => lottieRef.current?.setSpeed(2), 50);
+    return () => clearTimeout(t);
+  }, [animation]);
+
   return (
     <div className={`loading-state ${fullHeight ? 'loading-state-full' : ''}`}>
       <div className="loading-state-content">
@@ -21,6 +29,7 @@ const LoadingState: React.FC<LoadingStateProps> = ({
             <Lottie 
               animationData={animation} 
               loop={true}
+              lottieRef={lottieRef}
               style={{ width: '100%', maxWidth: '200px', height: 'auto' }}
             />
           </div>

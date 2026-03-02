@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdHome, MdEmail, MdLock } from 'react-icons/md';
 import { FaGoogle } from 'react-icons/fa';
@@ -28,8 +28,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [randomAnimation, setRandomAnimation] = useState<any>(null);
-  const [selectedAnimationIndex, setSelectedAnimationIndex] = useState<number>(-1);
   const lottieRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!randomAnimation) return;
+    const t = setTimeout(() => lottieRef.current?.setSpeed(2), 50);
+    return () => clearTimeout(t);
+  }, [randomAnimation]);
 
   const handleGoogleLogin = async () => {
     try {
@@ -93,17 +98,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
 
   
-  useEffect(() => {
-    // Index 2 is laptopDrawing
-    if (lottieRef.current && selectedAnimationIndex === 2) {
-      setTimeout(() => {
-        if (lottieRef.current) {
-          lottieRef.current.setSpeed(0.5);
-        }
-      }, 100);
-    }
-  }, [selectedAnimationIndex]);
-
   // Email validation regex
   const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -120,7 +114,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         // Select random animation and show loading
         const randomIndex = Math.floor(Math.random() * animations.length);
         setRandomAnimation(animations[randomIndex]);
-        setSelectedAnimationIndex(randomIndex);
         setIsLoading(true);
         setErrorMessage('');
         
@@ -153,11 +146,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             loop={true} 
             autoplay={true}
             lottieRef={lottieRef}
-            onComplete={() => {
-              if (lottieRef.current && selectedAnimationIndex === 2) {
-                lottieRef.current.setSpeed(0.5);
-              }
-            }}
           />
         </div>
         <div style={{ 

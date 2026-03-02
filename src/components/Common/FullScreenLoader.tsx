@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Lottie from 'lottie-react';
 import laptopDrawing from '../../animations/Laptop-Drawing 1.json';
@@ -12,6 +12,14 @@ const FullScreenLoader: React.FC<FullScreenLoaderProps> = ({
   isVisible,
   message = 'Processing...',
 }) => {
+  const lottieRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!isVisible) return;
+    const t = setTimeout(() => lottieRef.current?.setSpeed(3), 100);
+    return () => clearTimeout(t);
+  }, [isVisible]);
+
   if (!isVisible) return null;
 
   return createPortal(
@@ -34,6 +42,7 @@ const FullScreenLoader: React.FC<FullScreenLoaderProps> = ({
       <Lottie
         animationData={laptopDrawing}
         loop={true}
+        lottieRef={lottieRef}
         style={{ width: '350px', height: '350px' }}
       />
       <p

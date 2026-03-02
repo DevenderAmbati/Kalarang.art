@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Lottie from 'lottie-react';
@@ -62,6 +62,14 @@ const CreateArtwork: React.FC = () => {
     price: '',
     isCommissioned: false,
   });
+
+  const lottieRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!isLoadingArtwork && !isSaving && !isPublishing) return;
+    const t = setTimeout(() => lottieRef.current?.setSpeed(2), 50);
+    return () => clearTimeout(t);
+  }, [isLoadingArtwork, isSaving, isPublishing]);
 
   const maxImages = 6;
 
@@ -612,6 +620,7 @@ const CreateArtwork: React.FC = () => {
             <Lottie 
               animationData={artAnimation}
               loop={true}
+              lottieRef={lottieRef}
               style={{ width: '100%', height: 'auto' }}
             />
           </div>
@@ -645,6 +654,7 @@ const CreateArtwork: React.FC = () => {
             <Lottie 
               animationData={artAnimation} 
               loop={true}
+              lottieRef={lottieRef}
               style={{ width: '100%', height: 'auto' }}
             />
           </div>
@@ -736,6 +746,7 @@ const CreateArtwork: React.FC = () => {
             <Lottie 
               animationData={publishAnimation} 
               loop={true}
+              lottieRef={lottieRef}
               style={{ width: '100%', height: 'auto' }}
             />
           </div>

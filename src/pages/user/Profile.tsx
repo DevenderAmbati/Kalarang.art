@@ -35,6 +35,7 @@ const Profile: React.FC = () => {
   const [isReauthenticating, setIsReauthenticating] = useState(false);
   const [stats, setStats] = useState({ followers: 0, following: 0, artworks: 0 });
   const { canInstall, isInstalled, triggerInstall } = usePwaInstall();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [followersModal, setFollowersModal] = useState<{
     isOpen: boolean;
     type: 'followers' | 'following';
@@ -57,6 +58,7 @@ const Profile: React.FC = () => {
   }, [appUser?.uid]);
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     await logout();
     navigate('/');
   };
@@ -768,6 +770,12 @@ const Profile: React.FC = () => {
     <FullScreenLoader
       isVisible={isDeletingAccount && !showReauthModal}
       message="Deleting your account... Please wait."
+    />
+
+    {/* Full Screen Loader for Logout */}
+    <FullScreenLoader
+      isVisible={isLoggingOut}
+      message="Logging out... See you soon!"
     />
     </div>
   );

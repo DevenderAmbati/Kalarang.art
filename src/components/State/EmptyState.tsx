@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import Lottie from 'lottie-react';
 import { useNavigate } from 'react-router-dom';
 import './EmptyState.css';
@@ -23,6 +23,13 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   icon,
 }) => {
   const navigate = useNavigate();
+  const lottieRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!animation) return;
+    const t = setTimeout(() => lottieRef.current?.setSpeed(2), 50);
+    return () => clearTimeout(t);
+  }, [animation]);
 
   const handleAction = () => {
     if (onAction) {
@@ -40,6 +47,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
             <Lottie 
               animationData={animation} 
               loop={true}
+              lottieRef={lottieRef}
               style={{ width: '100%', maxWidth: '300px', height: 'auto' }}
             />
           </div>

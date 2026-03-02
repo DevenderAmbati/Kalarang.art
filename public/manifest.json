@@ -4,7 +4,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "theme_color": "#0B1F2A",
   "icons": [
     {
       "src": "sq_mobile1.png",
@@ -17,6 +17,12 @@
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "maskable"
+    },
+    {
+      "src": "square logo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
     }
   ],
   "orientation": "portrait-primary",

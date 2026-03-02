@@ -34,8 +34,13 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState('');  const [isLoading, setIsLoading] = useState(false);
   const [randomAnimation, setRandomAnimation] = useState<any>(null);
-  const [selectedAnimationIndex, setSelectedAnimationIndex] = useState<number>(-1);
   const lottieRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!randomAnimation) return;
+    const t = setTimeout(() => lottieRef.current?.setSpeed(2), 50);
+    return () => clearTimeout(t);
+  }, [randomAnimation]);
 
   // Password validation states
   const [validations, setValidations] = useState({
@@ -55,17 +60,6 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
     lineArt1,
     lineArt2
   ];
-
-  useEffect(() => {
-    // Index 2 is laptopDrawing
-    if (lottieRef.current && selectedAnimationIndex === 2) {
-      setTimeout(() => {
-        if (lottieRef.current) {
-          lottieRef.current.setSpeed(0.5);
-        }
-      }, 100);
-    }
-  }, [selectedAnimationIndex]);
 
   useEffect(() => {
     // Validate password in real-time
@@ -112,7 +106,6 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
         // Show loader before signup
         const randomIndex = Math.floor(Math.random() * animations.length);
         setRandomAnimation(animations[randomIndex]);
-        setSelectedAnimationIndex(randomIndex);
         setIsLoading(true);
         
         // All validations passed, now signup
@@ -163,7 +156,6 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
       // Show loader before Google sign-in
       const randomIndex = Math.floor(Math.random() * animations.length);
       setRandomAnimation(animations[randomIndex]);
-      setSelectedAnimationIndex(randomIndex);
       setIsLoading(true);
       
       // All validations passed, proceed with Google sign-in
@@ -224,11 +216,6 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
             loop={true} 
             autoplay={true}
             lottieRef={lottieRef}
-            onComplete={() => {
-              if (lottieRef.current && selectedAnimationIndex === 2) {
-                lottieRef.current.setSpeed(0.5);
-              }
-            }}
           />
         </div>
         <div style={{ 
