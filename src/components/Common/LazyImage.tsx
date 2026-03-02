@@ -58,6 +58,16 @@ const LazyImage: React.FC<LazyImageProps> = ({
     };
   }, [src, imageSrc]);
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    return false;
+  };
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.preventDefault();
+    return false;
+  };
+
   return (
     <img
       ref={imgRef}
@@ -72,6 +82,9 @@ const LazyImage: React.FC<LazyImageProps> = ({
         willChange: 'opacity',
       }}
       loading="lazy"
+      onContextMenu={handleContextMenu}
+      onDragStart={handleDragStart}
+      draggable={false}
     />
   );
 };

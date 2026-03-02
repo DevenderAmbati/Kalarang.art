@@ -17,6 +17,32 @@ html {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  /* Remove tap highlight */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  /* Disable text selection for better mobile experience */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Re-enable text selection for text content */
+input, textarea, p, span, h1, h2, h3, h4, h5, h6, a, label, li {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Prevent image long press download and context menu */
+img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  pointer-events: auto;
 }
 
 #root {

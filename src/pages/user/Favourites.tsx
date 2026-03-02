@@ -7,7 +7,7 @@ import LoadingState from '../../components/State/LoadingState';
 import LazyImage from '../../components/Common/LazyImage';
 import { useFavoriteArtworks } from '../../hooks/useCachedData';
 import { removeArtworkFromFavorites } from '../../services/interactionService';
-import girlAnimation from '../../animations/girl bangs computer.json';
+import girlAnimation from '../../animations/African American Art.json';
 import noContentAnimation from '../../animations/no content.json';
 import { toast } from 'react-toastify';
 import { cache, cacheKeys } from '../../utils/cache';

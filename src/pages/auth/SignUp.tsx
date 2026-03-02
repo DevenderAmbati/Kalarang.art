@@ -10,7 +10,6 @@ import { signup, signInWithGoogle } from "../../services/authService";
 
 // Import all animations
 import africanAmericanArt from '../../animations/African American Art.json';
-import girlBangsComputer from '../../animations/girl bangs computer.json';
 import laptopDrawing from '../../animations/Laptop-Drawing 1.json';
 import lineArt1 from '../../animations/Line art (1).json';
 import lineArt2 from '../../animations/Line art (2).json';
@@ -55,7 +54,6 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
   // Array of animations
   const animations = [
     africanAmericanArt,
-    girlBangsComputer,
     laptopDrawing,
     lineArt1,
     lineArt2
