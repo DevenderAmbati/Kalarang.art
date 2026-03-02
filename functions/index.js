@@ -17,10 +17,18 @@
  */
 
 const {onCall} = require("firebase-functions/v2/https");
+const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 const {setGlobalOptions} = require("firebase-functions/v2");
 const logger = require("firebase-functions/logger");
 const {defineSecret, defineString} = require("firebase-functions/params");
 const nodemailer = require("nodemailer");
+const {initializeApp} = require("firebase-admin/app");
+const {getFirestore} = require("firebase-admin/firestore");
+const {getMessaging} = require("firebase-admin/messaging");
+
+const admin = initializeApp();
+const db = getFirestore();
+const messaging = getMessaging();
 
 // Define environment parameters using Gen 2 params API
 // These values can be set via .env file locally or Firebase secrets in production
@@ -448,5 +456,181 @@ This message was sent via Kalarang.
         error.message || "Failed to send email. Please try again later."
       );
     }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Push Notification Functions (FCM)
+// ---------------------------------------------------------------------------
+
+/**
+ * Look up all FCM tokens for a given user from the "userTokens" collection.
+ */
+async function getUserFcmTokens(userId) {
+  const snapshot = await db
+    .collection("userTokens")
+    .where("userId", "==", userId)
+    .get();
+
+  return snapshot.docs.map((d) => ({id: d.id, token: d.data().token}));
+}
+
+/**
+ * Send an FCM notification to all of a user's devices.
+ * Automatically removes stale/expired tokens.
+ */
+async function sendPushToUser(userId, notification, data = {}, collapseKey = null) {
+  const tokenEntries = await getUserFcmTokens(userId);
+  if (tokenEntries.length === 0) {
+    logger.info("No FCM tokens found for user", {userId});
+    return;
+  }
+
+  const fcmData = {
+    ...data,
+    title: notification.title || "Kalarang",
+    body: notification.body || "You have a new notification",
+  };
+
+  const msg = {data: fcmData};
+  if (collapseKey) {
+    msg.webpush = {headers: {Topic: collapseKey}};
+  }
+
+  const results = await Promise.allSettled(
+    tokenEntries.map(({id, token}) =>
+      messaging
+        .send({...msg, token})
+        .catch(async (err) => {
+          if (
+            err.code === "messaging/invalid-registration-token" ||
+            err.code === "messaging/registration-token-not-registered"
+          ) {
+            logger.info("Removing stale FCM token", {tokenDocId: id});
+            await db.collection("userTokens").doc(id).delete();
+          }
+          throw err;
+        })
+    )
+  );
+
+  const sent = results.filter((r) => r.status === "fulfilled").length;
+  const failed = results.filter((r) => r.status === "rejected").length;
+  logger.info("Push notification results", {userId, sent, failed});
+}
+
+/**
+ * Trigger: new document in "notifications" collection (follow, favourite, reachout).
+ * Sends FCM push to the recipient.
+ */
+exports.onNotificationCreated = onDocumentCreated(
+  {
+    document: "notifications/{notificationId}",
+    region: "us-central1",
+    memory: "256MiB",
+    maxInstances: 20,
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const notif = snap.data();
+    const {recipientId, actorName, type, artworkTitle} = notif;
+
+    if (!recipientId) {
+      logger.warn("Notification missing recipientId", {id: snap.id});
+      return;
+    }
+
+    let title = "Kalarang";
+    let body = "You have a new notification";
+
+    switch (type) {
+    case "follow":
+      title = "New Follower";
+      body = `${actorName || "Someone"} started following you`;
+      break;
+    case "favourite":
+      title = "New Favourite";
+      body = artworkTitle
+        ? `${actorName || "Someone"} favourited "${artworkTitle}"`
+        : `${actorName || "Someone"} favourited your artwork`;
+      break;
+    case "reachout":
+      title = "New Reach Out";
+      body = artworkTitle
+        ? `${actorName || "Someone"} reached out about "${artworkTitle}"`
+        : `${actorName || "Someone"} reached out to you`;
+      break;
+    default:
+      body = `${actorName || "Someone"} interacted with your profile`;
+    }
+
+    await sendPushToUser(
+      recipientId,
+      {title, body},
+      {type: type || "notification", url: "/home"}
+    );
+  }
+);
+
+/**
+ * Trigger: new message in "chats/{chatId}/messages/{messageId}".
+ * Sends FCM push to the other participant.
+ */
+exports.onChatMessageCreated = onDocumentCreated(
+  {
+    document: "chats/{chatId}/messages/{messageId}",
+    region: "us-central1",
+    memory: "256MiB",
+    maxInstances: 20,
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const messageData = snap.data();
+    const {senderId, text} = messageData;
+    const chatId = event.params.chatId;
+
+    if (!senderId || !text) {
+      logger.warn("Message missing senderId or text", {chatId});
+      return;
+    }
+
+    const chatDoc = await db.collection("chats").doc(chatId).get();
+    if (!chatDoc.exists) {
+      logger.warn("Chat document not found", {chatId});
+      return;
+    }
+
+    const chatData = chatDoc.data();
+    const participants = chatData.participants || [];
+    const recipientId = participants.find((p) => p !== senderId);
+
+    if (!recipientId) {
+      logger.warn("Could not determine message recipient", {chatId, senderId});
+      return;
+    }
+
+    let senderName = "Someone";
+    try {
+      const senderDoc = await db.collection("users").doc(senderId).get();
+      if (senderDoc.exists) {
+        senderName = senderDoc.data().name || "Someone";
+      }
+    } catch (err) {
+      logger.warn("Could not fetch sender name", {senderId});
+    }
+
+    const truncatedText =
+      text.length > 100 ? text.substring(0, 100) + "..." : text;
+
+    await sendPushToUser(
+      recipientId,
+      {title: senderName, body: truncatedText},
+      {type: "chat", chatId, url: "/home"},
+      `chat_${chatId}`
+    );
   }
 );

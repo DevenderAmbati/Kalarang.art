@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import CollapsedSidebar from './CollapsedSidebar';
@@ -13,6 +13,8 @@ import NotificationModal from '../Modals/NotificationModal';
 import ChatDrawer from '../Chat/ChatDrawer';
 import { subscribeToUnreadCount } from '../../services/notificationService';
 import { useChatContext } from '../../context/ChatContext';
+import InstallBanner from '../Common/InstallPrompt';
+import NotificationBanner from '../Common/NotificationPrompt';
 import './Layout.css';
 
 interface LayoutProps {
@@ -46,6 +48,20 @@ const Layout: React.FC<LayoutProps> = ({
   const [unreadCount, setUnreadCount] = useState(0);
   const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
   const { unreadCount: unreadChatCount } = useChatContext();
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(56);
+  const [installBannerVisible, setInstallBannerVisible] = useState(false);
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      setHeaderHeight(el.offsetHeight);
+    });
+    ro.observe(el);
+    setHeaderHeight(el.offsetHeight);
+    return () => ro.disconnect();
+  }, []);
 
   // Subscribe to unread notification count
   useEffect(() => {
@@ -116,81 +132,85 @@ const Layout: React.FC<LayoutProps> = ({
         }}
       >
         {/* Header with Page Title */}
-        <div className="layout-header" style={styles.header}>
-          <div className="header-left" style={styles.headerLeft}>
-            <h1 style={styles.pageTitle}>{getPageTitle()}</h1>
-          </div>
-          <div className="header-right" style={styles.headerRight}>
-            {appUser && (
-              <div
-                onClick={() => setIsChatDrawerOpen(true)}
-                style={{...styles.notificationIcon, position: 'relative'}}
-                className="layout-notification-icon"
-                aria-label="Messages"
-              >
-                {PiChatsBold({ size: 26 })}
-                {unreadChatCount > 0 && (
-                  <div style={styles.unreadBadge}>
-                    {unreadChatCount > 99 ? '99+' : unreadChatCount}
-                  </div>
-                )}
-              </div>
-            )}
-            {appUser?.role === 'artist' && (
-              <>
-                <div 
-                  onClick={() => setIsNotificationModalOpen(true)}
-                  style={{...styles.notificationIcon, position: 'relative'}} 
+        <div ref={headerRef} className="layout-header" style={styles.header}>
+          <div className="header-row" style={styles.headerRow}>
+            <div className="header-left" style={styles.headerLeft}>
+              <h1 style={styles.pageTitle}>{getPageTitle()}</h1>
+            </div>
+            <div className="header-right" style={styles.headerRight}>
+              {appUser && (
+                <div
+                  onClick={() => setIsChatDrawerOpen(true)}
+                  style={{...styles.notificationIcon, position: 'relative'}}
                   className="layout-notification-icon"
+                  aria-label="Messages"
                 >
-                  {IoMdNotifications({ size: 28 })}
-                  {unreadCount > 0 && (
+                  {PiChatsBold({ size: 26 })}
+                  {unreadChatCount > 0 && (
                     <div style={styles.unreadBadge}>
-                      {unreadCount > 99 ? '99+' : unreadCount}
+                      {unreadChatCount > 99 ? '99+' : unreadChatCount}
                     </div>
                   )}
                 </div>
-                <div onClick={handleProfileClick} style={styles.profileIcon} className="layout-profile-icon">
-                  <img src={appUser.avatar || '/artist.png'} alt="Artist Profile" style={styles.profileImage} />
-                </div>
-              </>
-            )}
+              )}
+              {appUser?.role === 'artist' && (
+                <>
+                  <div 
+                    onClick={() => setIsNotificationModalOpen(true)}
+                    style={{...styles.notificationIcon, position: 'relative'}} 
+                    className="layout-notification-icon"
+                  >
+                    {IoMdNotifications({ size: 28 })}
+                    {unreadCount > 0 && (
+                      <div style={styles.unreadBadge}>
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </div>
+                    )}
+                  </div>
+                  <div onClick={handleProfileClick} style={styles.profileIcon} className="layout-profile-icon">
+                    <img src={appUser.avatar || '/artist.png'} alt="Artist Profile" style={styles.profileImage} />
+                  </div>
+                </>
+              )}
+            </div>
           </div>
+          <InstallBanner onVisibilityChange={setInstallBannerVisible} />
+          {!installBannerVisible && <NotificationBanner />}
         </div>
         <div style={styles.contentWrapper}>
           {showPersistentPages ? (
             <>
               {/* HomeFeed - Independent scroll container */}
-              <div style={isHomeFeedActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden}>
+              <div style={{...(isHomeFeedActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden), paddingTop: `${headerHeight}px`}}>
                 {homeFeedComponent}
               </div>
               
               {/* Discover - Independent scroll container */}
-              <div style={isDiscoverActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden}>
+              <div style={{...(isDiscoverActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden), paddingTop: `${headerHeight}px`}}>
                 {discoverComponent}
               </div>
               
               {/* Favourites - Independent scroll container */}
-              <div style={isFavouritesActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden}>
+              <div style={{...(isFavouritesActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden), paddingTop: `${headerHeight}px`}}>
                 {favouritesComponent}
               </div>
               
               {/* ArtworkDetail - Independent scroll container */}
               {isArtworkDetail && (
-                <div style={styles.artworkDetailScrollContainer}>
+                <div style={{...styles.artworkDetailScrollContainer, paddingTop: `${headerHeight}px`}}>
                   {children}
                 </div>
               )}
               
               {/* OtherUserPortfolio - Independent scroll container */}
               {isOtherUserPortfolio && (
-                <div style={styles.artworkDetailScrollContainer}>
+                <div style={{...styles.artworkDetailScrollContainer, paddingTop: `${headerHeight}px`}}>
                   {children}
                 </div>
               )}
             </>
           ) : (
-            <div style={styles.standardScrollContainer}>
+            <div style={{...styles.standardScrollContainer, paddingTop: `${headerHeight}px`}}>
               {children}
             </div>
           )}
@@ -221,9 +241,7 @@ const styles = {
   },
   header: {
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '1rem 1.5em',
+    flexDirection: 'column',
     background: 'linear-gradient(90deg, #E8F4F5 0%, #c1f8fdff 100%)',
     borderBottom: '1px solid rgba(47, 164, 169, 0.2)',
     boxShadow: '0 4px 16px rgba(47, 164, 169, 0.15)',
@@ -232,6 +250,12 @@ const styles = {
     left: 0,
     right: 0,
     zIndex: 100,
+  } as React.CSSProperties,
+  headerRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '1rem 1.5em',
   } as React.CSSProperties,
   headerLeft: {
     display: 'flex',
@@ -334,7 +358,7 @@ const styles = {
     overflowX: 'hidden',
     scrollBehavior: 'smooth',
     WebkitOverflowScrolling: 'touch',
-    padding: '72px 0.5rem 75px',
+    padding: '0 0.5rem 75px',
   } as React.CSSProperties,
   feedScrollContainer: {
     position: 'absolute',
@@ -349,7 +373,7 @@ const styles = {
     visibility: 'visible',
     opacity: 1,
     transition: 'opacity 0.2s ease-in-out',
-    padding: '72px 0.5rem 75px',
+    padding: '0 0.5rem 75px',
   } as React.CSSProperties,
   feedScrollContainerHidden: {
     position: 'absolute',
@@ -363,7 +387,7 @@ const styles = {
     opacity: 0,
     pointerEvents: 'none',
     transition: 'opacity 0.2s ease-in-out, visibility 0s linear 0.2s',
-    padding: '72px 0.5rem 75px',
+    padding: '0 0.5rem 75px',
   } as React.CSSProperties,
   artworkDetailScrollContainer: {
     position: 'absolute',
@@ -379,7 +403,7 @@ const styles = {
     opacity: 1,
     pointerEvents: 'auto',
     transition: 'opacity 0.2s ease-in-out',
-    padding: '72px 0.5rem 75px',
+    padding: '0 0.5rem 75px',
   } as React.CSSProperties,
   activePage: {
     visibility: 'visible',

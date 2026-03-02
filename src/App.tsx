@@ -33,7 +33,6 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { logout } from "./services/authService";
 import ArtistLanding from "./pages/landing/ArtistLanding";
 import BuyerLanding from "./pages/landing/BuyerLanding";
-import InstallPrompt from "./components/Common/InstallPrompt";
 
 // Persistent Feed Container Component
 const PersistentFeedContainer: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
@@ -406,7 +405,6 @@ function App() {
               />
 
             </Routes>
-            <InstallPrompt />
             </ChatProvider>
           </SidebarProvider>
         </Router>

@@ -11,6 +11,9 @@ import ConfirmModal from '../../components/Modals/ConfirmModal';
 import ReauthModal from '../../components/Modals/ReauthModal';
 import FullScreenLoader from '../../components/Common/FullScreenLoader';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
+import { IoMdNotifications, IoMdChatbubbles } from 'react-icons/io';
+import { MdInstallMobile } from 'react-icons/md';
 import { toast } from 'react-toastify';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../../firebase';
@@ -35,6 +38,7 @@ const Profile: React.FC = () => {
   const [isReauthenticating, setIsReauthenticating] = useState(false);
   const [stats, setStats] = useState({ followers: 0, following: 0, artworks: 0 });
   const { canInstall, isInstalled, triggerInstall } = usePwaInstall();
+  const { enabled: notifEnabled, loading: notifLoading, toggling: notifToggling, toggle: toggleNotif } = usePushNotifications();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [followersModal, setFollowersModal] = useState<{
     isOpen: boolean;
@@ -560,7 +564,7 @@ const Profile: React.FC = () => {
           {/* Support & Suggestions Section */}
           <div style={styles.supportSection}>
             <div style={styles.supportHeader}>
-              <span style={styles.supportLabel}>💬 Support & Suggestions</span>
+              <span style={styles.supportLabel}>{IoMdChatbubbles({style: {verticalAlign: 'middle', marginRight: '0.3rem'}})} Support & Suggestions</span>
             </div>
             <p style={styles.supportDescription}>
               Have feedback or need help? Send us a message and we'll get back to you at kalarang.team@gmail.com
@@ -594,11 +598,45 @@ const Profile: React.FC = () => {
             </button>
           </div>
 
+          {/* Notification Settings Section */}
+          <div style={styles.supportSection}>
+            <div style={styles.supportHeader}>
+              <span style={styles.supportLabel}>{IoMdNotifications({style: {verticalAlign: 'middle', marginRight: '0.3rem'}})} Notifications</span>
+            </div>
+            <p style={styles.supportDescription}>
+              {notifEnabled
+                ? 'Push notifications are enabled. You\'ll receive alerts for new messages, followers, and activity.'
+                : 'Enable push notifications to stay updated on messages, followers, and art activity.'}
+            </p>
+            <div style={styles.notifToggleRow}>
+              <span style={styles.notifStatusText}>
+                {notifLoading ? 'Checking...' : notifEnabled ? 'Enabled' : 'Disabled'}
+              </span>
+              <button
+                onClick={toggleNotif}
+                disabled={notifLoading || notifToggling}
+                style={{
+                  ...styles.notifToggleButton,
+                  ...(notifEnabled ? styles.notifToggleButtonActive : {}),
+                  opacity: notifLoading || notifToggling ? 0.6 : 1,
+                  cursor: notifLoading || notifToggling ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <span
+                  style={{
+                    ...styles.notifToggleKnob,
+                    ...(notifEnabled ? styles.notifToggleKnobActive : {}),
+                  }}
+                />
+              </button>
+            </div>
+          </div>
+
           {/* Install App Section */}
           <div style={styles.supportSection}>
             <div style={styles.supportHeader}>
               <span style={styles.supportLabel}>
-                {isInstalled ? 'App Installed' : 'Install App'}
+                {MdInstallMobile({style: {verticalAlign: 'middle', marginRight: '0.3rem'}})} {isInstalled ? 'App Installed' : 'Install App'}
               </span>
             </div>
             {isInstalled ? (
@@ -1102,6 +1140,46 @@ const styles = {
   comingSoonText: {
     fontSize: '1rem',
     color: 'var(--color-text-secondary)',
+  },
+  notifToggleRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: '0.5rem',
+  },
+  notifStatusText: {
+    fontSize: '0.9rem',
+    fontWeight: 600,
+    color: 'var(--color-text-secondary)',
+  },
+  notifToggleButton: {
+    width: '52px',
+    height: '28px',
+    borderRadius: '14px',
+    border: 'none',
+    backgroundColor: '#ccc',
+    position: 'relative' as const,
+    cursor: 'pointer',
+    transition: 'background-color 0.3s ease',
+    padding: 0,
+    flexShrink: 0,
+  },
+  notifToggleButtonActive: {
+    backgroundColor: 'var(--color-primary, #0d9488)',
+  },
+  notifToggleKnob: {
+    position: 'absolute' as const,
+    top: '2px',
+    left: '2px',
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    backgroundColor: '#fff',
+    transition: 'transform 0.3s ease',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+  },
+  notifToggleKnobActive: {
+    transform: 'translateX(24px)',
   },
 };
 

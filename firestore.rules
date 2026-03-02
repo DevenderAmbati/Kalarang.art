@@ -85,6 +85,14 @@ service cloud.firestore {
       }
     }
 
+    // FCM push notification tokens — users can manage their own device tokens
+    // Document ID format: {userId}_{deviceId}
+    match /userTokens/{tokenId} {
+      allow read: if request.auth != null && tokenId.split('_')[0] == request.auth.uid;
+      allow create, update: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && tokenId.split('_')[0] == request.auth.uid;
+    }
+
     // Default deny all other collections
     match /{document=**} {
       allow read, write: if false;

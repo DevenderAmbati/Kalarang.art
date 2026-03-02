@@ -76,9 +76,12 @@
 
   /* Adjust header for mobile */
   .layout-header {
-    padding: 0.75rem 1rem !important;
     position: fixed;
     width: 100%;
+  }
+
+  .layout-header .header-row {
+    padding: 0.75rem 1rem !important;
   }
 
   .layout-header h1 {
