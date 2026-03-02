@@ -137,8 +137,15 @@ const OtherUserPortfolio: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/');
+    try {
+      await logout();
+      // Wait for auth state to settle, then navigate
+      setTimeout(() => {
+        navigate('/', { replace: true });
+      }, 400);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const handleShareProfile = () => {

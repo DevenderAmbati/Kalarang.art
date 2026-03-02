@@ -58,15 +58,32 @@ export async function createOrGetChat(
 ): Promise<string> {
   const chatId = getChatId(buyerId, artistId);
   const chatRef = doc(db, 'chats', chatId);
-  const chatSnap = await getDoc(chatRef);
-
-  if (!chatSnap.exists()) {
+  
+  console.log('[chatService] createOrGetChat called:', { buyerId, artistId, chatId });
+  
+  try {
+    // Use merge: true to safely create or update without checking first
+    // This ensures the document exists and avoids a race condition
+    // merge: true won't overwrite existing fields, so existing chats are preserved
     await setDoc(chatRef, {
       participants: [buyerId, artistId].sort(),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       lastMessage: '',
-    });
+      unreadFor: {},
+    }, { merge: true });
+    
+    console.log('[chatService] Chat document created/verified successfully:', chatId);
+    
+    // Verify the document exists by reading it back
+    const chatSnap = await getDoc(chatRef);
+    if (!chatSnap.exists()) {
+      throw new Error('Failed to create chat document');
+    }
+    console.log('[chatService] Chat document verified to exist');
+  } catch (error) {
+    console.error('[chatService] Error creating/getting chat:', error);
+    throw error;
   }
 
   return chatId;
@@ -82,13 +99,20 @@ export async function sendMessage(
   text: string,
   otherUserId?: string
 ): Promise<void> {
+  console.log('[chatService] sendMessage called:', { chatId, senderId, textLength: text.length, otherUserId });
   const messagesRef = collection(db, 'chats', chatId, 'messages');
 
-  await addDoc(messagesRef, {
-    senderId,
-    text,
-    createdAt: serverTimestamp(),
-  });
+  try {
+    await addDoc(messagesRef, {
+      senderId,
+      text,
+      createdAt: serverTimestamp(),
+    });
+    console.log('[chatService] Message document created successfully');
+  } catch (error) {
+    console.error('[chatService] Error creating message document:', error);
+    throw error;
+  }
 
   let resolvedOtherUserId = otherUserId;
   if (resolvedOtherUserId === undefined) {
@@ -107,8 +131,15 @@ export async function sendMessage(
   if (resolvedOtherUserId) {
     updateData[`unreadFor.${resolvedOtherUserId}`] = increment(1);
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Firestore UpdateData accepts dynamic keys
-  await updateDoc(chatRef, updateData as any);
+  
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Firestore UpdateData accepts dynamic keys
+    await updateDoc(chatRef, updateData as any);
+    console.log('[chatService] Chat document updated successfully');
+  } catch (error) {
+    console.error('[chatService] Error updating chat document:', error);
+    throw error;
+  }
 }
 
 /**

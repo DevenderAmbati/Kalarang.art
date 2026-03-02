@@ -297,8 +297,10 @@ const ChatView: React.FC<{
           console.error('[ChatView] Error creating reach-out notification:', err);
         }
       }
-    } catch {
+    } catch (error) {
+      console.error('[ChatView] Error sending message:', error);
       setInputText(text);
+      alert('Failed to send message. Please check your internet connection and try again.');
     }
   };
 

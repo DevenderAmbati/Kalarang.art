@@ -266,12 +266,14 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({
               </button>
             </div>
 
-            <button
-              className="reach-out-button"
-              onClick={(e) => handleIconClick(e, () => onReachOut?.(artist.id))}
-            >
-              Reach Out
-            </button>
+            {artist.id !== currentUserId && (
+              <button
+                className="reach-out-button"
+                onClick={(e) => handleIconClick(e, () => onReachOut?.(artist.id))}
+              >
+                Reach Out
+              </button>
+            )}
           </div>
         </div>
       </div>

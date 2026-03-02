@@ -829,7 +829,7 @@ artistLanding.css
   }
 
   .features-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 1.5rem;
   }
 
@@ -838,7 +838,7 @@ artistLanding.css
   }
 
   .journey-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 1.25rem;
   }
 
@@ -859,7 +859,7 @@ artistLanding.css
   }
 
   .buyer-features-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 1.25rem;
   }
 
@@ -959,6 +959,8 @@ artistLanding.css
   .early-access-title {
     font-size: 1.375rem;
   }
+
+  
 
   .early-access-badge {
     font-size: 0.75rem;

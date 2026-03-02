@@ -14,6 +14,7 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp, query, collection, where, getDocs, deleteDoc, writeBatch } from "firebase/firestore";
 import { getStorage, ref, deleteObject, listAll } from "firebase/storage";
 import { UserRole } from "../types/user";
+import { cache } from "../utils/cache";
 
 export async function signup(
   name: string,
@@ -52,7 +53,14 @@ export async function login(email: string, password: string) {
 }
 
 export async function logout() {
+  // Clear all cached data
+  cache.clear();
+  
+  // Clear auth state
   await signOut(auth);
+  
+  // Small delay to ensure auth state propagates
+  await new Promise(resolve => setTimeout(resolve, 300));
 }
 
 /**

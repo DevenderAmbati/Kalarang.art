@@ -179,11 +179,16 @@ export function useChat(
 
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!chatId || !currentUserId || !text.trim()) return;
+      if (!chatId || !currentUserId || !text.trim()) {
+        console.error('[useChat] Cannot send message - missing required data:', { chatId, currentUserId, hasText: !!text.trim() });
+        throw new Error('Cannot send message: missing required data');
+      }
 
+      console.log('[useChat] Sending message:', { chatId, currentUserId, otherUserId });
       setSending(true);
       try {
         await sendChatMessage(chatId, currentUserId, text.trim(), otherUserId);
+        console.log('[useChat] Message sent successfully');
       } catch (error) {
         console.error('[useChat] Send error:', error);
         throw error;

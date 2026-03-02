@@ -7,16 +7,10 @@
   "theme_color": "#0B1F2A",
   "icons": [
     {
-      "src": "sq_mobile1.png",
+      "src": "square logo.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
-    },
-    {
-      "src": "sq_mobile1.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "maskable"
     },
     {
       "src": "square logo.png",

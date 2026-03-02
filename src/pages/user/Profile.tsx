@@ -63,8 +63,16 @@ const Profile: React.FC = () => {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    await logout();
-    navigate('/');
+    try {
+      await logout();
+      // Wait for auth state to settle, then navigate
+      setTimeout(() => {
+        navigate('/', { replace: true });
+      }, 400);
+    } catch (error) {
+      console.error('Logout error:', error);
+      setIsLoggingOut(false);
+    }
   };
 
   const handleSendMessage = async () => {
