@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
 import { useAuth } from '../../context/AuthContext';
 import { MdInstallMobile } from 'react-icons/md';
@@ -12,10 +12,12 @@ interface InstallPromptProps {
 }
 
 const InstallPrompt: React.FC<InstallPromptProps> = ({ onVisibilityChange }) => {
-  const { shouldShowPrompt, triggerInstall, dismissPermanently } = usePwaInstall();
+  const { shouldShowPrompt, triggerInstall, dismissPermanently, showIosInstallHint } = usePwaInstall();
   const { firebaseUser } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
+  const [isIosBanner, setIsIosBanner] = useState(false);
   const shownThisSession = useRef(sessionStorage.getItem(SESSION_SHOWN_KEY) === 'true');
   const prevUser = useRef(firebaseUser);
 
@@ -28,16 +30,20 @@ const InstallPrompt: React.FC<InstallPromptProps> = ({ onVisibilityChange }) => 
   }, [firebaseUser]);
 
   useEffect(() => {
-    if (location.pathname === '/home' && shouldShowPrompt && !shownThisSession.current) {
-      const timer = setTimeout(() => {
-        setVisible(true);
-        shownThisSession.current = true;
-        sessionStorage.setItem(SESSION_SHOWN_KEY, 'true');
-        sessionStorage.setItem(INSTALL_PROMPT_ACTIVE_KEY, 'true');
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [location.pathname, shouldShowPrompt]);
+    if (location.pathname !== '/home' || shownThisSession.current) return;
+
+    const canShow = shouldShowPrompt || showIosInstallHint;
+    if (!canShow) return;
+
+    const timer = setTimeout(() => {
+      setVisible(true);
+      setIsIosBanner(!shouldShowPrompt && showIosInstallHint);
+      shownThisSession.current = true;
+      sessionStorage.setItem(SESSION_SHOWN_KEY, 'true');
+      sessionStorage.setItem(INSTALL_PROMPT_ACTIVE_KEY, 'true');
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [location.pathname, shouldShowPrompt, showIosInstallHint]);
 
   useEffect(() => {
     onVisibilityChange?.(visible);
@@ -62,6 +68,11 @@ const InstallPrompt: React.FC<InstallPromptProps> = ({ onVisibilityChange }) => 
     hide();
   }, [dismissPermanently, hide]);
 
+  const handleGoToProfile = useCallback(() => {
+    hide();
+    navigate('/profile');
+  }, [hide, navigate]);
+
   if (!visible) return null;
 
   return (
@@ -81,13 +92,27 @@ const InstallPrompt: React.FC<InstallPromptProps> = ({ onVisibilityChange }) => 
     <div style={styles.banner}>
       <div style={styles.content}>
         <span style={styles.icon}>{MdInstallMobile({size: 14, color: '#fff'})}</span>
-        <span style={styles.text}>
-          <span className="install-banner-full">Install Kalarang app for faster access and a native app experience!</span>
-          <span className="install-banner-short">Install app for better experience!</span>
-        </span>
-        <button onClick={handleInstall} style={styles.installBtn}>
-          Install
-        </button>
+        {isIosBanner ? (
+          <>
+            <span style={styles.text}>
+              <span className="install-banner-full">To install the app, follow instructions in Profile settings.</span>
+              <span className="install-banner-short">Install app via Profile settings.</span>
+            </span>
+            <button onClick={handleGoToProfile} style={styles.installBtn}>
+              Profile
+            </button>
+          </>
+        ) : (
+          <>
+            <span style={styles.text}>
+              <span className="install-banner-full">Install Kalarang app for faster access and a native app experience!</span>
+              <span className="install-banner-short">Install app for better experience!</span>
+            </span>
+            <button onClick={handleInstall} style={styles.installBtn}>
+              Install
+            </button>
+          </>
+        )}
         <span onClick={handleNeverShow} style={styles.neverLink}>Don't show again</span>
         <button onClick={handleSkip} style={styles.closeBtn} aria-label="Dismiss">
           ✕

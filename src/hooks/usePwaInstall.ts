@@ -37,6 +37,14 @@ export function isAppInstalled(): boolean {
   return false;
 }
 
+export function isIosDevice(): boolean {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+}
+
+export function isSafariIosNotInstalled(): boolean {
+  return isIosDevice() && !isAppInstalled();
+}
+
 export function usePwaInstall() {
   const [, forceUpdate] = useState(0);
 
@@ -67,6 +75,8 @@ export function usePwaInstall() {
   }, []);
 
   const shouldShowPrompt = canInstall && !isPermanentlyDismissed() && !isAppInstalled();
+  const isIos = isIosDevice();
+  const showIosInstallHint = isIos && !isAppInstalled() && !isPermanentlyDismissed();
 
   return {
     canInstall,
@@ -74,5 +84,7 @@ export function usePwaInstall() {
     triggerInstall,
     dismissPermanently,
     isInstalled: isAppInstalled(),
+    isIos,
+    showIosInstallHint,
   };
 }

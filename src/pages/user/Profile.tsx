@@ -37,7 +37,7 @@ const Profile: React.FC = () => {
   const [reauthProvider, setReauthProvider] = useState<'password' | 'google'>('password');
   const [isReauthenticating, setIsReauthenticating] = useState(false);
   const [stats, setStats] = useState({ followers: 0, following: 0, artworks: 0 });
-  const { canInstall, isInstalled, triggerInstall } = usePwaInstall();
+  const { canInstall, isInstalled, triggerInstall, isIos } = usePwaInstall();
   const { enabled: notifEnabled, loading: notifLoading, toggling: notifToggling, toggle: toggleNotif } = usePushNotifications();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [followersModal, setFollowersModal] = useState<{
@@ -663,6 +663,28 @@ const Profile: React.FC = () => {
                 >
                   Install Kalarang
                 </button>
+              </>
+            ) : isIos ? (
+              <>
+                <p style={styles.supportDescription}>
+                  Install Kalarang on your iPhone/iPad in 3 easy steps:
+                </p>
+                <div style={{
+                  background: 'var(--color-bg-light, #f5f5f5)',
+                  borderRadius: '10px',
+                  padding: '0.75rem 1rem',
+                  marginTop: '0.5rem',
+                  fontSize: '0.85rem',
+                  lineHeight: 1.7,
+                  color: 'var(--color-text-primary)',
+                }}>
+                  <div><strong>1.</strong> Tap the <strong>Share</strong> button <span style={{fontSize: '1.1rem'}}>⬆️</span> at the bottom of Safari</div>
+                  <div><strong>2.</strong> Scroll down and tap <strong>"Add to Home Screen"</strong></div>
+                  <div><strong>3.</strong> Tap <strong>"Add"</strong> to confirm</div>
+                </div>
+                <p style={{...styles.supportDescription, marginTop: '0.5rem', fontStyle: 'italic', fontSize: '0.78rem'}}>
+                  After installing, open Kalarang from your home screen to enable push notifications.
+                </p>
               </>
             ) : (
               <p style={styles.supportDescription}>
