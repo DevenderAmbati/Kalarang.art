@@ -1,0 +1,133 @@
+/**
+ * PWA update banner – fixed at bottom, above notification/bottom nav.
+ * Shown when a new service worker is waiting; user must click Update.
+ */
+
+.pwa-update-banner {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 80px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.875rem;
+  padding: 0.75rem 1rem;
+  width: calc(100vw - 1.5rem);
+  max-width: 420px;
+  background: var(--color-bg-white, #fff);
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06);
+  animation: pwa-update-banner-in 0.3s ease-out;
+}
+
+@keyframes pwa-update-banner-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.pwa-update-banner__text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--color-text-primary-light, #1f2937);
+  flex: 1;
+  min-width: 0;
+}
+
+.pwa-update-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.pwa-update-banner__btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary, #0d9488);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s ease;
+}
+
+.pwa-update-banner__btn:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: scale(1.02);
+}
+
+.pwa-update-banner__btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.pwa-update-banner__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.pwa-update-banner__close {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: var(--color-text-secondary, #6b7280);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.pwa-update-banner__close:hover {
+  color: var(--color-text-primary-light, #1f2937);
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.pwa-update-banner__close:active {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile: use most of screen width for better visibility */
+@media (max-width: 639px) {
+  .pwa-update-banner {
+    width: calc(100vw - 1rem);
+    padding: 0.85rem 1rem;
+    border-radius: 16px;
+    gap: 1rem;
+  }
+
+  .pwa-update-banner__text {
+    font-size: 0.95rem;
+  }
+
+  .pwa-update-banner__btn {
+    padding: 0.55rem 1.1rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Desktop: centered card, above viewport bottom */
+@media (min-width: 640px) {
+  .pwa-update-banner {
+    bottom: 24px;
+    width: auto;
+    max-width: 420px;
+  }
+}

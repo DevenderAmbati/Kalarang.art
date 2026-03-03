@@ -36,6 +36,7 @@ import { logout } from "./services/authService";
 import ArtistLanding from "./pages/landing/ArtistLanding";
 import BuyerLanding from "./pages/landing/BuyerLanding";
 import { ScrollToTop } from "./components/Common/ScrollToTop";
+import PwaUpdatePrompt from "./components/PwaUpdatePrompt";
 
 // Persistent Feed Container Component
 const PersistentFeedContainer: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
@@ -168,6 +169,7 @@ function App() {
       <ThemeProvider>
         <Router>
           <ScrollToTop />
+          <PwaUpdatePrompt />
           <SidebarProvider>
             <ChatProvider>
             <ToastContainer 

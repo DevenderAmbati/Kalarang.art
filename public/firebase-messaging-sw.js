@@ -14,20 +14,34 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-  const data = payload.data || {};
-  const title = data.title || "Kalarang";
-  const body = data.body || "You have a new notification";
-  const iconUrl = self.location.origin + "/square%20logo.png";
-  const tag = data.chatId ? "chat_" + data.chatId : data.type || "default";
-
-  return self.registration.showNotification(title, {
-    body,
-    icon: iconUrl,
-    tag,
+// Chrome shows "This site has been updated in the background" if we receive a push
+// but never display a visible notification. Always show a notification and catch errors.
+function showSafeNotification(title, body, iconUrl, tag, url) {
+  const options = {
+    body: String(body || "You have a new notification"),
+    tag: tag || "default",
     renotify: true,
-    data: { url: data.url || "/" },
-  });
+    data: { url: url || "/" },
+  };
+  if (iconUrl) options.icon = iconUrl;
+  return self.registration.showNotification(String(title || "Kalarang"), options);
+}
+
+messaging.onBackgroundMessage((payload) => {
+  try {
+    const data = (payload && payload.data) || {};
+    const title = data.title || "Kalarang";
+    const body = data.body || "You have a new notification";
+    const iconUrl = self.location.origin + "/square%20logo.png";
+    const tag = data.chatId ? "chat_" + data.chatId : (data.type || "default");
+    const url = data.url || "/";
+
+    return showSafeNotification(title, body, iconUrl, tag, url).catch(() => {
+      return showSafeNotification(title, body, null, tag, url);
+    });
+  } catch (e) {
+    return showSafeNotification("Kalarang", "You have a new notification", null, "default", "/");
+  }
 });
 
 self.addEventListener("notificationclick", (event) => {

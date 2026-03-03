@@ -17,4 +17,12 @@ root.render(
   </React.StrictMode>
 );
 
-serviceWorkerRegistration.register();
+serviceWorkerRegistration.register({
+  onUpdate(registration) {
+    if (registration.waiting) {
+      window.dispatchEvent(
+        new CustomEvent('sw-waiting', { detail: { waitingWorker: registration.waiting } })
+      );
+    }
+  },
+});
