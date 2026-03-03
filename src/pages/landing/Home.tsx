@@ -10,17 +10,18 @@ import { HiOutlineUserGroup } from 'react-icons/hi2';
 import Header from '../../components/Layout/Header';
 import Footer from '../../components/Layout/Footer';
 import '../auth/login.css';
+import './landing.css';
 import './home.css';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="login-left-section home-container">
+    <div className="login-left-section home-container landing-page">
       <Header />
 
-      {/* Main content - centered */}
-      <div className="home-main-content">
+      {/* Main content - starts below header, scrollable */}
+      <div className="home-main-content landing-content">
         {/* Geometric pattern overlay */}
         <div className="login-pattern-overlay">
         <svg className="login-pattern-svg" xmlns="http://www.w3.org/2000/svg">

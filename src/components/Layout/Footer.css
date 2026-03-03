@@ -7,7 +7,7 @@
   right: 0;
   padding: 1rem 3rem;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   border-top: 1px solid var(--primary-alpha-20);
   background-color: var(--color-bg-dark-surface);
@@ -45,6 +45,22 @@
   text-align: center;
 }
 
+/* Single-line footer only (640px+): logo left, privacy/terms/insta/email right */
+@media (min-width: 640px) {
+  .home-footer {
+    padding-left: 1.5rem;
+  }
+
+  .home-footer-legal-block {
+    margin-left: auto;
+    justify-content: flex-end;
+  }
+
+  .home-footer-legal-block .home-footer-link {
+    text-align: right;
+  }
+}
+
 .home-footer-link:hover {
   color: var(--color-primary);
   transform: scale(1.05);
@@ -80,28 +96,33 @@
   }
 }
 
-/* Mobile Responsive (700px and below) - 3 Block Layout */
-@media (max-width: 700px) {
+/* Mobile Responsive (639px and below) - 2-line layout, full width, no side padding */
+@media (max-width: 639px) {
   .home-footer {
-    padding: 1rem;
-    gap: 1rem;
+    padding: 0.5rem 0;
+    gap: 0.75rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 
-  /* Change to 3-block vertical layout for small screens */
+  /* Full-width vertical layout for small screens */
   .home-footer-block {
     flex: 1;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 0.25rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .home-footer-logo-block {
-    align-items: center;
+    align-items: flex-start;
+    padding-left: 1rem;
   }
 
   .home-footer-logo {
-    height: 18px;
+    height: 28px;
   }
 
   .home-footer-link {
@@ -121,8 +142,8 @@
 /* Extra Small Mobile (480px and below) */
 @media (max-width: 480px) {
   .home-footer {
-    padding: 0.75rem;
-    gap: 0.75rem;
+    padding: 0.4rem 0;
+    gap: 0.5rem;
   }
 
   .home-footer-block {
@@ -154,8 +175,8 @@
 /* Very Small Screens (360px and below) */
 @media (max-width: 360px) {
   .home-footer {
-    gap: 0.5rem;
-    padding: 0.5rem;
+    gap: 0.4rem;
+    padding: 0.35rem 0;
   }
 
   .home-footer-block {

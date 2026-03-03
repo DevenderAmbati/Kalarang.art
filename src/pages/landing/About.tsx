@@ -9,6 +9,7 @@ import { FaPaintBrush, FaHeart } from 'react-icons/fa';
 import { BiTargetLock } from 'react-icons/bi';
 import Header from '../../components/Layout/Header';
 import Footer from '../../components/Layout/Footer';
+import './landing.css';
 import './about.css';
 import '../auth/login.css';
 
@@ -61,11 +62,11 @@ const About: React.FC = () => {
   }, []);
 
   return (
-    <div className="login-left-section about-container">
+    <div className="login-left-section about-container landing-page">
       <Header />
 
-      {/* Main content - centered */}
-      <div className="about-main-content">
+      {/* Main content - starts below header, scrollable */}
+      <div className="about-main-content landing-content">
         {/* Geometric pattern overlay */}
         <div className="login-pattern-overlay">
           <svg className="login-pattern-svg" xmlns="http://www.w3.org/2000/svg">

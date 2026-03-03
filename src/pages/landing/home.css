@@ -11,7 +11,10 @@
   overflow: hidden;
 }
 
-
+/* Reduce space above feature cards */
+.home-container .login-brand-section {
+  margin-bottom: 2rem !important;
+}
 
 .home-main-content {
   flex: 1;
