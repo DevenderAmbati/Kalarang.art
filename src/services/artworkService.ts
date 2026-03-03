@@ -349,7 +349,6 @@ export async function getPublishedArtworksFromFollowingPaginated(
         allDocs.push(doc);
       });
     } catch (error) {
-      console.error('Error fetching artworks batch:', error);
     }
   }
   
@@ -437,7 +436,6 @@ export async function deleteArtwork(artworkId: string): Promise<void> {
       const imageRef = ref(storage, imageUrl);
       await deleteObject(imageRef);
     } catch (error) {
-      console.error("Error deleting image:", error);
     }
   });
 

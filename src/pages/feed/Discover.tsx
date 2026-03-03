@@ -157,7 +157,6 @@ const Discover: React.FC = () => {
 
   // Pull-to-refresh handler
   const handleRefresh = useCallback(async () => {
-    console.log('[PullToRefresh] Refreshing discover page');
     try {
       const result = await getPublishedArtworksPaginated(20);
       setArtworks(result.artworks);
@@ -170,7 +169,6 @@ const Discover: React.FC = () => {
         5 * 60 * 1000
       );
     } catch (error) {
-      console.error('[PullToRefresh] Error:', error);
       throw error;
     }
   }, []);
@@ -189,7 +187,6 @@ const Discover: React.FC = () => {
   useEffect(() => {
     const handleFavoritesChanged = ((e: CustomEvent) => {
       if (e.detail.userId === appUser?.uid) {
-        console.log('[Discover] Favorites changed in another component, refetching...');
         refetchFavorites();
       }
     }) as EventListener;
@@ -201,7 +198,6 @@ const Discover: React.FC = () => {
   // Ensure favorites are loaded
   useEffect(() => {
     if (appUser?.uid && !favoriteIds) {
-      console.log('[Discover] Fetching favorites on mount');
       refetchFavorites();
     }
   }, [appUser?.uid, favoriteIds, refetchFavorites]);
@@ -217,14 +213,12 @@ const Discover: React.FC = () => {
 
       if (cached.exists && cached.data) {
         // Load from cache immediately
-        console.log('[Cache] Loading discover data from cache');
         setArtworks(cached.data.artworks);
         setHasMore(cached.data.hasMore);
         setLoading(false);
 
         // If cache is stale, fetch fresh data in background
         if (cached.isStale) {
-          console.log('[Cache] Cache is stale, refreshing in background');
           try {
             const result = await getPublishedArtworksPaginated(20);
             setArtworks(result.artworks);
@@ -238,8 +232,7 @@ const Discover: React.FC = () => {
               2 * 60 * 1000, // 2 minutes stale time
               5 * 60 * 1000  // 5 minutes cache time
             );
-          } catch (error) {
-            console.error('Error refreshing artworks:', error);
+          } catch {
           }
         }
         return;
@@ -248,7 +241,6 @@ const Discover: React.FC = () => {
       // No cache, fetch fresh data
       setLoading(true);
       try {
-        console.log('[API] Fetching initial discover data');
         const result = await getPublishedArtworksPaginated(20);
         setArtworks(result.artworks);
         setLastVisible(result.lastVisible);
@@ -261,8 +253,7 @@ const Discover: React.FC = () => {
           2 * 60 * 1000, // 2 minutes stale time
           5 * 60 * 1000  // 5 minutes cache time
         );
-      } catch (error) {
-        console.error('Error fetching artworks:', error);
+      } catch {
         toast.error('Failed to load artworks');
       } finally {
         setLoading(false);
@@ -278,7 +269,6 @@ const Discover: React.FC = () => {
 
     setLoadingMore(true);
     try {
-      console.log('[API] Loading more discover artworks');
       const result = await getPublishedArtworksPaginated(20, lastVisible);
       const updatedArtworks = [...artworks, ...result.artworks];
       setArtworks(updatedArtworks);
@@ -292,8 +282,7 @@ const Discover: React.FC = () => {
         2 * 60 * 1000, // 2 minutes stale time
         5 * 60 * 1000  // 5 minutes cache time
       );
-    } catch (error) {
-      console.error('Error loading more artworks:', error);
+    } catch {
       toast.error('Failed to load more artworks');
     } finally {
       setLoadingMore(false);
@@ -365,8 +354,7 @@ const Discover: React.FC = () => {
             const users = await searchUsers(debouncedSearchQuery);
             setMatchedUsers(users);
           }
-        } catch (error) {
-          console.error('Error searching users:', error);
+        } catch {
           setMatchedUsers([]);
         }
       } else {
@@ -443,8 +431,7 @@ const Discover: React.FC = () => {
       
       // Broadcast change to other components
       window.dispatchEvent(new CustomEvent('favorites-changed', { detail: { userId: appUser.uid } }));
-    } catch (error) {
-      console.error('Error toggling save:', error);
+    } catch {
       // Rollback optimistic update on error
       updateFavoritesCache(() => previousFavorites);
       toast.error('Failed to update favorites');

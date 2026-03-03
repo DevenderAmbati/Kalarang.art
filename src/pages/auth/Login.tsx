@@ -43,7 +43,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       // Only if we reach here, login was successful
       // Navigation will be handled by AuthContext
     } catch (err: any) {
-      console.error('Google login error:', err);
       
       // Handle different error cases
       if (err.message === "NO_ACCOUNT" || err.message.includes("NO_ACCOUNT")) {
@@ -119,7 +118,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         // Navigation will be handled by AuthContext automatically
         // Keep loading state to show animation until redirect happens
       } catch (error: any) {
-        console.error('Login failed:', error);
         setIsLoading(false);
         setErrorMessage(" Oops! Those credentials don't match our records. Try again?");
       }

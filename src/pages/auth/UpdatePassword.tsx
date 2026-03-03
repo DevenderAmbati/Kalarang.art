@@ -78,15 +78,14 @@ const UpdatePassword: React.FC = () => {
       });
 
       navigate('/home', { replace: true });
-    } catch (error: any) {
-      console.error('Password update error:', error);
-
+    } catch (error: unknown) {
+      const err = error as { code?: string };
       let errorMessage = 'Failed to update password. Please try again.';
-      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         errorMessage = 'Current password is incorrect.';
-      } else if (error.code === 'auth/weak-password') {
+      } else if (err.code === 'auth/weak-password') {
         errorMessage = 'New password is too weak. Please choose a stronger password.';
-      } else if (error.code === 'auth/too-many-requests') {
+      } else if (err.code === 'auth/too-many-requests') {
         errorMessage = 'Too many attempts. Please try again later.';
       }
 

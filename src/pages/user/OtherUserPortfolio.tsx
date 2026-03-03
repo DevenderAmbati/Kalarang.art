@@ -129,7 +129,6 @@ const OtherUserPortfolio: React.FC = () => {
       setGalleryArtworks(published);
 
     } catch (error) {
-      console.error('Error loading user profile:', error);
       toast.error('Failed to load profile');
     } finally {
       setIsLoadingProfile(false);
@@ -144,7 +143,6 @@ const OtherUserPortfolio: React.FC = () => {
         navigate('/', { replace: true });
       }, 400);
     } catch (error) {
-      console.error('Logout error:', error);
     }
   };
 
@@ -210,7 +208,6 @@ const OtherUserPortfolio: React.FC = () => {
       // Broadcast change to other components
       window.dispatchEvent(new CustomEvent('follow-changed', { detail: { userId: appUser.uid } }));
     } catch (error) {
-      console.error('Error toggling follow:', error);
       toast.error('Failed to update follow status');
     }
   };

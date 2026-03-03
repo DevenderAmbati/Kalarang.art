@@ -142,7 +142,6 @@ const Favourites: React.FC = () => {
   useEffect(() => {
     const handleFavoritesChanged = ((e: CustomEvent) => {
       if (e.detail.userId === appUser?.uid) {
-        console.log('[Favourites] Favorites changed in another component, refetching...');
         refetch();
       }
     }) as EventListener;
@@ -152,7 +151,6 @@ const Favourites: React.FC = () => {
   }, [appUser?.uid, refetch]);
 
   const handleArtworkClick = (id: string) => {
-    console.log('Artwork clicked:', id);
     // Navigate to artwork detail page
     sessionStorage.setItem('artworkSourceRoute', '/favourites');
     navigate(`/card/${id}`);
@@ -188,7 +186,6 @@ const Favourites: React.FC = () => {
         toast.success('Removed from favorites');
       }, 300); // 300ms matches our CSS animation duration
     } catch (error) {
-      console.error('Error removing from favorites:', error);
       toast.error('Failed to remove from favorites');
       // Rollback optimistic update on error
       setLocalArtworks(favoriteArtworks);

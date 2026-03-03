@@ -48,7 +48,6 @@ const Portfolio: React.FC = () => {
         const artworkIds = new Set(userStories.map(story => story.artworkId));
         setArtworkIdsInStories(artworkIds);
       } catch (error) {
-        console.error('Error loading user stories:', error);
       }
     };
 
@@ -65,7 +64,6 @@ const Portfolio: React.FC = () => {
         const artworkIds = new Set(userStories.map(story => story.artworkId));
         setArtworkIdsInStories(artworkIds);
       } catch (error) {
-        console.error('Error loading user stories:', error);
       }
     };
 
@@ -80,7 +78,6 @@ const Portfolio: React.FC = () => {
         navigate('/', { replace: true });
       }, 400);
     } catch (error) {
-      console.error('Logout error:', error);
     }
   };
 
@@ -109,7 +106,6 @@ const Portfolio: React.FC = () => {
       const followers = await getFollowersList(appUser.uid);
       setFollowersModal({ isOpen: true, type: 'followers', users: followers, isLoading: false });
     } catch (error) {
-      console.error('Error loading followers:', error);
       toast.error('Failed to load followers');
       setFollowersModal({ isOpen: false, type: 'followers', users: [], isLoading: false });
     }
@@ -122,7 +118,6 @@ const Portfolio: React.FC = () => {
       const following = await getFollowingList(appUser.uid);
       setFollowersModal({ isOpen: true, type: 'following', users: following, isLoading: false });
     } catch (error) {
-      console.error('Error loading following:', error);
       toast.error('Failed to load following');
       setFollowersModal({ isOpen: false, type: 'following', users: [], isLoading: false });
     }
@@ -146,7 +141,6 @@ const Portfolio: React.FC = () => {
       // Refresh stats
       await refreshStats();
     } catch (error) {
-      console.error('Error removing follower:', error);
       toast.error('Failed to remove follower');
     }
   };
@@ -164,7 +158,6 @@ const Portfolio: React.FC = () => {
       // Refresh stats
       await refreshStats();
     } catch (error) {
-      console.error('Error unfollowing user:', error);
       toast.error('Failed to unfollow');
     }
   };
@@ -204,7 +197,6 @@ const Portfolio: React.FC = () => {
       // Redirect to home feed immediately
       navigate('/home', { replace: true, state: { storyCreated: true } });
     } catch (error) {
-      console.error('Error sharing story:', error);
       toast.error('Failed to share story. Please try again.');
     }
   };
@@ -287,7 +279,6 @@ const Portfolio: React.FC = () => {
           }));
         }
       } catch (error) {
-        console.error('Error loading user profile:', error);
       } finally {
         setIsLoadingProfile(false);
       }
@@ -300,25 +291,20 @@ const Portfolio: React.FC = () => {
   useEffect(() => {
     if (!appUser) return;
 
-    console.log('[Real-time] Subscribing to user stats:', appUser.uid);
-
     const unsubscribe = subscribeToUserStats(
       appUser.uid,
       (stats) => {
-        console.log('[Real-time] Received stats update:', stats);
         setMockUser(prev => ({
           ...prev,
           stats: stats,
         }));
       },
       (error) => {
-        console.error('[Real-time] Stats subscription error:', error);
       }
     );
 
     // CRITICAL: Cleanup subscription
     return () => {
-      console.log('[Real-time] Unsubscribing from user stats');
       unsubscribe();
     };
   }, [appUser?.uid]);
@@ -326,7 +312,6 @@ const Portfolio: React.FC = () => {
   // Function to refresh stats (now handled by real-time subscription)
   const refreshStats = async () => {
     // Stats are now updated automatically via real-time subscription
-    console.log('[Real-time] Stats refresh requested (automatic via subscription)');
   };
 
   // Listen for artwork changes to refresh stats
@@ -399,7 +384,6 @@ const Portfolio: React.FC = () => {
       setIsEditingProfile(false);
       toast.success('Profile updated successfully!');
     } catch (error) {
-      console.error('Error saving profile:', error);
       toast.error('Failed to save profile. Please try again.');
     }
   };
@@ -430,9 +414,7 @@ const Portfolio: React.FC = () => {
       await refreshUserProfile();
       
       toast.success('Banner updated successfully!');
-      console.log('Banner uploaded to Firebase');
     } catch (error) {
-      console.error('Error updating banner:', error);
       toast.error('Failed to update banner. Please try again.');
     }
   };
@@ -459,9 +441,7 @@ const Portfolio: React.FC = () => {
       await refreshUserProfile();
       
       toast.success('Avatar updated successfully!');
-      console.log('Avatar uploaded to Firebase');
     } catch (error) {
-      console.error('Error updating avatar:', error);
       toast.error('Failed to update avatar. Please try again.');
     }
   };

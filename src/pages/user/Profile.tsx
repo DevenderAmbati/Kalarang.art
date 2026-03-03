@@ -55,7 +55,6 @@ const Profile: React.FC = () => {
         const userStats = await getUserStats(appUser.uid);
         setStats(userStats);
       } catch (error) {
-        console.error('Error loading stats:', error);
       }
     };
     loadStats();
@@ -70,7 +69,6 @@ const Profile: React.FC = () => {
         navigate('/', { replace: true });
       }, 400);
     } catch (error) {
-      console.error('Logout error:', error);
       setIsLoggingOut(false);
     }
   };
@@ -93,8 +91,6 @@ const Profile: React.FC = () => {
         subject: `Support/Suggestion from ${appUser?.name || 'User'}`
       };
 
-      console.log('Sending email via Cloud Function:', emailData);
-
       const result = await sendSupportEmail(emailData);
       const data = result.data as { success: boolean; message: string };
       
@@ -110,7 +106,6 @@ const Profile: React.FC = () => {
         throw new Error('Failed to send email');
       }
     } catch (error: any) {
-      console.error('Failed to send message:', error);
       toast.error(error.message || 'Failed to send message. Please try again.', {
         position: 'top-center',
         autoClose: 4000,
@@ -148,9 +143,7 @@ const Profile: React.FC = () => {
       // Send email notification (don't block on failure)
       try {
         await sendSupportEmail(deletionEmailData);
-        console.log('Deletion feedback email sent successfully');
       } catch (emailError) {
-        console.error('Failed to send deletion feedback email:', emailError);
         // Continue with deletion even if email fails
       }
 
@@ -168,8 +161,6 @@ const Profile: React.FC = () => {
           // Redirect to home page
           navigate('/');
         } catch (error: any) {
-          console.log('Deletion error:', error);
-          
           // Handle reauthentication requirement
           if (error.message === 'REQUIRES_REAUTH' || error.code === 'auth/requires-recent-login') {
             // Show reauth modal based on provider
@@ -189,7 +180,6 @@ const Profile: React.FC = () => {
         }
       }
     } catch (error: any) {
-      console.error('Failed to delete account:', error);
       toast.error(error.message || 'Failed to delete account. Please try again or contact support.', {
         position: 'top-center',
         autoClose: 4000,
@@ -213,7 +203,6 @@ const Profile: React.FC = () => {
       setShowReauthModal(false);
       navigate('/');
     } catch (error: any) {
-      console.error('Reauthentication failed:', error);
       toast.error(error.message || 'Incorrect password. Please try again.', {
         position: 'top-center',
         autoClose: 4000,
@@ -235,9 +224,7 @@ const Profile: React.FC = () => {
       }
       
       const googleProvider = new GoogleAuthProvider();
-      console.log('Triggering Google sign-in popup...');
       await reauthenticateWithPopup(user, googleProvider);
-      console.log('Google reauthentication successful');
       
       // Now delete account with skipReauth flag since we just reauthenticated
       await deleteAccount(appUser.uid, undefined, true);
@@ -250,7 +237,6 @@ const Profile: React.FC = () => {
       setShowReauthModal(false);
       navigate('/');
     } catch (error: any) {
-      console.error('Reauthentication failed:', error);
       
       if (error.code === 'auth/popup-closed-by-user') {
         toast.info('Sign-in cancelled. Please try again.', {
@@ -296,7 +282,6 @@ const Profile: React.FC = () => {
       const followers = await getFollowersList(appUser.uid);
       setFollowersModal({ isOpen: true, type: 'followers', users: followers, isLoading: false });
     } catch (error) {
-      console.error('Error loading followers:', error);
       toast.error('Failed to load followers');
       setFollowersModal({ isOpen: false, type: 'followers', users: [], isLoading: false });
     }
@@ -309,7 +294,6 @@ const Profile: React.FC = () => {
       const following = await getFollowingList(appUser.uid);
       setFollowersModal({ isOpen: true, type: 'following', users: following, isLoading: false });
     } catch (error) {
-      console.error('Error loading following:', error);
       toast.error('Failed to load following');
       setFollowersModal({ isOpen: false, type: 'following', users: [], isLoading: false });
     }
@@ -334,7 +318,6 @@ const Profile: React.FC = () => {
       const userStats = await getUserStats(appUser.uid);
       setStats(userStats);
     } catch (error) {
-      console.error('Error removing follower:', error);
       toast.error('Failed to remove follower');
     }
   };
@@ -353,7 +336,6 @@ const Profile: React.FC = () => {
       const userStats = await getUserStats(appUser.uid);
       setStats(userStats);
     } catch (error) {
-      console.error('Error unfollowing user:', error);
       toast.error('Failed to unfollow');
     }
   };

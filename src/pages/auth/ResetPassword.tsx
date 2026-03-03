@@ -45,8 +45,7 @@ const ResetPassword: React.FC = () => {
       
       setIsSubmitted(true);
       setSuccessMessage(' If an account exists, a password reset link has been sent to your email!');
-    } catch (error: any) {
-      console.error('Password reset failed:', error);
+    } catch {
       setErrorMessage(' Oops! Something went wrong. Please try again.');
     }
   };

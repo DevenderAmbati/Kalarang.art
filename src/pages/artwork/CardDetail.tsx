@@ -36,7 +36,6 @@ const CardDetail: React.FC = () => {
   useEffect(() => {
     const handleFavoritesChanged = ((e: CustomEvent) => {
       if (e.detail.userId === appUser?.uid) {
-        console.log('[CardDetail] Favorites changed in another component, refetching...');
         refetchFavorites();
       }
     }) as EventListener;
@@ -61,9 +60,7 @@ const CardDetail: React.FC = () => {
 
     try {
       setLoading(true);
-      console.log('[CardDetail] Fetching artwork:', id);
       const fetchedArtwork = await getArtwork(id);
-      console.log('[CardDetail] Artwork fetched successfully:', fetchedArtwork);
       
       if (!fetchedArtwork) {
         toast.error('Artwork not found');
@@ -72,12 +69,9 @@ const CardDetail: React.FC = () => {
       }
 
       // Increment view count (non-blocking)
-      console.log('[CardDetail] Incrementing view count');
       try {
         await incrementArtworkViews(id);
-        console.log('[CardDetail] View count incremented');
-      } catch (error) {
-        console.warn('[CardDetail] Could not increment view count (non-critical):', error);
+      } catch {
         // Don't block artwork display if view count update fails
       }
 
@@ -110,31 +104,24 @@ const CardDetail: React.FC = () => {
 
       // Check if user is following artist and if artwork is in favorites
       if (appUser && appUser.uid !== fetchedArtwork.artistId) {
-        console.log('[CardDetail] Checking if following artist');
         try {
           const following = await isFollowingArtist(appUser.uid, fetchedArtwork.artistId);
           artistData.isFollowing = following;
-          console.log('[CardDetail] Following status:', following);
         } catch (error) {
-          console.error('[CardDetail] Error checking follow status:', error);
         }
       }
 
       // Check if artwork is in favorites (for any logged-in user)
       if (appUser) {
-        console.log('[CardDetail] Checking if artwork is in favorites');
         try {
           const saved = await isArtworkInFavorites(appUser.uid, id);
           setIsSaved(saved);
-          console.log('[CardDetail] Favorite status:', saved);
         } catch (error) {
-          console.error('[CardDetail] Error checking favorite status:', error);
         }
       }
 
       setArtist(artistData);
     } catch (error) {
-      console.error('Error loading artwork:', error);
       toast.error('Failed to load artwork');
     } finally {
       setLoading(false);
@@ -176,7 +163,6 @@ const CardDetail: React.FC = () => {
       // Broadcast change to other components
       window.dispatchEvent(new CustomEvent('favorites-changed', { detail: { userId: appUser.uid } }));
     } catch (error) {
-      console.error('Error toggling save:', error);
       // Rollback optimistic update on error
       setIsSaved(previousIsSaved);
       updateFavoritesCache(() => previousFavorites);
@@ -190,7 +176,7 @@ const CardDetail: React.FC = () => {
         title: artwork.title,
         text: `Check out this artwork: ${artwork.title}`,
         url: window.location.href,
-      }).catch(err => console.log('Error sharing:', err));
+      }).catch(() => {});
     } else {
       navigator.clipboard.writeText(window.location.href);
       toast.success('Link copied to clipboard!');
@@ -237,14 +223,11 @@ const CardDetail: React.FC = () => {
       // Broadcast change to other components
       window.dispatchEvent(new CustomEvent('follow-changed', { detail: { userId: appUser.uid } }));
     } catch (error) {
-      console.error('Error toggling follow:', error);
       toast.error('Failed to update follow status');
     }
   };
 
-  const handleThumbnailClick = (imageUrl: string) => {
-    console.log('Thumbnail clicked:', imageUrl);
-  };
+  const handleThumbnailClick = (_imageUrl: string) => {};
 
   const handleArtistClick = (artistId: string) => {
     const isOwnProfile = artistId === appUser?.uid;

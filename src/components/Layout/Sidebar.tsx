@@ -108,7 +108,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
               ...(isCollapsed ? styles.logoCollapsed : {}),
             }}
             onError={(e) => {
-              console.log('Logo top.png failed to load');
               (e.target as HTMLImageElement).style.display = 'none';
             }}
           />
@@ -118,7 +117,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
               alt="Kalarang Test" 
               style={styles.testLogo}
               onError={(e) => {
-                console.log('Test top.png failed to load');
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
             />

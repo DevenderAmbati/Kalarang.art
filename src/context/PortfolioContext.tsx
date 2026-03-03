@@ -15,19 +15,16 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const invalidatePublishedWorks = useCallback(() => {
     if (!appUser) return;
-    console.log('[Cache] Invalidating published works cache');
     cache.invalidate(cacheKeys.publishedWorks(appUser.uid));
   }, [appUser]);
 
   const invalidateGalleryWorks = useCallback(() => {
     if (!appUser) return;
-    console.log('[Cache] Invalidating gallery works cache');
     cache.invalidate(cacheKeys.galleryWorks(appUser.uid));
   }, [appUser]);
 
   const invalidateAllPortfolio = useCallback(() => {
     if (!appUser) return;
-    console.log('[Cache] Invalidating all portfolio cache');
     cache.invalidate(cacheKeys.publishedWorks(appUser.uid));
     cache.invalidate(cacheKeys.galleryWorks(appUser.uid));
     cache.invalidate(cacheKeys.artistWorks(appUser.uid));

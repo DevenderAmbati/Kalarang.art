@@ -76,7 +76,6 @@ export async function saveArtworkToFavorites(
 
   // Get artwork details to create notification
   if (userName) {
-    console.log('Creating favorite notification for artwork:', artworkId);
     try {
       const artworkRef = doc(db, "artworks", artworkId);
       const artworkSnap = await getDoc(artworkRef);
@@ -84,8 +83,6 @@ export async function saveArtworkToFavorites(
       if (artworkSnap.exists()) {
         const artworkData = artworkSnap.data();
         const artistId = artworkData.artistId;
-        
-        console.log('Artwork data:', { artistId, userId, title: artworkData.title });
         
         // Don't notify if user favorites their own artwork
         if (artistId && artistId !== userId) {
@@ -99,18 +96,10 @@ export async function saveArtworkToFavorites(
             artworkData.title,
             artworkData.images?.[0]
           );
-          console.log('Favorite notification created successfully');
-        } else {
-          console.log('Notification not created - user favorited their own artwork');
         }
-      } else {
-        console.warn('Artwork not found:', artworkId);
       }
-    } catch (error) {
-      console.error('Error creating favorite notification:', error);
+    } catch {
     }
-  } else {
-    console.warn('Favorite notification not created - userName is missing');
   }
 }
 
@@ -165,7 +154,6 @@ export async function followArtist(
 
   // Create follow notification
   if (followerName) {
-    console.log('Creating follow notification:', { artistId, followerId, followerName, followerAvatar });
     try {
       await createNotification(
         artistId,
@@ -174,12 +162,8 @@ export async function followArtist(
         followerName,
         followerAvatar
       );
-      console.log('Follow notification created successfully');
-    } catch (error) {
-      console.error('Error creating follow notification:', error);
+    } catch {
     }
-  } else {
-    console.warn('Follow notification not created - followerName is missing');
   }
 }
 

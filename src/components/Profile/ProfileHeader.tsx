@@ -97,12 +97,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return colors[index];
   };
 
-  // Debug log
-  console.log('ProfileHeader user data:', user);
-  console.log('Avatar URL:', user.avatar);
-  console.log('Banner URL:', user.bannerImage);
-  console.log('Using avatar source:', user.avatar || '/artist.png');
-
   return (
     <div className="profile-header">
       {isOwner && (
@@ -123,10 +117,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             src={user.bannerImage || '/logo.jpeg'}
             alt="Profile banner"
             className="banner-img"
-            onLoad={() => console.log('Banner image loaded successfully')}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
-              console.log('Banner image failed to load:', target.src);
               if (target.src !== '/logo.jpeg') {
                 target.src = '/logo.jpeg';
               }
@@ -172,16 +164,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   display: 'block',
                   backgroundColor: '#f3f4f6'
                 }}
-                onLoad={() => console.log('Avatar loaded successfully:', user.avatar || '/artist.png')}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  console.log('Avatar failed to load:', target.src);
                   // If it's not already the artist.png, try that as fallback
                   if (target.src.indexOf('/artist.png') === -1) {
-                    console.log('Falling back to artist.png');
                     target.src = '/artist.png';
                   } else {
-                    console.log('Even artist.png failed, using placeholder');
                     target.style.display = 'none';
                     // Show initials div as final fallback
                     const initialsDiv = target.nextElementSibling as HTMLElement;

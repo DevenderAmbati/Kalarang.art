@@ -25,7 +25,6 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ images, onImageClick, isOwnProf
   };
 
   const handleImageError = (imageId: string) => {
-    console.warn(`Failed to load image: ${imageId}`);
     setFailedImages(prev => new Set(prev).add(imageId));
   };
 

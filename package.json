@@ -34,16 +34,19 @@
     "workbox-strategies": "^7.4.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
+    ],
+    "rules": {
+      "no-console": "error"
+    }
   },
   "browserslist": {
     "production": [
@@ -58,6 +61,7 @@
     ]
   },
   "devDependencies": {
+    "@craco/craco": "^7.1.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3"
   }

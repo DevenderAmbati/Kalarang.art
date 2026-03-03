@@ -58,9 +58,7 @@ export async function createOrGetChat(
 ): Promise<string> {
   const chatId = getChatId(buyerId, artistId);
   const chatRef = doc(db, 'chats', chatId);
-  
-  console.log('[chatService] createOrGetChat called:', { buyerId, artistId, chatId });
-  
+
   try {
     // First check if the chat already exists
     const chatSnap = await getDoc(chatRef);
@@ -74,12 +72,8 @@ export async function createOrGetChat(
         lastMessage: '',
         unreadFor: {},
       });
-      console.log('[chatService] New chat document created:', chatId);
-    } else {
-      console.log('[chatService] Chat document already exists:', chatId);
     }
   } catch (error) {
-    console.error('[chatService] Error creating/getting chat:', error);
     throw error;
   }
 
@@ -96,7 +90,6 @@ export async function sendMessage(
   text: string,
   otherUserId?: string
 ): Promise<void> {
-  console.log('[chatService] sendMessage called:', { chatId, senderId, textLength: text.length, otherUserId });
   const messagesRef = collection(db, 'chats', chatId, 'messages');
 
   try {
@@ -105,9 +98,7 @@ export async function sendMessage(
       text,
       createdAt: serverTimestamp(),
     });
-    console.log('[chatService] Message document created successfully');
   } catch (error) {
-    console.error('[chatService] Error creating message document:', error);
     throw error;
   }
 
@@ -132,9 +123,7 @@ export async function sendMessage(
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Firestore UpdateData accepts dynamic keys
     await updateDoc(chatRef, updateData as any);
-    console.log('[chatService] Chat document updated successfully');
   } catch (error) {
-    console.error('[chatService] Error updating chat document:', error);
     throw error;
   }
 }

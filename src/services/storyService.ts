@@ -100,7 +100,6 @@ export async function getActiveStories(): Promise<Story[]> {
   } catch (error: any) {
     // Fallback: if index is still building, use simpler query
     if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
-      console.log('Using fallback query while index builds...');
       const fallbackQuery = query(
         storiesRef,
         where("expiresAt", ">", now),
@@ -151,8 +150,7 @@ export async function getActiveStoriesFromFollowing(followingArtistIds: string[]
       userSnapshot.forEach((doc) => {
         allStories.push(doc.data() as Story);
       });
-    } catch (error) {
-      console.error('Error fetching user own stories:', error);
+    } catch {
     }
   }
   
@@ -183,11 +181,8 @@ export async function getActiveStoriesFromFollowing(followingArtistIds: string[]
         allStories.push(doc.data() as Story);
       });
     } catch (error: any) {
-      console.error('Error fetching stories batch:', error);
-      
       // Fallback: if index is not ready, fetch all stories for these artists and filter client-side
       if (error?.code === 'failed-precondition' || error?.message?.includes('index')) {
-        console.log('Index not ready, using fallback query...');
         try {
           // Simple query without compound index
           const fallbackQuery = query(
@@ -204,8 +199,7 @@ export async function getActiveStoriesFromFollowing(followingArtistIds: string[]
               allStories.push(story);
             }
           });
-        } catch (fallbackError) {
-          console.error('Fallback query also failed:', fallbackError);
+        } catch {
         }
       }
     }
@@ -333,8 +327,7 @@ export async function markStoriesAsViewed(
       },
       { merge: true }
     );
-  } catch (error) {
-    console.error('Error marking stories as viewed:', error);
+  } catch {
   }
 }
 
@@ -353,8 +346,7 @@ export async function getViewedStories(userId: string): Promise<string[]> {
       return data.viewedStories || [];
     }
     return [];
-  } catch (error) {
-    console.error('Error getting viewed stories:', error);
+  } catch {
     return [];
   }
 }
@@ -400,7 +392,6 @@ export function subscribeToActiveStories(
       onUpdate(sortedStories);
     },
     (error) => {
-      console.error('Error in active stories subscription:', error);
       if (onError) onError(error as Error);
     }
   );

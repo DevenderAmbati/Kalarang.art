@@ -80,7 +80,6 @@ const HomeFeed: React.FC = () => {
           const artistIds = await getFollowingArtistIds(appUser.uid);
           setFollowingArtistIds(artistIds);
         } catch (error) {
-          console.error('Error fetching following artists:', error);
           setFollowingArtistIds([]);
         }
       } else {
@@ -95,8 +94,6 @@ const HomeFeed: React.FC = () => {
   useEffect(() => {
     const handleFollowChanged = ((e: CustomEvent) => {
       if (e.detail.userId === appUser?.uid) {
-        console.log('[HomeFeed] Follow status changed, refetching...');
-        
         // Invalidate caches
         if (appUser?.uid) {
           cache.invalidate(cacheKeys.homeFeedPaginated(appUser.uid));
@@ -117,7 +114,6 @@ const HomeFeed: React.FC = () => {
               setLastVisible(null);
               setHasMore(true);
             } catch (error) {
-              console.error('Error refetching following artists:', error);
             }
           }
         };
@@ -134,7 +130,6 @@ const HomeFeed: React.FC = () => {
   useEffect(() => {
     const handleFavoritesChanged = ((e: CustomEvent) => {
       if (e.detail.userId === appUser?.uid) {
-        console.log('[HomeFeed] Favorites changed in another component, refetching...');
         refetchFavorites();
       }
     }) as EventListener;
@@ -146,7 +141,6 @@ const HomeFeed: React.FC = () => {
   // Ensure favorites are loaded
   useEffect(() => {
     if (appUser?.uid && !favoriteIds) {
-      console.log('[HomeFeed] Fetching favorites on mount');
       refetchFavorites();
     }
   }, [appUser?.uid, favoriteIds, refetchFavorites]);
@@ -168,14 +162,12 @@ const HomeFeed: React.FC = () => {
 
       if (cached.exists && cached.data) {
         // Load from cache immediately
-        console.log('[Cache] Loading homefeed data from cache');
         setArtworks(cached.data.artworks);
         setHasMore(cached.data.hasMore);
         setLoading(false);
 
         // If cache is stale, fetch fresh data in background
         if (cached.isStale) {
-          console.log('[Cache] Cache is stale, refreshing in background');
           try {
             const result = appUser?.uid && followingArtistIds.length > 0
               ? await getPublishedArtworksFromFollowingPaginated(followingArtistIds, 20)
@@ -192,7 +184,6 @@ const HomeFeed: React.FC = () => {
               5 * 60 * 1000  // 5 minutes cache time
             );
           } catch (error) {
-            console.error('Error refreshing artworks:', error);
           }
         }
         return;
@@ -201,8 +192,6 @@ const HomeFeed: React.FC = () => {
       // No cache, fetch fresh data
       setLoading(true);
       try {
-        console.log('[API] Fetching initial homefeed data');
-        
         // Only fetch if user is following artists
         if (appUser?.uid && followingArtistIds.length === 0) {
           // Not following anyone, show empty state
@@ -225,7 +214,6 @@ const HomeFeed: React.FC = () => {
           );
         }
       } catch (error) {
-        console.error('Error fetching artworks:', error);
         toast.error('Failed to load artworks');
       } finally {
         setLoading(false);
@@ -244,7 +232,6 @@ const HomeFeed: React.FC = () => {
 
     setLoadingMore(true);
     try {
-      console.log('[API] Loading more homefeed artworks');
       const result = appUser?.uid && followingArtistIds.length > 0
         ? await getPublishedArtworksFromFollowingPaginated(followingArtistIds, 20, lastVisible)
         : await getPublishedArtworksPaginated(20, lastVisible);
@@ -264,7 +251,6 @@ const HomeFeed: React.FC = () => {
         5 * 60 * 1000  // 5 minutes cache time
       );
     } catch (error) {
-      console.error('Error loading more artworks:', error);
       toast.error('Failed to load more artworks');
     } finally {
       setLoadingMore(false);
@@ -314,7 +300,6 @@ const HomeFeed: React.FC = () => {
     if (followingArtistIds === null) return;
 
     setLoadingStories(true);
-    console.log('[Real-time] Subscribing to stories');
 
     let unsubscribe: (() => void) | undefined;
 
@@ -324,13 +309,11 @@ const HomeFeed: React.FC = () => {
         followingArtistIds,
         appUser.uid,
         (stories) => {
-          console.log('[Real-time] Received stories update:', stories.length);
           const grouped = groupStoriesByUser(stories, appUser.uid);
           setGroupedStories(grouped);
           setLoadingStories(false);
         },
         (error) => {
-          console.error('[Real-time] Stories subscription error:', error);
           setLoadingStories(false);
         }
       );
@@ -338,13 +321,11 @@ const HomeFeed: React.FC = () => {
       // Not logged in: subscribe to all public stories
       unsubscribe = subscribeToActiveStories(
         (stories) => {
-          console.log('[Real-time] Received stories update:', stories.length);
           const grouped = groupStoriesByUser(stories, undefined);
           setGroupedStories(grouped);
           setLoadingStories(false);
         },
-        (error) => {
-          console.error('[Real-time] Stories subscription error:', error);
+        () => {
           setLoadingStories(false);
         }
       );
@@ -353,15 +334,13 @@ const HomeFeed: React.FC = () => {
     // CRITICAL: Cleanup subscription
     return () => {
       if (unsubscribe) {
-        console.log('[Real-time] Unsubscribing from stories');
         unsubscribe();
       }
     };
   }, [followingArtistIds, appUser?.uid]);
 
-  const fetchStories = async (forceRefresh = false) => {
+  const fetchStories = async (_forceRefresh = false) => {
     // Real-time updates handle this automatically now
-    console.log('[Real-time] fetchStories called but using real-time subscription');
     return;
   };
 
@@ -371,8 +350,6 @@ const HomeFeed: React.FC = () => {
 
     setLoadingStories(true);
     try {
-      console.log('[API] Fetching fresh stories data');
-      
       let activeStories: StoryType[] = [];
       if (appUser?.uid) {
         activeStories = await getActiveStoriesFromFollowing(followingArtistIds, appUser.uid);
@@ -382,8 +359,7 @@ const HomeFeed: React.FC = () => {
       
       const grouped = groupStoriesByUser(activeStories, appUser?.uid);
       setGroupedStories(grouped);
-    } catch (error) {
-      console.error('Error fetching stories:', error);
+    } catch {
     } finally {
       setLoadingStories(false);
     }
@@ -595,8 +571,7 @@ const HomeFeed: React.FC = () => {
       
       // Refresh stories list with force refresh
       await fetchStories(true);
-    } catch (error) {
-      console.error('Error deleting story:', error);
+    } catch {
       toast.error('Failed to delete story');
     }
   };
@@ -769,7 +744,7 @@ const HomeFeed: React.FC = () => {
         title: artwork.title,
         text: `Check out "${artwork.title}" by ${artwork.artistName}`,
         url: `${window.location.origin}/card/${id}`,
-      }).catch(err => console.log('Error sharing:', err));
+      }).catch(() => {});
     } else {
       navigator.clipboard.writeText(`${window.location.origin}/card/${id}`);
       toast.success('Link copied to clipboard!');
@@ -810,8 +785,7 @@ const HomeFeed: React.FC = () => {
       
       // Broadcast change to other components
       window.dispatchEvent(new CustomEvent('favorites-changed', { detail: { userId: appUser.uid } }));
-    } catch (error) {
-      console.error('Error toggling save:', error);
+    } catch {
       // Rollback optimistic update on error
       updateFavoritesCache(() => previousFavorites);
       toast.error('Failed to update favorites');

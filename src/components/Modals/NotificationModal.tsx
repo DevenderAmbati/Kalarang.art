@@ -29,7 +29,6 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
     
     // Delete old read notifications (older than 30 days)
     deleteOldReadNotifications(appUser.uid).catch(error => {
-      console.error('Error deleting old notifications:', error);
     });
     
     // Subscribe to real-time notifications
@@ -50,7 +49,6 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
       setNotifications(notifications.map(n => ({ ...n, isRead: true })));
       onClose();
     } catch (error) {
-      console.error('Error marking all as read:', error);
     }
   };
 
@@ -63,7 +61,6 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
         ));
         onClose();
       } catch (error) {
-        console.error('Error marking notification as read:', error);
       }
     }
   };

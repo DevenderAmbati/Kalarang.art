@@ -89,8 +89,6 @@ export async function deleteAccount(userId: string, password?: string, forceDele
 
   // STEP 0: Check if reauthentication is needed (BEFORE any deletion)
   if (!forceDelete) {
-    console.log("Checking if reauthentication is required...");
-    
     // Check user's last sign-in time
     const lastSignInTime = user.metadata.lastSignInTime;
     if (lastSignInTime) {
@@ -98,12 +96,9 @@ export async function deleteAccount(userId: string, password?: string, forceDele
       const now = new Date();
       const hoursSinceSignIn = (now.getTime() - lastSignIn.getTime()) / (1000 * 60 * 60);
       
-      console.log(`Hours since last sign-in: ${hoursSinceSignIn}`);
-      
       // Firebase typically requires reauth after 5-10 minutes for sensitive operations
       // We'll be conservative and require reauth if more than 5 minutes
       if (hoursSinceSignIn > 0.083) { // 5 minutes = 0.083 hours
-        console.log("Reauthentication required (last sign-in too old)");
         const reAuthError: any = new Error("REQUIRES_REAUTH");
         reAuthError.provider = provider;
         throw reAuthError;
@@ -113,35 +108,27 @@ export async function deleteAccount(userId: string, password?: string, forceDele
 
   // Handle reauthentication if forceDelete is true (user clicked reauth modal)
   if (forceDelete) {
-    console.log("Force delete flag is true, checking if reauthentication needed...");
-    
     // For Google users, skip reauth here since it's done in the caller to avoid popup blockers
     // For password users, do reauth here with the provided password
     if (provider !== "google") {
       if (password) {
-        console.log("Performing password reauthentication...");
         try {
           if (!user.email) {
             throw new Error("User email not available");
           }
           const credential = EmailAuthProvider.credential(user.email, password);
           await reauthenticateWithCredential(user, credential);
-          console.log("Password reauthentication successful");
         } catch (error: any) {
-          console.error("Reauthentication error:", error);
           throw error;
         }
       } else {
         throw new Error("NEEDS_PASSWORD");
       }
-    } else {
-      console.log("Google user - reauthentication should have been done in caller");
     }
   }
 
   try {
     // STEP 1: Delete all Firestore data
-    console.log("Step 1: Deleting Firestore data...");
     const batch = writeBatch(db);
 
     // Get all artworks to delete their storage files
@@ -152,19 +139,13 @@ export async function deleteAccount(userId: string, password?: string, forceDele
     const artworksSnapshot = await getDocs(artworksQuery);
     const artworkImageUrls: string[] = [];
     
-    console.log(`Found ${artworksSnapshot.docs.length} artworks to delete`);
-    
     artworksSnapshot.docs.forEach((doc) => {
       const data = doc.data();
-      console.log(`Deleting artwork: ${doc.id} - ${data.title}`);
       if (data.images && Array.isArray(data.images)) {
-        console.log(`  Found ${data.images.length} images for this artwork`);
         artworkImageUrls.push(...data.images);
       }
       batch.delete(doc.ref);
     });
-
-    console.log(`Total images to delete from storage: ${artworkImageUrls.length}`);
 
     // Delete user's stories
     const storiesQuery = query(
@@ -172,7 +153,6 @@ export async function deleteAccount(userId: string, password?: string, forceDele
       where("userId", "==", userId)
     );
     const storiesSnapshot = await getDocs(storiesQuery);
-    console.log(`Found ${storiesSnapshot.docs.length} stories to delete`);
     storiesSnapshot.docs.forEach((doc) => {
       batch.delete(doc.ref);
     });
@@ -183,7 +163,6 @@ export async function deleteAccount(userId: string, password?: string, forceDele
       where("userId", "==", userId)
     );
     const likesSnapshot = await getDocs(likesQuery);
-    console.log(`Found ${likesSnapshot.docs.length} likes to delete`);
     likesSnapshot.docs.forEach((doc) => {
       batch.delete(doc.ref);
     });
@@ -194,7 +173,6 @@ export async function deleteAccount(userId: string, password?: string, forceDele
       where("userId", "==", userId)
     );
     const favoritesSnapshot = await getDocs(favoritesQuery);
-    console.log(`Found ${favoritesSnapshot.docs.length} favorites to delete`);
     favoritesSnapshot.docs.forEach((doc) => {
       batch.delete(doc.ref);
     });
@@ -205,7 +183,6 @@ export async function deleteAccount(userId: string, password?: string, forceDele
       where("followerId", "==", userId)
     );
     const followingSnapshot = await getDocs(followingQuery);
-    console.log(`Found ${followingSnapshot.docs.length} following to delete`);
     followingSnapshot.docs.forEach((doc) => {
       batch.delete(doc.ref);
     });
@@ -216,7 +193,6 @@ export async function deleteAccount(userId: string, password?: string, forceDele
       where("artistId", "==", userId)
     );
     const followersSnapshot = await getDocs(followersQuery);
-    console.log(`Found ${followersSnapshot.docs.length} followers to delete`);
     followersSnapshot.docs.forEach((doc) => {
       batch.delete(doc.ref);
     });
@@ -226,11 +202,8 @@ export async function deleteAccount(userId: string, password?: string, forceDele
 
     // Commit all Firestore deletions
     await batch.commit();
-    console.log("Firestore data deleted successfully");
 
     // STEP 2: Delete Storage files (artwork images)
-    console.log("Step 2: Deleting storage files...");
-    console.log(`Attempting to delete ${artworkImageUrls.length} images from storage`);
     const storage = getStorage();
     
     let deletedImagesCount = 0;
@@ -246,19 +219,14 @@ export async function deleteAccount(userId: string, password?: string, forceDele
           const imageRef = ref(storage, decodedPath);
           await deleteObject(imageRef);
           deletedImagesCount++;
-          console.log(`  ✓ Deleted: ${decodedPath}`);
         } else {
-          console.log(`  ✗ Could not extract path from URL: ${imageUrl}`);
           failedImagesCount++;
         }
       } catch (error: any) {
-        console.error(`  ✗ Error deleting image:`, error.code, error.message);
         failedImagesCount++;
         // Continue even if some images fail to delete
       }
     }
-    
-    console.log(`Storage deletion summary: ${deletedImagesCount} deleted, ${failedImagesCount} failed`);
 
     // Also try to delete user's profile avatar and banner if they exist
     try {
@@ -292,20 +260,13 @@ export async function deleteAccount(userId: string, password?: string, forceDele
           await deleteObject(item);
         }
       }
-    } catch (error) {
-      console.error("Error deleting user folder:", error);
+    } catch {
       // Continue even if folder deletion fails
     }
 
-    console.log("Storage files deleted successfully");
-
     // STEP 3: Delete Firebase Auth account (LAST)
-    console.log("Step 3: Deleting auth account...");
     await deleteUser(user);
-    console.log(`Successfully deleted account for user: ${userId}`);
   } catch (error: any) {
-    console.error("Error deleting account:", error);
-    
     // Handle specific Firebase errors
     if (error.code === "auth/requires-recent-login") {
       // This shouldn't happen since we checked upfront, but handle it just in case

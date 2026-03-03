@@ -26,7 +26,6 @@ async function getMessagingInstance(): Promise<Messaging | null> {
     messagingInstance = getMessaging(app);
     return messagingInstance;
   } catch (error) {
-    console.error("[FCM] Failed to initialize messaging:", error);
     return null;
   }
 }
@@ -86,7 +85,6 @@ export async function enableNotifications(userId: string): Promise<{ success: bo
 
     return { success: true, token };
   } catch (error: any) {
-    console.error("[FCM] enableNotifications error:", error);
     return { success: false, error: error.message || "Failed to enable notifications." };
   }
 }

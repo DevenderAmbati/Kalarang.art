@@ -126,8 +126,8 @@ const BannerCropModal: React.FC<BannerCropModalProps> = ({
       const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
       onSave(croppedImage);
       onClose();
-    } catch (e) {
-      console.error('Error cropping image:', e);
+    } catch {
+      // Crop failed; ignore
     }
   };
 

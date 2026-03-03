@@ -121,8 +121,8 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
       const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
       onSave(croppedImage);
       onClose();
-    } catch (e) {
-      console.error('Error cropping image:', e);
+    } catch {
+      // Crop failed; ignore
     }
   };
 

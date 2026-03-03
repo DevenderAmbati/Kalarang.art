@@ -48,7 +48,6 @@ const SetNewPassword: React.FC = () => {
         setIsVerifying(false);
       })
       .catch((error) => {
-        console.error('Error verifying reset code:', error);
         toast.error('This reset link is invalid or has expired. Please request a new one.');
         setTimeout(() => {
           navigate('/forgot-password');
@@ -110,7 +109,6 @@ const SetNewPassword: React.FC = () => {
         navigate('/home', { replace: true });
       }, 1500);
     } catch (error: any) {
-      console.error('Password reset error:', error);
       let errorMessage = 'Failed to reset password. Please try again.';
       
       if (error.code === 'auth/expired-action-code') {

@@ -125,13 +125,12 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
         await signup(formData.fullName, formData.email, formData.password, userType);
         
         onSignUp();
-      } catch (error: any) {
-        console.error('Sign up failed:', error);
+      } catch (error: unknown) {
         setIsLoading(false);
         setRandomAnimation(null);
-        
+        const err = error as { code?: string };
         // Check if email already exists
-        if (error.code === 'auth/email-already-in-use') {
+        if (err.code === 'auth/email-already-in-use') {
           toast.error('This email is already registered.', {
             position: "top-right",
             autoClose: 3000,

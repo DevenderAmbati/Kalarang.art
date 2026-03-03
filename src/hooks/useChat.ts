@@ -81,8 +81,7 @@ export function useChat(
           setChatId(getChatId(currentUserId, otherUserId));
         }
       })
-      .catch((err) => {
-        console.error('[useChat] Failed to create/get chat:', err);
+      .catch(() => {
         if (!cancelled) setLoading(false);
       });
 
@@ -143,8 +142,7 @@ export function useChat(
           isInitialised.current = true;
         }
       },
-      (error) => {
-        console.error('[useChat] Listener error:', error);
+      () => {
         setLoading(false);
       }
     );
@@ -180,17 +178,13 @@ export function useChat(
   const sendMessage = useCallback(
     async (text: string) => {
       if (!chatId || !currentUserId || !text.trim()) {
-        console.error('[useChat] Cannot send message - missing required data:', { chatId, currentUserId, hasText: !!text.trim() });
         throw new Error('Cannot send message: missing required data');
       }
 
-      console.log('[useChat] Sending message:', { chatId, currentUserId, otherUserId });
       setSending(true);
       try {
         await sendChatMessage(chatId, currentUserId, text.trim(), otherUserId);
-        console.log('[useChat] Message sent successfully');
       } catch (error) {
-        console.error('[useChat] Send error:', error);
         throw error;
       } finally {
         setSending(false);

@@ -41,7 +41,6 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
   useEffect(() => {
     const handleFavoritesChanged = ((e: CustomEvent) => {
       if (e.detail.userId === appUser?.uid) {
-        console.log('[PublishedWorks] Favorites changed in another component, refetching...');
         refetchFavorites();
       }
     }) as EventListener;
@@ -110,7 +109,6 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
     } catch (error) {
       // Revert on error
       updateCache(() => previousData);
-      console.error('Error updating sold status:', error);
       toast.error('Failed to update sold status. Please try again.');
     }
   };
@@ -170,7 +168,6 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
         return newSet;
       });
       updateFavoritesCache(() => previousFavorites);
-      console.error('Error toggling save:', error);
       toast.error('Failed to update favorites');
     }
   };
@@ -199,14 +196,12 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
         
         // Invalidate gallery cache as well since artwork is deleted completely
         if (appUser) {
-          console.log('[Cache] Invalidating all portfolio cache after delete');
           cache.invalidate(cacheKeys.galleryWorks(appUser.uid));
           cache.invalidate(cacheKeys.artistWorks(appUser.uid));
         }
       } catch (error) {
         // Revert on error
         updateCache(() => previousData);
-        console.error('Error deleting artwork:', error);
         toast.error('Failed to delete artwork. Please try again.');
       }
     }

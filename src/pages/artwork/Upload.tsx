@@ -14,8 +14,8 @@ const Upload: React.FC = () => {
       setTimeout(() => {
         navigate('/', { replace: true });
       }, 400);
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch {
+      // Logout failed; ignore
     }
   };
 

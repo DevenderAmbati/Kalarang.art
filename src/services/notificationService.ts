@@ -223,6 +223,5 @@ export async function deleteOldReadNotifications(userId: string): Promise<void> 
 
   if (querySnapshot.size > 0) {
     await batch.commit();
-    console.log(`Deleted ${querySnapshot.size} old read notifications`);
   }
 }

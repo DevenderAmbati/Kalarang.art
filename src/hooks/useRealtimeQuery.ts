@@ -44,7 +44,7 @@ export function useRealtimeQuery<T>(
         setLoading(false);
       },
       (err) => {
-        console.error(`Error in real-time query for ${collectionName}:`, err);
+        // Set error state only; no console output
         setError(err as Error);
         setLoading(false);
       }

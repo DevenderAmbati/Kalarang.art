@@ -293,8 +293,8 @@ const ChatView: React.FC<{
             reachOutMetadata.artworkTitle,
             reachOutMetadata.artworkImage
           );
-        } catch (err) {
-          console.error('[ChatView] Error creating reach-out notification:', err);
+        } catch {
+          // Reach-out notification failed; ignore
         }
       }
     } catch {

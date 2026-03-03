@@ -110,12 +110,10 @@ const CreateArtwork: React.FC = () => {
           setImages(restoredImages);
         }
         setHasRestoredDraft(true);
-        console.log('[Draft] Loaded from localStorage:', draft);
         toast.info('Draft restored from your last session', {
           autoClose: 3000,
         });
       } catch (error) {
-        console.error('Error loading draft:', error);
       }
     }
   }, [editArtworkId]);
@@ -153,7 +151,6 @@ const CreateArtwork: React.FC = () => {
                 });
                 return { id: img.id, dataUrl };
               } catch (error) {
-                console.error('Error converting image:', error);
                 return null;
               }
             }
@@ -170,7 +167,6 @@ const CreateArtwork: React.FC = () => {
         const draftStr = JSON.stringify(draft);
         // Check if draft is too large (localStorage limit is typically 5-10MB)
         if (draftStr.length > 4.5 * 1024 * 1024) { // 4.5MB limit to be safe
-          console.warn('[Draft] Draft too large, saving without images');
           const draftWithoutImages = {
             formData,
             timestamp: Date.now(),
@@ -179,10 +175,8 @@ const CreateArtwork: React.FC = () => {
           toast.warning('Draft saved without images (size limit)', { autoClose: 2000 });
         } else {
           localStorage.setItem('artworkDraft', draftStr);
-          console.log('[Draft] Saved to localStorage:', draft);
         }
       } catch (error) {
-        console.error('[Draft] Error saving:', error);
         // If error (e.g., quota exceeded), try saving without images
         try {
           const draftWithoutImages = {
@@ -191,7 +185,6 @@ const CreateArtwork: React.FC = () => {
           };
           localStorage.setItem('artworkDraft', JSON.stringify(draftWithoutImages));
         } catch (e) {
-          console.error('[Draft] Failed to save even without images:', e);
         }
       }
     }, 500); // Wait 500ms after last change before saving
@@ -242,7 +235,6 @@ const CreateArtwork: React.FC = () => {
         setImages(existingPreviews);
         setSavedArtworkId(editArtworkId);
       } catch (error) {
-        console.error('Error loading artwork:', error);
         toast.error('Failed to load artwork');
         navigate('/post');
       } finally {
@@ -414,16 +406,11 @@ const CreateArtwork: React.FC = () => {
 
       if (savedArtworkId) {
         // Update existing artwork (works for both edit mode and after initial save)
-        console.log('Updating existing artwork:', savedArtworkId);
-        console.log('Images state:', images.map(img => ({ id: img.id, isExisting: img.isExisting, hasFile: !!img.file })));
         setUploadStatus('Updating artwork...');
         
         // Separate existing and new images
         const existingImages = images.filter(img => img.isExisting);
         const newImages = images.filter(img => !img.isExisting && img.file);
-        
-        console.log('Existing images count:', existingImages.length);
-        console.log('New images count:', newImages.length);
         
         setUploadProgress(10);
         
@@ -460,7 +447,6 @@ const CreateArtwork: React.FC = () => {
         } as any);
 
         artworkId = savedArtworkId;
-        console.log('Artwork updated successfully:', artworkId);
         
         // Convert all images to existing after update to prevent re-upload
         setUploadStatus('Finalizing...');
@@ -473,7 +459,6 @@ const CreateArtwork: React.FC = () => {
         setUploadProgress(80);
       } else {
         // Create new artwork
-        console.log('Creating new artwork...');
         const imageFiles = images.filter(img => img.file).map(img => img.file!);
         
         setUploadStatus(`Uploading ${imageFiles.length} image${imageFiles.length > 1 ? 's' : ''}...`);
@@ -488,7 +473,6 @@ const CreateArtwork: React.FC = () => {
         );
 
         setUploadProgress(60);
-        console.log('Artwork created successfully:', artworkId);
         
         // Fetch the created artwork to get the uploaded image URLs
         setUploadStatus('Finalizing...');
@@ -520,7 +504,6 @@ const CreateArtwork: React.FC = () => {
       
       // Invalidate portfolio cache to reflect changes
       if (appUser) {
-        console.log('[Cache] Invalidating portfolio cache after save');
         cache.invalidate(cacheKeys.galleryWorks(appUser.uid));
         cache.invalidate(cacheKeys.artistWorks(appUser.uid));
       }
@@ -532,7 +515,6 @@ const CreateArtwork: React.FC = () => {
       localStorage.removeItem('artworkDraft');
       
     } catch (error: any) {
-      console.error('Error saving artwork:', error);
       if (tipInterval) {
         clearInterval(tipInterval);
       }
@@ -570,7 +552,6 @@ const CreateArtwork: React.FC = () => {
       
       // Invalidate all portfolio caches when publishing
       if (appUser) {
-        console.log('[Cache] Invalidating all portfolio cache after publish');
         cache.invalidate(cacheKeys.publishedWorks(appUser.uid));
         cache.invalidate(cacheKeys.galleryWorks(appUser.uid));
         cache.invalidate(cacheKeys.artistWorks(appUser.uid));
@@ -599,7 +580,6 @@ const CreateArtwork: React.FC = () => {
         navigate('/portfolio');
       }, 1000);
     } catch (error: any) {
-      console.error('Error publishing artwork:', error);
       toast.error(error.message || 'Failed to publish artwork. Please try again.');
     } finally {
       setIsPublishing(false);

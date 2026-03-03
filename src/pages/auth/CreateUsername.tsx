@@ -69,7 +69,6 @@ const CreateUsername: React.FC = () => {
         setError('This username is already taken');
       }
     } catch (err) {
-      console.error('Error checking username:', err);
       setError('Failed to check username availability');
       setIsAvailable(false);
     } finally {
@@ -135,7 +134,6 @@ const CreateUsername: React.FC = () => {
       setIsSubmitting(false);
       navigate('/artist');
     } catch (err) {
-      console.error('Error creating username:', err);
       toast.error('Failed to create username. Please try again.');
       setIsSubmitting(false);
     }
