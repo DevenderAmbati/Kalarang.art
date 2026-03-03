@@ -62,25 +62,22 @@ export async function createOrGetChat(
   console.log('[chatService] createOrGetChat called:', { buyerId, artistId, chatId });
   
   try {
-    // Use merge: true to safely create or update without checking first
-    // This ensures the document exists and avoids a race condition
-    // merge: true won't overwrite existing fields, so existing chats are preserved
-    await setDoc(chatRef, {
-      participants: [buyerId, artistId].sort(),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      lastMessage: '',
-      unreadFor: {},
-    }, { merge: true });
-    
-    console.log('[chatService] Chat document created/verified successfully:', chatId);
-    
-    // Verify the document exists by reading it back
+    // First check if the chat already exists
     const chatSnap = await getDoc(chatRef);
+    
     if (!chatSnap.exists()) {
-      throw new Error('Failed to create chat document');
+      // Only set lastMessage and unreadFor for NEW chats
+      await setDoc(chatRef, {
+        participants: [buyerId, artistId].sort(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        lastMessage: '',
+        unreadFor: {},
+      });
+      console.log('[chatService] New chat document created:', chatId);
+    } else {
+      console.log('[chatService] Chat document already exists:', chatId);
     }
-    console.log('[chatService] Chat document verified to exist');
   } catch (error) {
     console.error('[chatService] Error creating/getting chat:', error);
     throw error;
@@ -208,8 +205,8 @@ export function subscribeToUserChats(
         participants: data.participants,
         createdAt: data.createdAt,
         updatedAt: data.updatedAt,
-        lastMessage: data.lastMessage,
-        unreadFor: data.unreadFor,
+        lastMessage: data.lastMessage ?? '',
+        unreadFor: data.unreadFor ?? {},
       };
     });
     callback(chats);

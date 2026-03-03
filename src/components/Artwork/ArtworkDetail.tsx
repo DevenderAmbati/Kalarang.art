@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useImagePreviewBackNavigation } from '../../hooks/useImagePreviewBackNavigation';
 import './ArtworkDetail.css';
@@ -58,6 +58,11 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // Touch gesture tracking
+  const lastTouchDistance = useRef<number | null>(null);
+  const lastTouchCenter = useRef<{ x: number; y: number } | null>(null);
+  const isTouchPanning = useRef(false);
 
   const handleClosePreview = () => {
     setIsPreviewOpen(false);
@@ -158,6 +163,83 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({
   const handleMouseUp = () => {
     setIsDragging(false);
   };
+
+  // Touch event handlers for mobile pinch-zoom and pan
+  const getTouchDistance = (touches: React.TouchList): number => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const getTouchCenter = (touches: React.TouchList): { x: number; y: number } => {
+    if (touches.length === 1) {
+      return { x: touches[0].clientX, y: touches[0].clientY };
+    }
+    return {
+      x: (touches[0].clientX + touches[1].clientX) / 2,
+      y: (touches[0].clientY + touches[1].clientY) / 2,
+    };
+  };
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation();
+    
+    if (e.touches.length === 2) {
+      // Pinch-zoom start
+      lastTouchDistance.current = getTouchDistance(e.touches);
+      lastTouchCenter.current = getTouchCenter(e.touches);
+    } else if (e.touches.length === 1 && zoomLevel > 1) {
+      // Pan start (only when zoomed in)
+      isTouchPanning.current = true;
+      lastTouchCenter.current = getTouchCenter(e.touches);
+    }
+  }, [zoomLevel]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (e.touches.length === 2 && lastTouchDistance.current !== null) {
+      // Pinch-zoom
+      const currentDistance = getTouchDistance(e.touches);
+      const scale = currentDistance / lastTouchDistance.current;
+      
+      setZoomLevel((prev) => {
+        const newZoom = Math.min(Math.max(prev * scale, 1), 4);
+        if (newZoom === 1) {
+          setPosition({ x: 0, y: 0 });
+        }
+        return newZoom;
+      });
+      
+      lastTouchDistance.current = currentDistance;
+    } else if (e.touches.length === 1 && isTouchPanning.current && lastTouchCenter.current && zoomLevel > 1) {
+      // Pan
+      const currentCenter = getTouchCenter(e.touches);
+      const deltaX = currentCenter.x - lastTouchCenter.current.x;
+      const deltaY = currentCenter.y - lastTouchCenter.current.y;
+      
+      setPosition((prev) => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY,
+      }));
+      
+      lastTouchCenter.current = currentCenter;
+    }
+  }, [zoomLevel]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation();
+    
+    if (e.touches.length < 2) {
+      lastTouchDistance.current = null;
+    }
+    if (e.touches.length === 0) {
+      isTouchPanning.current = false;
+      lastTouchCenter.current = null;
+    }
+  }, []);
 
   const formatPrice = (price: number): string => {
     return new Intl.NumberFormat('en-IN', {
@@ -423,7 +505,10 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            style={{ cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{ cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default', touchAction: 'none' }}
           >
             <img 
               src={selectedImage} 
