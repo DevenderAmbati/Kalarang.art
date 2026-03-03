@@ -22,7 +22,13 @@ const InstallPrompt: React.FC<InstallPromptProps> = ({ onVisibilityChange }) => 
   const prevUser = useRef(firebaseUser);
 
   useEffect(() => {
+    // Reset on logout
     if (prevUser.current && !firebaseUser) {
+      sessionStorage.removeItem(SESSION_SHOWN_KEY);
+      shownThisSession.current = false;
+    }
+    // Reset on new login/signup (user was not logged in, now is)
+    if (!prevUser.current && firebaseUser) {
       sessionStorage.removeItem(SESSION_SHOWN_KEY);
       shownThisSession.current = false;
     }
@@ -91,7 +97,7 @@ const InstallPrompt: React.FC<InstallPromptProps> = ({ onVisibilityChange }) => 
     `}</style>
     <div style={styles.banner}>
       <div style={styles.content}>
-        <span style={styles.icon}>{MdInstallMobile({size: 14, color: '#fff'})}</span>
+        <span style={styles.icon}>{MdInstallMobile({size: 16, color: '#fff'})}</span>
         {isIosBanner ? (
           <>
             <span style={styles.text}>
@@ -127,43 +133,43 @@ const styles: Record<string, React.CSSProperties> = {
   banner: {
     width: "100%",
     backgroundColor: "var(--color-primary, #0d9488)",
-    padding: "0.25rem 1rem",
+    padding: "0.4rem 1rem",
     animation: "installBannerSlideDown 0.25s ease-out",
   },
   content: {
     display: "flex",
     alignItems: "center",
-    gap: "0.4rem",
+    gap: "0.5rem",
   },
   icon: {
-    fontSize: "0.85rem",
+    fontSize: "1rem",
     flexShrink: 0,
     color: "#fff",
     fontWeight: 700,
   },
   text: {
-    fontSize: "0.7rem",
+    fontSize: "0.8rem",
     color: "#fff",
     flex: 1,
-    lineHeight: 1.2,
+    lineHeight: 1.3,
     whiteSpace: "nowrap" as const,
     overflow: "hidden",
     textOverflow: "ellipsis",
   },
   installBtn: {
-    padding: "0.15rem 0.5rem",
+    padding: "0.25rem 0.6rem",
     backgroundColor: "#fff",
     color: "var(--color-primary, #0d9488)",
     border: "none",
     borderRadius: "4px",
-    fontSize: "0.65rem",
+    fontSize: "0.75rem",
     fontWeight: 700,
     cursor: "pointer",
     whiteSpace: "nowrap" as const,
     flexShrink: 0,
   },
   neverLink: {
-    fontSize: "0.6rem",
+    fontSize: "0.7rem",
     color: "rgba(255, 255, 255, 0.6)",
     cursor: "pointer",
     textDecoration: "underline",

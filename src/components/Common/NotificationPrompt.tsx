@@ -8,6 +8,26 @@ function storageKey(uid: string, key: string) {
   return `kalarang_notif_${key}_${uid}`;
 }
 
+// Check if app is running as a PWA (not in browser)
+function isPWA(): boolean {
+  // Check display-mode: standalone (works on most browsers)
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    return true;
+  }
+  
+  // Check for iOS Safari standalone mode
+  if ((window.navigator as any).standalone === true) {
+    return true;
+  }
+  
+  // Check for Android TWA (Trusted Web App)
+  if (document.referrer.includes('android-app://')) {
+    return true;
+  }
+  
+  return false;
+}
+
 const COOLDOWN_MS = 1 * 24 * 60 * 60 * 1000;
 
 const NotificationPrompt: React.FC = () => {
@@ -31,6 +51,9 @@ const NotificationPrompt: React.FC = () => {
       if (!appUser?.uid) return;
       const uid = appUser.uid;
 
+      // Only show on PWAs, not in browsers
+      if (!isPWA()) return;
+
       if (localStorage.getItem(storageKey(uid, "banner_stop")) === "true") return;
 
       if (!("Notification" in window)) return;
@@ -45,7 +68,7 @@ const NotificationPrompt: React.FC = () => {
       if (!supported) return;
 
       const visits = parseInt(localStorage.getItem(storageKey(uid, "visits")) || "0", 10);
-      if (visits < 2) return;
+      if (visits < 1) return;
 
       const lastShown = parseInt(localStorage.getItem(storageKey(uid, "banner_last")) || "0", 10);
       if (lastShown > 0 && Date.now() - lastShown < COOLDOWN_MS) return;
@@ -138,42 +161,42 @@ const styles: Record<string, React.CSSProperties> = {
   banner: {
     width: "100%",
     backgroundColor: "var(--color-primary, #0d9488)",
-    padding: "0.25rem 1rem",
+    padding: "0.4rem 1rem",
     animation: "notifBannerSlideDown 0.25s ease-out",
   },
   content: {
     display: "flex",
     alignItems: "center",
-    gap: "0.4rem",
+    gap: "0.5rem",
   },
   icon: {
-    fontSize: "0.8rem",
+    fontSize: "0.95rem",
     flexShrink: 0,
     filter: "brightness(10)",
   },
   text: {
-    fontSize: "0.7rem",
+    fontSize: "0.8rem",
     color: "#fff",
     flex: 1,
-    lineHeight: 1.2,
+    lineHeight: 1.3,
     whiteSpace: "nowrap" as const,
     overflow: "hidden",
     textOverflow: "ellipsis",
   },
   enableBtn: {
-    padding: "0.15rem 0.5rem",
+    padding: "0.25rem 0.6rem",
     backgroundColor: "#fff",
     color: "var(--color-primary, #0d9488)",
     border: "none",
     borderRadius: "4px",
-    fontSize: "0.65rem",
+    fontSize: "0.75rem",
     fontWeight: 700,
     cursor: "pointer",
     whiteSpace: "nowrap" as const,
     flexShrink: 0,
   },
   neverLink: {
-    fontSize: "0.6rem",
+    fontSize: "0.7rem",
     color: "rgba(255, 255, 255, 0.6)",
     cursor: "pointer",
     textDecoration: "underline",
