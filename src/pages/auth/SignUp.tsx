@@ -573,7 +573,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
                 />
                 <span className="login-checkbox-text">
-                  I agree to the <a href="#" style={{ color: 'var(--color-primary)' }}>Terms of Service</a> and <a href="#" style={{ color: 'var(--color-primary)' }}>Privacy Policy</a>
+                  I agree to the <a onClick={() => navigate('/terms')} style={{ color: 'var(--color-primary)', cursor: 'pointer' }}>Terms of Service</a> and <a onClick={() => navigate('/privacy')} style={{ color: 'var(--color-primary)', cursor: 'pointer' }}>Privacy Policy</a>
                 </span>
               </label>
             </div>

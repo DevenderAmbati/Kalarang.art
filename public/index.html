@@ -15,6 +15,12 @@
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <title>Kalarang</title>
     <style>
+      /* Prevent browser pull-to-refresh globally */
+      html, body {
+        overscroll-behavior-y: contain;
+        overscroll-behavior-x: none;
+      }
+      
       #splash-screen {
         position: fixed;
         inset: 0;

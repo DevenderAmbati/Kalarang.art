@@ -46,10 +46,29 @@ const EditProfile: React.FC<EditProfileProps> = ({
   const [newAchievement, setNewAchievement] = useState('');
   const [newEducation, setNewEducation] = useState('');
   const [newExhibition, setNewExhibition] = useState({ year: '', title: '' });
-  const [newLink, setNewLink] = useState({ label: '', url: '', icon: 'portfolio' });
+  const [newLink, setNewLink] = useState({ url: '', icon: 'portfolio' });
 
   const handleInputChange = (field: keyof ProfileData, value: any) => {
     setFormData({ ...formData, [field]: value });
+  };
+
+  const handleCommissionStatusChange = (status: 'Open' | 'Closed') => {
+    if (status === 'Open') {
+      // Set default CTA text when opening commissions
+      setFormData({
+        ...formData,
+        commissionStatus: status,
+        commissionCtaText: 'Get in Touch',
+      });
+    } else {
+      // Clear description when closing commissions
+      setFormData({
+        ...formData,
+        commissionStatus: status,
+        commissionDescription: '',
+        commissionCtaText: 'Get in Touch',
+      });
+    }
   };
 
   const handleImageUpload = (field: 'avatar' | 'bannerImage', event: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,12 +160,21 @@ const EditProfile: React.FC<EditProfileProps> = ({
   };
 
   const addLink = () => {
-    if (newLink.label.trim() && newLink.url.trim()) {
+    if (newLink.url.trim()) {
+      // Generate label from icon selection
+      const platformLabels: Record<string, string> = {
+        instagram: 'Instagram',
+        portfolio: 'Portfolio',
+        website: 'Website',
+        other: 'Other'
+      };
+      const label = platformLabels[newLink.icon] || newLink.icon;
+      
       setFormData({
         ...formData,
-        links: [...formData.links, { ...newLink }],
+        links: [...formData.links, { label, url: newLink.url.trim(), icon: newLink.icon }],
       });
-      setNewLink({ label: '', url: '', icon: 'portfolio' });
+      setNewLink({ url: '', icon: 'portfolio' });
     }
   };
 
@@ -273,13 +301,14 @@ const EditProfile: React.FC<EditProfileProps> = ({
                 className="form-input"
                 value={newAchievement}
                 onChange={(e) => setNewAchievement(e.target.value)}
-                placeholder="Add achievement"
+                placeholder="Type achievement, then click Add"
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addAchievement())}
               />
               <button type="button" onClick={addAchievement} className="add-button">
                 {BsPlus({})} Add
               </button>
             </div>
+            <p className="field-hint">Press Enter or click Add after each entry</p>
           </section>
 
           {/* Exhibitions */}
@@ -322,6 +351,7 @@ const EditProfile: React.FC<EditProfileProps> = ({
                 {BsPlus({})} Add
               </button>
             </div>
+            <p className="field-hint">Click Add after entering year and title</p>
           </section>
 
           {/* Education */}
@@ -348,13 +378,14 @@ const EditProfile: React.FC<EditProfileProps> = ({
                 className="form-input"
                 value={newEducation}
                 onChange={(e) => setNewEducation(e.target.value)}
-                placeholder="Add education"
+                placeholder="Type education, then click Add"
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addEducation())}
               />
               <button type="button" onClick={addEducation} className="add-button">
                 {BsPlus({})} Add
               </button>
             </div>
+            <p className="field-hint">Press Enter or click Add after each entry</p>
           </section>
 
           {/* Commissions */}
@@ -367,7 +398,7 @@ const EditProfile: React.FC<EditProfileProps> = ({
                   name="commissionStatus"
                   value="Open"
                   checked={formData.commissionStatus === 'Open'}
-                  onChange={(e) => handleInputChange('commissionStatus', e.target.value as 'Open' | 'Closed')}
+                  onChange={(e) => handleCommissionStatusChange(e.target.value as 'Open' | 'Closed')}
                 />
                 <span>Open</span>
               </label>
@@ -377,25 +408,18 @@ const EditProfile: React.FC<EditProfileProps> = ({
                   name="commissionStatus"
                   value="Closed"
                   checked={formData.commissionStatus === 'Closed'}
-                  onChange={(e) => handleInputChange('commissionStatus', e.target.value as 'Open' | 'Closed')}
+                  onChange={(e) => handleCommissionStatusChange(e.target.value as 'Open' | 'Closed')}
                 />
                 <span>Closed</span>
               </label>
             </div>
-            <textarea
-              className="form-textarea"
-              value={formData.commissionDescription}
-              onChange={(e) => handleInputChange('commissionDescription', e.target.value)}
-              placeholder="Commission description"
-              rows={3}
-            />
             {formData.commissionStatus === 'Open' && (
-              <input
-                type="text"
-                className="form-input"
-                value={formData.commissionCtaText}
-                onChange={(e) => handleInputChange('commissionCtaText', e.target.value)}
-                placeholder="Call to action text (e.g., 'Get in Touch')"
+              <textarea
+                className="form-textarea"
+                value={formData.commissionDescription}
+                onChange={(e) => handleInputChange('commissionDescription', e.target.value)}
+                placeholder="Commission description"
+                rows={3}
               />
             )}
           </section>
@@ -407,7 +431,7 @@ const EditProfile: React.FC<EditProfileProps> = ({
               {formData.links.map((link, index) => (
                 <div key={index} className="list-item link-item">
                   <div>
-                    <span className="link-label">{link.label}</span>
+                    <span className="link-platform">{link.label || link.icon}</span>
                     <span className="link-url">{link.url}</span>
                   </div>
                   <button
@@ -434,23 +458,17 @@ const EditProfile: React.FC<EditProfileProps> = ({
                 placeholder="Select platform"
               />
               <input
-                type="text"
-                className="form-input"
-                value={newLink.label}
-                onChange={(e) => setNewLink({ ...newLink, label: e.target.value })}
-                placeholder="Label"
-              />
-              <input
                 type="url"
                 className="form-input"
                 value={newLink.url}
                 onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
-                placeholder="URL"
+                placeholder="Enter URL, then click Add"
               />
               <button type="button" onClick={addLink} className="add-button">
                 {BsPlus({})} Add
               </button>
             </div>
+            <p className="field-hint">Click Add after entering URL</p>
           </section>
 
           {/* Form Actions */}

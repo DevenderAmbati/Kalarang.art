@@ -1215,30 +1215,7 @@ a:hover {
     font-size: 0.65rem !important;
   }
   
-  /* Footer mobile styles */
-  .home-footer {
-    position: relative !important;
-    padding: 0.75rem 1rem !important;
-  }
-  
-  .home-footer-logo {
-    height: 18px !important;
-  }
-  
-  .home-footer-links {
-    gap: 1rem !important;
-    font-size: 0.7rem !important;
-  }
-  
-  .home-footer-links a {
-    font-size: 0.7rem !important;
-  }
-  
-  .home-footer-links .terms-link {
-    font-size: 0.5rem !important;
-  }
-  
-  /* Call to action mobile */
+  /* Footer mobile styles - handled in Footer.css */\n  \n  /* Call to action mobile */
   .home-cta-section {
     flex-direction: column !important;
     gap: 0.75rem !important;

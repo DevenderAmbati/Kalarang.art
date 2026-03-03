@@ -492,7 +492,7 @@
 }
 
 /* Spacing and font adjustments for extra small screens */
-@media (max-width: 400px) {
+@media (max-width: 420px) {
   .stats-section {
     gap: 0.4rem;
     padding: 0.5rem 0.75rem;

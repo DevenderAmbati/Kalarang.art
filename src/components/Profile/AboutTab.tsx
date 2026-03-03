@@ -164,11 +164,13 @@ const AboutArtist: React.FC<AboutArtistProps> = ({
         )}
       </section>
 
-      {commissions.description && (
+      {(commissions.status === 'Open' || commissions.description) && (
         <section className="section">
           <h2 className="section-heading">Commissions</h2>
           <div className="commissions-card">
-            <p className="commission-description">{commissions.description}</p>
+            {commissions.description && (
+              <p className="commission-description">{commissions.description}</p>
+            )}
             {commissions.status === 'Open' && (
               <button className="commission-cta" onClick={onGetInTouch}>
                 {commissions.ctaText || 'Get in Touch'}
@@ -189,10 +191,10 @@ const AboutArtist: React.FC<AboutArtistProps> = ({
                   className="external-link"
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`Visit ${link.label} profile`}
+                  aria-label={`Visit ${link.label || link.url} profile`}
                 >
                   {getIcon(link.icon, "link-icon")}
-                  {link.label}
+                  {link.label || link.url}
                 </a>
               </li>
             ))}

@@ -49,6 +49,21 @@ const Discover: React.FC = () => {
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLElement | null>(null);
+  const lastScrollY = useRef<number>(0);
+  const manuallyToggled = useRef<boolean>(false);
+  const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(true);
+  const [isContainerReady, setIsContainerReady] = useState(false);
+
+  // Handle manual drawer toggle
+  const handleDrawerToggle = () => {
+    setIsSearchDrawerOpen(!isSearchDrawerOpen);
+    // Mark as manually toggled to prevent auto-close
+    manuallyToggled.current = true;
+    // Reset the flag after 3 seconds to re-enable auto-close
+    setTimeout(() => {
+      manuallyToggled.current = false;
+    }, 3000);
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -89,11 +104,55 @@ const Discover: React.FC = () => {
         const style = window.getComputedStyle(parent);
         if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
           containerRef.current = parent as HTMLElement;
+          setIsContainerReady(true);
           break;
         }
         parent = parent.parentElement;
       }
     }
+  }, []);
+
+  // Auto-close drawer on scroll down
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollContainer = containerRef.current;
+      if (!scrollContainer) return;
+
+      const currentScrollY = scrollContainer.scrollTop;
+      
+      // Only auto-close if drawer wasn't manually toggled
+      if (!manuallyToggled.current) {
+        // Close drawer when scrolling down more than 50px
+        if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
+          setIsSearchDrawerOpen(prev => {
+            // Only close if currently open
+            if (prev) {
+              return false;
+            }
+            return prev;
+          });
+        }
+      }
+      
+      lastScrollY.current = currentScrollY;
+    };
+
+    // Wait a bit for containerRef to be set by the other useEffect
+    const timeoutId = setTimeout(() => {
+      const scrollContainer = containerRef.current;
+      if (scrollContainer) {
+        // Initialize lastScrollY with current scroll position
+        lastScrollY.current = scrollContainer.scrollTop;
+        scrollContainer.addEventListener('scroll', handleScroll);
+      }
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (containerRef.current) {
+        containerRef.current.removeEventListener('scroll', handleScroll);
+      }
+    };
   }, []);
 
   // Pull-to-refresh handler
@@ -123,6 +182,7 @@ const Discover: React.FC = () => {
     pullThreshold: 80,
     debounceDuration: 300,
     maxPullDistance: 120,
+    containerReady: isContainerReady,
   });
 
   // Listen for favorites changes from other components
@@ -604,15 +664,35 @@ const Discover: React.FC = () => {
           threshold={80}
         />
         
-        <div className="discover-header">
-          <p className="discover-description">
-            Explore curated artwork from talented artists.
-          </p>
-        </div>
+        {/* Sticky Header Section */}
+        <div className="discover-sticky-header">
+          <div className="discover-header">
+            <p className="discover-description">
+              Explore curated artwork<span className="discover-description-extended"> from talented artists</span>.
+            </p>
+            {/* Drawer Toggle Button */}
+            <button 
+              className={`discover-drawer-toggle ${isSearchDrawerOpen ? 'open' : ''}`}
+              onClick={handleDrawerToggle}
+              aria-label={isSearchDrawerOpen ? 'Hide search and filters' : 'Show search and filters'}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+              <span>{isSearchDrawerOpen ? 'Hide Filters' : 'Search & Filter'}</span>
+              <svg className="discover-drawer-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+          </div>
 
-        {/* Search Bar */}
-        <div className="discover-search-container">
-          <div className="discover-search-bar" ref={searchContainerRef}>
+          {/* Collapsible Search & Filter Drawer */}
+          <div className={`discover-search-drawer ${isSearchDrawerOpen ? 'open' : ''}`}>
+            <div className="discover-search-drawer-content">
+            {/* Search Bar */}
+            <div className="discover-search-container">
+            <div className="discover-search-bar" ref={searchContainerRef}>
             <svg className="discover-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
@@ -742,6 +822,9 @@ const Discover: React.FC = () => {
                 {category}
               </button>
             ))}
+          </div>
+        </div>
+            </div>
           </div>
         </div>
 

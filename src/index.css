@@ -8,11 +8,14 @@ html {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   max-width: 100vw;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   height: 100%;
   /* Prevent pinch-zoom on touch devices */
   touch-action: pan-x pan-y;
   -ms-touch-action: pan-x pan-y;
+  /* Disable browser pull-to-refresh */
+  overscroll-behavior-y: contain;
 }
 
 /* Global Base Styles */
@@ -44,7 +47,6 @@ img {
   -khtml-user-drag: none;
   -moz-user-drag: none;
   -o-user-drag: none;
-  user-drag: none;
   pointer-events: auto;
 }
 
@@ -52,6 +54,8 @@ img {
   max-width: 100vw;
   min-height: 100%;
   overflow: visible;
+  /* Disable browser pull-to-refresh */
+  overscroll-behavior-y: contain;
 }
 
 body {
@@ -72,6 +76,8 @@ body {
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
+  /* Disable browser pull-to-refresh */
+  overscroll-behavior-y: contain;
 }
 
 code {

@@ -7,6 +7,8 @@ import './toastStyles.css';
 import Layout from "./components/Layout/Layout";
 import Home from "./pages/landing/Home";
 import About from "./pages/landing/About";
+import TermsOfService from "./pages/landing/TermsOfService";
+import PrivacyPolicy from "./pages/landing/PrivacyPolicy";
 import Login from "./pages/auth/Login";
 import SignUp from "./pages/auth/SignUp";
 import ResetPassword from "./pages/auth/ResetPassword";
@@ -188,6 +190,10 @@ function App() {
               />
 
               <Route path="/about" element={<About />} />
+
+              <Route path="/terms" element={<TermsOfService />} />
+
+              <Route path="/privacy" element={<PrivacyPolicy />} />
 
               <Route path="/explore" element={<Explore />} />
 

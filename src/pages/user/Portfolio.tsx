@@ -226,6 +226,23 @@ const Portfolio: React.FC = () => {
     },
   });
 
+  // Profile data for editing - declare before useEffect that uses it
+  const [profileData, setProfileData] = useState<ProfileData>({
+    name: appUser?.name || 'Artist Name',
+    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
+    bannerImage: '/logo.jpeg',
+    bio: "",
+    artStyle: [],
+    philosophy: "",
+    achievements: [],
+    exhibitions: [],
+    education: [],
+    commissionStatus: undefined,
+    commissionDescription: "",
+    commissionCtaText: "Get in Touch",
+    links: []
+  });
+
   // Load user profile data from Firebase
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -238,20 +255,21 @@ const Portfolio: React.FC = () => {
         const profile = await getUserProfile(appUser.uid);
         
         if (profile) {
-          setMockUser({
+          setMockUser(prev => ({
+            ...prev,
             name: profile.name || appUser.name,
             username: profile.username,
             avatar: profile.avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
             bannerImage: profile.bannerImage || '/logo.jpeg',
-            stats: { followers: 0, artworks: 0, following: 0 }, // Will be updated by real-time subscription
-          });
+            // Preserve existing stats - they're managed by real-time subscription
+            stats: prev.stats,
+          }));
 
           // Update profile data state
-          setProfileData(prev => ({
-            ...prev,
+          const newProfileData = {
             name: profile.name || appUser.name,
-            avatar: profile.avatar || prev.avatar,
-            bannerImage: profile.bannerImage || prev.bannerImage,
+            avatar: profile.avatar,
+            bannerImage: profile.bannerImage,
             bio: profile.bio || '',
             artStyle: profile.artStyle || [],
             philosophy: profile.philosophy || '',
@@ -262,6 +280,10 @@ const Portfolio: React.FC = () => {
             commissionDescription: profile.commissionDescription || '',
             commissionCtaText: profile.commissionCtaText || 'Get in Touch',
             links: profile.links || [],
+          };
+          setProfileData(prev => ({
+            ...prev,
+            ...newProfileData,
           }));
         }
       } catch (error) {
@@ -338,36 +360,11 @@ const Portfolio: React.FC = () => {
     }
   }, [appUser?.avatar, appUser?.bannerImage]);
 
-  // Profile data for editing
-  const [profileData, setProfileData] = useState<ProfileData>({
-    name: mockUser.name,
-    avatar: mockUser.avatar,
-    bannerImage: mockUser.bannerImage,
-    bio: "",
-    artStyle: [],
-    philosophy: "",
-    achievements: [],
-    exhibitions: [],
-    education: [],
-    commissionStatus: undefined,
-    commissionDescription: "",
-    commissionCtaText: "Get in Touch",
-    links: []
-  });
-
   const handleSaveProfile = async (data: ProfileData) => {
     if (!appUser) return;
 
     try {
-      // Update local state immediately for optimistic UI
-      setProfileData(data);
-      setMockUser(prev => ({
-        ...prev,
-        name: data.name
-      }));
-      setIsEditingProfile(false);
-
-      // Save to Firebase - filter out undefined values
+      // Save to Firebase first
       const updateData: any = {
         name: data.name,
         bio: data.bio,
@@ -388,11 +385,19 @@ const Portfolio: React.FC = () => {
       
       await updateUserProfile(appUser.uid, updateData);
 
-      // Refresh user profile in AuthContext
-      await refreshUserProfile();
+      // Update local state after successful save
+      setProfileData(data);
+      setMockUser(prev => ({
+        ...prev,
+        name: data.name,
+        avatar: data.avatar || prev.avatar,
+        bannerImage: data.bannerImage || prev.bannerImage,
+        // Keep stats unchanged - they're managed by real-time subscription
+        stats: prev.stats,
+      }));
       
+      setIsEditingProfile(false);
       toast.success('Profile updated successfully!');
-      console.log('Profile saved to Firebase:', data);
     } catch (error) {
       console.error('Error saving profile:', error);
       toast.error('Failed to save profile. Please try again.');
@@ -525,7 +530,7 @@ const Portfolio: React.FC = () => {
               onFollowingClick={handleFollowingClick}
             />
             
-            <div style={styles.tabSection}>
+            <div style={styles.tabSection} className="portfolio-tab-section">
               <div style={styles.tabContainer} className="portfolio-tab-container">
                 {tabs.map((tab) => (
                   <button
@@ -628,18 +633,6 @@ const styles = {
     gap: '0',
     overflowX: 'hidden' as const,
     paddingBottom: '0',
-    '@media (min-width: 640px) and (max-width: 1023px)': {
-      gap: '0.25rem',
-      justifyContent: 'flex-start',
-      paddingLeft: '1rem',
-      paddingRight: '1rem',
-    },
-    '@media (max-width: 639px)': {
-      gap: '0.25rem',
-      justifyContent: 'flex-start',
-      paddingLeft: '1rem',
-      paddingRight: '1rem',
-    },
   },
   tabButton: {
     position: 'relative' as const,
@@ -653,18 +646,6 @@ const styles = {
     transition: 'all 0.3s ease',
     whiteSpace: 'nowrap' as const,
     borderBottom: '3px solid transparent',
-    '@media (min-width: 640px) and (max-width: 1023px)': {
-      padding: '0.875rem 1.5rem',
-      fontSize: '0.9rem',
-    },
-    '@media (max-width: 639px)': {
-      padding: '0.875rem 1.5rem',
-      fontSize: '0.9rem',
-    },
-    '@media (max-width: 480px)': {
-      padding: '0.75rem 1.25rem',
-      fontSize: '0.85rem',
-    },
   },
   activeTabButton: {
     color: 'var(--color-primary)',

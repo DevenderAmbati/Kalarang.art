@@ -129,11 +129,11 @@ const ConversationList: React.FC<{
             }}
           >
             <div className="cd-list-avatar">
-              <img src={avatarSrc(c?.avatar)} alt={c?.name || 'User'} />
+              <img src={avatarSrc(c?.avatar)} alt={c?.name || 'Kalarang User'} />
             </div>
             <div className="cd-list-meta">
               <div className="cd-list-row">
-                <span className="cd-list-name">{c?.name || 'Loading...'}</span>
+                <span className="cd-list-name">{c?.name || 'Kalarang User'}</span>
                 {unread > 0 && (
                   <span className="cd-list-unread" aria-label={`${unread} unread`}>
                     {unread > 99 ? '99+' : unread}

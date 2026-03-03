@@ -80,6 +80,7 @@
 
 .edit-profile-form {
   padding: 2rem;
+  padding-bottom: 4rem;
   overflow-y: auto;
   flex: 1;
 }
@@ -370,20 +371,28 @@
 
 .link-item > div {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  flex-direction: row;
+  gap: 0.75rem;
+  align-items: center;
+  width: 100%;
 }
 
-.link-label {
-  font-size: 0.95rem;
+.link-platform {
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-text-dark);
+  text-transform: capitalize;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
 }
 
 .link-url {
   font-size: 0.875rem;
   color: var(--color-text-secondary);
   word-break: break-all;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .remove-button {
@@ -409,6 +418,14 @@
   display: flex;
   gap: 0.5rem;
   align-items: center;
+}
+
+.field-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+  font-style: italic;
 }
 
 .add-exhibition-row {
@@ -506,6 +523,7 @@
   justify-content: flex-end;
   gap: 1rem;
   padding-top: 1.5rem;
+  padding-bottom: 1rem;
   margin-top: 2rem;
   border-top: 2px solid var(--color-border-light);
 }
@@ -562,8 +580,7 @@
   }
 
   .edit-profile-form {
-    padding: 1.5rem;
-  }
+    padding: 1.5rem;    padding-bottom: 5rem;  }
 
   .image-upload-container {
     flex-direction: column;
@@ -631,6 +648,7 @@
 
   .edit-profile-form {
     padding: 1.5rem;
+    padding-bottom: 5rem;
   }
 
   .image-upload-container {
@@ -669,9 +687,23 @@
     font-size: 0.875rem;
   }
 
+  .link-item > div {
+    flex-direction: row;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .link-url {
+    font-size: 0.8125rem;
+    word-break: break-all;
+    flex: 1;
+    min-width: 0;
+  }
+
   .form-actions {
     flex-direction: row;
     gap: 0.75rem;
+    padding-bottom: 1.5rem;
   }
 
   .button-primary,
@@ -679,6 +711,213 @@
     flex: 1;
     padding: 0.625rem 1rem;
     font-size: 0.9375rem;
+  }
+}
+
+/* Extra Small Mobile Responsiveness (Below 520px) */
+@media (max-width: 520px) {
+  .edit-profile-overlay {
+    padding: 0.5rem;
+  }
+
+  .edit-profile-modal {
+    max-width: 100vw;
+    max-height: 95vh;
+    border-radius: 12px;
+  }
+
+  .edit-profile-header {
+    padding: 0.875rem 1rem;
+  }
+
+  .edit-profile-header h2 {
+    font-size: 1.125rem;
+  }
+
+  .close-button {
+    width: 32px;
+    height: 32px;
+    font-size: 1.75rem;
+  }
+
+  .edit-profile-form {
+    padding: 1rem;
+    padding-bottom: 5rem;
+  }
+
+  .form-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-section-title {
+    font-size: 1rem;
+  }
+
+  .image-upload-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .banner-preview {
+    width: 100%;
+    max-width: 100%;
+    height: 100px;
+  }
+
+  .avatar-preview {
+    width: 100px;
+    height: 100px;
+  }
+
+  .upload-button {
+    width: 100%;
+    justify-content: center;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .form-input,
+  .form-textarea,
+  .form-select {
+    font-size: 0.875rem;
+    padding: 0.625rem 0.875rem;
+  }
+
+  .form-input.name-input {
+    max-width: 100%;
+  }
+
+  .tags-container {
+    gap: 0.375rem;
+  }
+
+  .tag-item {
+    font-size: 0.8125rem;
+    padding: 0.4375rem 0.625rem;
+  }
+
+  .art-style-options {
+    gap: 0.375rem;
+  }
+
+  .art-style-option {
+    font-size: 0.8125rem;
+    padding: 0.4375rem 0.875rem;
+  }
+
+  .list-item {
+    padding: 0.625rem 0.875rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .link-item > div {
+    flex-direction: row;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .link-url {
+    font-size: 0.8125rem;
+    word-break: break-all;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .exhibition-year {
+    font-size: 0.8125rem;
+  }
+
+  .exhibition-title {
+    font-size: 0.875rem;
+  }
+
+  .remove-button {
+    position: absolute;
+    right: 0.875rem;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .list-item {
+    position: relative;
+    padding-right: 2.5rem;
+  }
+
+  .add-item-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .add-item-row .form-input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .add-exhibition-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .add-exhibition-row .form-input.small {
+    width: 100%;
+    max-width: 120px;
+  }
+
+  .add-exhibition-row .form-input:not(.small) {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .add-link-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .add-link-row .form-select,
+  .add-link-row > div:first-child {
+    width: 100%;
+  }
+
+  .add-link-row .form-input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .add-button {
+    width: 100%;
+    justify-content: center;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .commission-status-row {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .form-actions {
+    flex-direction: row;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    padding-bottom: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .button-primary,
+  .button-secondary {
+    flex: 1;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.9375rem;
+  }
+
+  .form-textarea {
+    min-height: 80px;
   }
 }
 

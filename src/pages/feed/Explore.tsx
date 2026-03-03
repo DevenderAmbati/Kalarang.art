@@ -35,7 +35,21 @@ const Explore: React.FC = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef<number>(0);
+  const manuallyToggled = useRef<boolean>(false);
 
+  const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(true);
+
+  // Handle manual drawer toggle
+  const handleDrawerToggle = () => {
+    setIsSearchDrawerOpen(!isSearchDrawerOpen);
+    // Mark as manually toggled to prevent auto-close
+    manuallyToggled.current = true;
+    // Reset the flag after 3 seconds to re-enable auto-close
+    setTimeout(() => {
+      manuallyToggled.current = false;
+    }, 3000);
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -53,6 +67,38 @@ const Explore: React.FC = () => {
   const [hasMore, setHasMore] = useState(true);
 
   const savedArtworks = useMemo(() => new Set<string>(), []);
+
+  // Auto-close drawer on scroll down
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // Initialize lastScrollY with current scroll position
+    lastScrollY.current = container.scrollTop;
+
+    const handleScroll = () => {
+      const currentScrollY = container.scrollTop;
+      
+      // Only auto-close if drawer wasn't manually toggled
+      if (!manuallyToggled.current) {
+        // Close drawer when scrolling down more than 50px
+        if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
+          setIsSearchDrawerOpen(prev => {
+            // Only close if currently open
+            if (prev) {
+              return false;
+            }
+            return prev;
+          });
+        }
+      }
+      
+      lastScrollY.current = currentScrollY;
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Initial fetch with cache
   useEffect(() => {
@@ -222,20 +268,42 @@ const Explore: React.FC = () => {
       {/* Scrollable content */}
       <div className="explore-scroll-container" ref={scrollContainerRef}>
         <div className="discover-container explore-container">
-          <div className="explore-page-header">
-            <button className="explore-back-btn" onClick={() => navigate('/')} aria-label="Back to home">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <div>
-              <h1 className="explore-page-title">Explore Art</h1>
-              <p className="discover-description" style={{ margin: '0 0 0.75rem' }}>Explore curated artwork from talented.</p>
+          {/* Sticky Header Section */}
+          <div className="discover-sticky-header explore-sticky-header">
+            <div className="explore-page-header">
+              <button className="explore-back-btn" onClick={() => navigate('/')} aria-label="Back to home">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h1 className="explore-page-title">Explore Art</h1>
+                <p className="discover-description explore-description explore-description-mobile-hide" style={{ margin: 0 }}>
+                  Explore curated artwork<span className="discover-description-extended"> from talented artists</span>.
+                </p>
+              </div>
+              {/* Drawer Toggle Button */}
+              <button 
+                className={`discover-drawer-toggle ${isSearchDrawerOpen ? 'open' : ''}`}
+                onClick={handleDrawerToggle}
+                aria-label={isSearchDrawerOpen ? 'Hide search and filters' : 'Show search and filters'}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                <span>{isSearchDrawerOpen ? 'Hide Filters' : 'Search & Filter'}</span>
+                <svg className="discover-drawer-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
             </div>
-          </div>
 
-          {/* Search bar */}
-          <div className="discover-search-container">
+            {/* Collapsible Search & Filter Drawer */}
+            <div className={`discover-search-drawer ${isSearchDrawerOpen ? 'open' : ''}`}>
+              <div className="discover-search-drawer-content">
+                {/* Search bar */}
+                <div className="discover-search-container">
             <div className="discover-search-bar" ref={searchContainerRef}>
               <svg className="discover-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" />
@@ -294,6 +362,9 @@ const Explore: React.FC = () => {
               {CATEGORIES.map(cat => (
                 <button key={cat} className={`discover-category-chip ${activeCategory === cat ? 'active' : ''}`} onClick={() => setActiveCategory(cat)}>{cat}</button>
               ))}
+            </div>
+          </div>
+              </div>
             </div>
           </div>
 

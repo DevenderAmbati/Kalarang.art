@@ -48,6 +48,7 @@
 .layout-main-content {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
+  overscroll-behavior-y: contain; /* Prevent native pull-to-refresh */
 }
 
 /* ============================================

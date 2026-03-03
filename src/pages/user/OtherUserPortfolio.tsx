@@ -306,7 +306,7 @@ const OtherUserPortfolio: React.FC = () => {
               onFollow={handleFollow}
             />
             
-            <div style={styles.tabSection}>
+            <div style={styles.tabSection} className="portfolio-tab-section">
               <div style={styles.tabContainer} className="portfolio-tab-container">
                 {tabs.map((tab) => (
                   <button

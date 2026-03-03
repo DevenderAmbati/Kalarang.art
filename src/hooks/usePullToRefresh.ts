@@ -6,6 +6,7 @@ interface PullToRefreshOptions {
   pullThreshold?: number;
   debounceDuration?: number;
   maxPullDistance?: number;
+  containerReady?: boolean;
 }
 
 export interface PullToRefreshState {
@@ -29,6 +30,7 @@ export function usePullToRefresh(
     pullThreshold = 80,
     debounceDuration = 300,
     maxPullDistance = 120,
+    containerReady = true,
   } = options;
 
   const [pullDistance, setPullDistance] = useState(0);
@@ -81,7 +83,7 @@ export function usePullToRefresh(
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || !containerReady) return;
 
     // Store current values in refs to avoid closure issues
     const optionsRef = {
@@ -176,7 +178,7 @@ export function usePullToRefresh(
       container.removeEventListener('touchend', handleTouchEnd);
       container.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [containerRef, isEnabled, isRefreshing, pullThreshold, maxPullDistance, performRefresh, resetPull]);
+  }, [containerRef, containerReady, isEnabled, isRefreshing, pullThreshold, maxPullDistance, performRefresh, resetPull]);
 
   return {
     pullDistance,

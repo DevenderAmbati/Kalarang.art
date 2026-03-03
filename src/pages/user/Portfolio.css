@@ -1,5 +1,36 @@
-/* Tab switcher - smaller on mobile below 401px */
-@media (max-width: 400px) {
+/* Reduce gap between profile header and tabs for mobile and tablet */
+@media (max-width: 1023px) {
+  .portfolio-tab-section {
+    margin-top: 0.75rem !important;
+  }
+}
+
+/* Tablet responsiveness - keep centered */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .portfolio-tab-button {
+    padding: 0.875rem 1.5rem !important;
+    font-size: 0.9rem !important;
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 639px) {
+  .portfolio-tab-button {
+    padding: 0.875rem 1.5rem !important;
+    font-size: 0.9rem !important;
+  }
+}
+
+/* Extra small mobile */
+@media (max-width: 480px) {
+  .portfolio-tab-button {
+    padding: 0.75rem 1.25rem !important;
+    font-size: 0.85rem !important;
+  }
+}
+
+/* Tab switcher - smaller on mobile below 421px */
+@media (max-width: 420px) {
   .portfolio-tab-container {
     padding-left: 0.5rem !important;
     padding-right: 0.5rem !important;
