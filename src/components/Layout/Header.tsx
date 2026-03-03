@@ -65,6 +65,7 @@ const Header: React.FC = () => {
             Home
           </button>
           <button
+            className="home-nav-about"
             onClick={() => navigate('/about')}
             style={{
               background: 'transparent',
@@ -75,7 +76,8 @@ const Header: React.FC = () => {
               cursor: 'pointer',
               padding: '0.4rem 1rem',
               borderRadius: '50px',
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
+              marginLeft: '-1.5rem'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'var(--primary-alpha-10)';

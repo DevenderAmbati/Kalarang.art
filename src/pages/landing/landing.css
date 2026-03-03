@@ -54,6 +54,10 @@
   margin-left: -1.5rem;
 }
 
+.landing-page .home-header .home-nav-links .home-nav-about {
+  margin-left: -0.5rem;
+}
+
 .landing-page .home-header .home-header-right {
   display: flex;
   align-items: center;
