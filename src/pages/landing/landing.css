@@ -99,7 +99,7 @@
   padding: 0 2rem 1rem;
 }
 
-/* About: content starts exactly below header – no vertical centering, enough top padding */
+/* About: content starts below header; mobile fixed header/footer handled in about.css */
 .landing-page .about-main-content.landing-content {
   align-items: flex-start;
   padding-top: 0;

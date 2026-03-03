@@ -2,7 +2,7 @@
 
 .buyer-landing {
   min-height: 100vh;
-  padding: 2rem 1rem;
+  padding: 1rem 1rem 2rem;
   position: relative;
   overflow-x: hidden;
 }
@@ -160,7 +160,7 @@
 /* Hero Section */
 .buyer-landing .hero-section {
   text-align: center;
-  padding: 4rem 1rem 5rem;
+  padding: 2.5rem 1rem 5rem;
   max-width: 1000px;
   margin: 0 auto;
 }
@@ -864,16 +864,16 @@
 /* Spacing and font adjustments for extra small screens */
 @media (max-width: 480px) {
   .buyer-landing {
-    padding: 1.5rem 0.75rem;
+    padding: 1rem 0.75rem 1.5rem;
   }
 
   .buyer-landing .hero-section {
-    padding: 3rem 0.5rem 4rem;
+    padding: 2rem 0.5rem 4rem;
   }
 
   .buyer-landing .hero-title {
     font-size: 1.75rem;
-    padding-top: 1.5rem;
+    padding-top: 0.75rem;
   }
 
   .buyer-landing .hero-subtitle {

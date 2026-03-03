@@ -1,5 +1,12 @@
 /* Explore Page — public artwork browsing page */
 
+/* Prevent outer (document) scroll; only .explore-scroll-container scrolls */
+html.explore-page-active,
+body.explore-page-active {
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
 .explore-page {
   display: flex;
   flex-direction: column;

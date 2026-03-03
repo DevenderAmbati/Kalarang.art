@@ -188,7 +188,7 @@ export default function ArtistLanding() {
             Welcome to Kalarang, {appUser?.name ? capitalizeName(appUser.name) : "Artist"}
           </h1>
           <p className="hero-subtitle">
-            Your space to create, refine, and publish original art.
+            Your space to publish art and connect with buyers.
           </p>
         </div>
       </section>

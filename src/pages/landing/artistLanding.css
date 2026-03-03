@@ -3,7 +3,7 @@ artistLanding.css
 .artist-landing {
   min-height: 100vh;
   background: linear-gradient(135deg, #f8fafc 0%, #e0f2f7 50%, #d4eef5 100%);
-  padding: 2rem 1rem;
+  padding: 1rem 1rem 2rem;
   position: relative;
   overflow-x: hidden;
 }
@@ -169,7 +169,7 @@ artistLanding.css
 /* Hero Section */
 .hero-section {
   text-align: center;
-  padding: 4rem 1rem 5rem;
+  padding: 2.5rem 1rem 5rem;
   max-width: 1000px;
   margin: 0 auto;
 }
@@ -902,7 +902,7 @@ artistLanding.css
 /* Spacing and font adjustments for extra small screens */
 @media (max-width: 480px) {
   .artist-landing {
-    padding: 1.5rem 0.75rem;
+    padding: 1rem 0.75rem 1.5rem;
   }
 
   .cta-enter-button {
@@ -911,12 +911,12 @@ artistLanding.css
   }
 
   .hero-section {
-    padding: 3rem 0.5rem 4rem;
+    padding: 2rem 0.5rem 4rem;
   }
 
   .hero-title {
     font-size: 1.75rem;
-    padding-top: 1.5rem;
+    padding-top: 0.75rem;
   }
 
   .hero-subtitle {

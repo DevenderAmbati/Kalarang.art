@@ -19,6 +19,16 @@ const About: React.FC = () => {
   const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
   const lastScrollY = useRef(0);
 
+  /* On mobile: lock body scroll so only the about content area scrolls */
+  useEffect(() => {
+    document.documentElement.classList.add('about-page-active');
+    document.body.classList.add('about-page-active');
+    return () => {
+      document.documentElement.classList.remove('about-page-active');
+      document.body.classList.remove('about-page-active');
+    };
+  }, []);
+
   useEffect(() => {
     const observerOptions = {
       threshold: 0.1,

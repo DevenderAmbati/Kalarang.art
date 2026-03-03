@@ -33,6 +33,16 @@ const parseInches = (value?: string): number | null => {
 const Explore: React.FC = () => {
   const navigate = useNavigate();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  /* Lock document scroll so only the inner .explore-scroll-container scrolls */
+  useEffect(() => {
+    document.documentElement.classList.add('explore-page-active');
+    document.body.classList.add('explore-page-active');
+    return () => {
+      document.documentElement.classList.remove('explore-page-active');
+      document.body.classList.remove('explore-page-active');
+    };
+  }, []);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef<number>(0);
