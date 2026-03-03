@@ -135,7 +135,7 @@ const NotificationPrompt: React.FC = () => {
         <span style={styles.icon}>🔔</span>
         <span style={styles.text}>
           <span className="notif-banner-full">Stay updated! Enable notifications for messages and activity.</span>
-          <span className="notif-banner-short">Stay updated! Enable notifications.</span>
+          <span className="notif-banner-short">Enable notifications.</span>
         </span>
         <button
           onClick={handleEnable}

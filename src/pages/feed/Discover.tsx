@@ -15,6 +15,8 @@ import laptopAnimation from '../../animations/Laptop-Drawing 1.json';
 import noContentAnimation from '../../animations/no content.json';
 import { toast } from 'react-toastify';
 import { cache, cacheKeys } from '../../utils/cache';
+import { usePullToRefresh } from '../../hooks/usePullToRefresh';
+import PullToRefreshIndicator from '../../components/Common/PullToRefreshIndicator';
 import './Discover.css';
 
 // Size categories with dimensions in inches
@@ -46,6 +48,7 @@ const Discover: React.FC = () => {
   const { appUser } = useAuth();
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -74,6 +77,43 @@ const Discover: React.FC = () => {
 
   // Use cached data hooks
   const { data: favoriteIds, updateCache: updateFavoritesCache, refetch: refetchFavorites } = useFavorites(appUser?.uid);
+
+  // Set up container ref for pull-to-refresh
+  useEffect(() => {
+    const mainContent = document.querySelector('.layout-main-content') as HTMLElement;
+    if (mainContent) {
+      containerRef.current = mainContent;
+    }
+  }, []);
+
+  // Pull-to-refresh handler
+  const handleRefresh = useCallback(async () => {
+    console.log('[PullToRefresh] Refreshing discover page');
+    try {
+      const result = await getPublishedArtworksPaginated(20);
+      setArtworks(result.artworks);
+      setLastVisible(result.lastVisible);
+      setHasMore(result.hasMore);
+      cache.set(
+        cacheKeys.discoverPaginated(),
+        { artworks: result.artworks, hasMore: result.hasMore },
+        2 * 60 * 1000,
+        5 * 60 * 1000
+      );
+    } catch (error) {
+      console.error('[PullToRefresh] Error:', error);
+      throw error;
+    }
+  }, []);
+
+  // Initialize pull-to-refresh
+  const pullToRefreshState = usePullToRefresh(containerRef, {
+    onRefresh: handleRefresh,
+    isRealtimeActive: false,
+    pullThreshold: 80,
+    debounceDuration: 300,
+    maxPullDistance: 120,
+  });
 
   // Listen for favorites changes from other components
   useEffect(() => {
@@ -544,7 +584,16 @@ const Discover: React.FC = () => {
 
   return (
     <>
-      <div className="discover-container">
+      <div className="discover-container" style={{ position: 'relative' }}>
+        {/* Pull-to-Refresh Indicator */}
+        <PullToRefreshIndicator
+          pullDistance={pullToRefreshState.pullDistance}
+          isTriggered={pullToRefreshState.isTriggered}
+          isRefreshing={pullToRefreshState.isRefreshing}
+          isResetting={pullToRefreshState.isResetting}
+          threshold={80}
+        />
+        
         <div className="discover-header">
           <p className="discover-description">
             Explore curated artwork from talented artists.

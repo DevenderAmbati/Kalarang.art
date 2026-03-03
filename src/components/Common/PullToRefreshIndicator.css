@@ -1,0 +1,59 @@
+.pull-refresh-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 10px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.pull-refresh-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary, #fff);
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  will-change: transform;
+}
+
+.pull-refresh-spinner svg {
+  display: block;
+}
+
+.pull-refresh-spinner .spinning {
+  animation: spin 1s linear infinite;
+  transform-origin: center;
+}
+
+.pull-refresh-text {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+  transition: opacity 0.2s ease;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .pull-refresh-indicator {
+    padding-top: 5px;
+  }
+  
+  .pull-refresh-text {
+    font-size: 11px;
+  }
+}
