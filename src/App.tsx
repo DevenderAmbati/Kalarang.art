@@ -73,24 +73,19 @@ const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 function App() {
   const { firebaseUser, appUser, loading } = useAuth();
 
-  // Prevent pinch-zoom and gesture zoom across the app (except in designated zoom areas)
+  // Prevent pinch-zoom and gesture zoom across the app globally
+  // The artwork preview handles its own zoom internally via React events
   useEffect(() => {
     const preventZoom = (e: TouchEvent) => {
-      // Allow zoom in elements with 'allow-zoom' class or data-allow-zoom attribute
-      const target = e.target as HTMLElement;
-      if (target.closest('.artwork-preview-content') || target.closest('[data-allow-zoom]')) {
-        return; // Allow zoom gestures in artwork preview
-      }
+      // Always prevent multi-touch zoom at browser level
+      // The preview component handles its own zoom via React synthetic events
       if (e.touches.length > 1) {
         e.preventDefault();
       }
     };
 
     const preventGestureZoom = (e: Event) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.artwork-preview-content') || target.closest('[data-allow-zoom]')) {
-        return; // Allow zoom gestures in artwork preview
-      }
+      // Always prevent Safari gesture zoom at browser level
       e.preventDefault();
     };
 
@@ -103,12 +98,8 @@ function App() {
     document.addEventListener('gesturechange', preventGestureZoom);
     document.addEventListener('gestureend', preventGestureZoom);
 
-    // Prevent Ctrl/Cmd + scroll zoom on desktop (except in designated zoom areas)
+    // Prevent Ctrl/Cmd + scroll zoom on desktop
     const preventWheelZoom = (e: WheelEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.artwork-preview-content') || target.closest('[data-allow-zoom]')) {
-        return; // Allow wheel zoom in artwork preview
-      }
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
       }
