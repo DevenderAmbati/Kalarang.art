@@ -44,12 +44,10 @@ export function usePushNotifications() {
       if (enabled) {
         await disableNotifications(appUser.uid);
         setEnabled(false);
-        toast.success("Notifications disabled", { position: "top-center", autoClose: 2000 });
       } else {
         const result = await enableNotifications(appUser.uid);
         if (result.success) {
           setEnabled(true);
-          toast.success("Notifications enabled!", { position: "top-center", autoClose: 2000 });
         } else {
           toast.error(result.error || "Failed to enable notifications", {
             position: "top-center",

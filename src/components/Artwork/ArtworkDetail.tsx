@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useImagePreviewBackNavigation } from '../../hooks/useImagePreviewBackNavigation';
 import './ArtworkDetail.css';
 
 export interface Artwork {
@@ -52,6 +53,23 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({
 }) => {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(artwork.artworkImage);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  const handleClosePreview = () => {
+    setIsPreviewOpen(false);
+    setZoomLevel(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  // Handle back navigation for image preview
+  useImagePreviewBackNavigation({
+    isPreviewOpen,
+    onClosePreview: handleClosePreview,
+  });
 
   const handleBack = () => {
     navigate(-1);
@@ -81,6 +99,64 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({
     if (onThumbnailClick) {
       onThumbnailClick(imageUrl);
     }
+  };
+
+  const handleImageClick = () => {
+    setIsPreviewOpen(true);
+  };
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleClosePreview();
+    }
+  };
+
+  const handleZoomIn = () => {
+    setZoomLevel((prev) => Math.min(prev + 0.5, 4));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel((prev) => {
+      const newZoom = Math.max(prev - 0.5, 1);
+      if (newZoom === 1) {
+        setPosition({ x: 0, y: 0 });
+      }
+      return newZoom;
+    });
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    if (e.deltaY < 0) {
+      handleZoomIn();
+    } else {
+      handleZoomOut();
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoomLevel > 1) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && zoomLevel > 1) {
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
   };
 
   const formatPrice = (price: number): string => {
@@ -149,7 +225,7 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({
       <div className="artwork-detail-content">
         {/* Left Section - Image Gallery */}
         <div className="artwork-detail-left">
-          <div className="artwork-main-image-wrapper">
+          <div className="artwork-main-image-wrapper" onClick={handleImageClick}>
             <img 
               src={selectedImage} 
               alt={artwork.title}
@@ -277,6 +353,91 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Full Preview Modal */}
+      {isPreviewOpen && (
+        <div className="artwork-preview-overlay" onClick={handleOverlayClick}>
+          <button className="preview-close-btn" onClick={handleClosePreview}>
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          
+          {/* Zoom Controls */}
+          <div className="preview-zoom-controls">
+            <button 
+              className="zoom-control-btn" 
+              onClick={handleZoomIn}
+              disabled={zoomLevel >= 4}
+              title="Zoom In"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="M21 21l-4.35-4.35"></path>
+                <line x1="11" y1="8" x2="11" y2="14"></line>
+                <line x1="8" y1="11" x2="14" y2="11"></line>
+              </svg>
+            </button>
+            <span className="zoom-level-display">{Math.round(zoomLevel * 100)}%</span>
+            <button 
+              className="zoom-control-btn" 
+              onClick={handleZoomOut}
+              disabled={zoomLevel <= 1}
+              title="Zoom Out"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="M21 21l-4.35-4.35"></path>
+                <line x1="8" y1="11" x2="14" y2="11"></line>
+              </svg>
+            </button>
+            {zoomLevel > 1 && (
+              <button 
+                className="zoom-control-btn zoom-reset" 
+                onClick={handleResetZoom}
+                title="Reset Zoom"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M1 4v6h6"></path>
+                  <path d="M23 20v-6h-6"></path>
+                  <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                </svg>
+              </button>
+            )}
+          </div>
+
+          <div 
+            className="artwork-preview-content"
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{ cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
+          >
+            <img 
+              src={selectedImage} 
+              alt={artwork.title}
+              className="artwork-preview-image"
+              style={{
+                transform: `scale(${zoomLevel}) translate(${position.x / zoomLevel}px, ${position.y / zoomLevel}px)`,
+                transition: isDragging ? 'none' : 'transform 0.2s ease',
+              }}
+              draggable={false}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

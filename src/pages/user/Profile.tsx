@@ -630,12 +630,36 @@ const Profile: React.FC = () => {
                   cursor: notifLoading || notifToggling ? 'not-allowed' : 'pointer',
                 }}
               >
-                <span
-                  style={{
-                    ...styles.notifToggleKnob,
-                    ...(notifEnabled ? styles.notifToggleKnobActive : {}),
-                  }}
-                />
+                {notifToggling ? (
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      animation: 'spin 1s linear infinite',
+                      position: 'absolute',
+                      left: '50%',
+                      top: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      color: 'var(--primary-color)',
+                    }}
+                  >
+                    <circle cx="12" cy="12" r="10" opacity="0.25" />
+                    <path d="M12 2 A10 10 0 0 1 22 12" />
+                  </svg>
+                ) : (
+                  <span
+                    style={{
+                      ...styles.notifToggleKnob,
+                      ...(notifEnabled ? styles.notifToggleKnobActive : {}),
+                    }}
+                  />
+                )}
               </button>
             </div>
           </div>

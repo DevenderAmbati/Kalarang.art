@@ -73,6 +73,45 @@ const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 function App() {
   const { firebaseUser, appUser, loading } = useAuth();
 
+  // Prevent pinch-zoom and gesture zoom across the app
+  useEffect(() => {
+    const preventZoom = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+
+    const preventGestureZoom = (e: Event) => {
+      e.preventDefault();
+    };
+
+    // Prevent pinch-zoom on touchstart/touchmove
+    document.addEventListener('touchstart', preventZoom, { passive: false });
+    document.addEventListener('touchmove', preventZoom, { passive: false });
+    
+    // Prevent Safari gesture events
+    document.addEventListener('gesturestart', preventGestureZoom);
+    document.addEventListener('gesturechange', preventGestureZoom);
+    document.addEventListener('gestureend', preventGestureZoom);
+
+    // Prevent Ctrl/Cmd + scroll zoom on desktop
+    const preventWheelZoom = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener('wheel', preventWheelZoom, { passive: false });
+
+    return () => {
+      document.removeEventListener('touchstart', preventZoom);
+      document.removeEventListener('touchmove', preventZoom);
+      document.removeEventListener('gesturestart', preventGestureZoom);
+      document.removeEventListener('gesturechange', preventGestureZoom);
+      document.removeEventListener('gestureend', preventGestureZoom);
+      document.removeEventListener('wheel', preventWheelZoom);
+    };
+  }, []);
+
   // Helper function to check if user is authenticated
   const isAuthenticated = () => {
     return firebaseUser !== null && appUser !== null;
