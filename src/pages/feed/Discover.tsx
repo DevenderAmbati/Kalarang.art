@@ -78,11 +78,21 @@ const Discover: React.FC = () => {
   // Use cached data hooks
   const { data: favoriteIds, updateCache: updateFavoritesCache, refetch: refetchFavorites } = useFavorites(appUser?.uid);
 
-  // Set up container ref for pull-to-refresh
+  // Set up container ref for pull-to-refresh - find the actual scrollable parent
   useEffect(() => {
-    const mainContent = document.querySelector('.layout-main-content') as HTMLElement;
-    if (mainContent) {
-      containerRef.current = mainContent;
+    // Find the actual scroll container (parent div with feedScrollContainer style)
+    const discoverElement = document.querySelector('.discover-container');
+    if (discoverElement) {
+      // Walk up to find the scrollable parent
+      let parent = discoverElement.parentElement;
+      while (parent) {
+        const style = window.getComputedStyle(parent);
+        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+          containerRef.current = parent as HTMLElement;
+          break;
+        }
+        parent = parent.parentElement;
+      }
     }
   }, []);
 
