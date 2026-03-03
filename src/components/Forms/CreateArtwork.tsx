@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { MdInfoOutline } from 'react-icons/md';
 import { toast } from 'react-toastify';
 import Lottie from 'lottie-react';
 import {
@@ -51,6 +52,9 @@ const CreateArtwork: React.FC = () => {
   const [currentTip, setCurrentTip] = useState('');
   const [isLoadingArtwork, setIsLoadingArtwork] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true); // Start with true for new artworks
+  const [showUploadGuidelinesTooltip, setShowUploadGuidelinesTooltip] = useState(false);
+  const uploadGuidelinesRef = useRef<HTMLDivElement>(null);
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
   const [formData, setFormData] = useState<ArtworkFormData>({
     title: '',
     description: '',
@@ -64,6 +68,18 @@ const CreateArtwork: React.FC = () => {
   });
 
   const lottieRef = useRef<any>(null);
+
+  // Close upload guidelines tooltip when clicking outside
+  useEffect(() => {
+    if (!showUploadGuidelinesTooltip) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (uploadGuidelinesRef.current && !uploadGuidelinesRef.current.contains(e.target as Node)) {
+        setShowUploadGuidelinesTooltip(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUploadGuidelinesTooltip]);
 
   useEffect(() => {
     if (!isLoadingArtwork && !isSaving && !isPublishing) return;
@@ -93,6 +109,7 @@ const CreateArtwork: React.FC = () => {
           }));
           setImages(restoredImages);
         }
+        setHasRestoredDraft(true);
         console.log('[Draft] Loaded from localStorage:', draft);
         toast.info('Draft restored from your last session', {
           autoClose: 3000,
@@ -766,9 +783,38 @@ const CreateArtwork: React.FC = () => {
 
       <div className="create-artwork-container">
         <div className="create-artwork-header">
-          <p className="create-artwork-subtitle">
-            Share your latest creation with the Kalarang community.
-          </p>
+          <div className="create-artwork-header-left">
+            <p className="create-artwork-subtitle">
+              Share your latest creation with the Kalarang community.
+            </p>
+          </div>
+          <div ref={uploadGuidelinesRef} className="upload-guidelines-trigger">
+            <button
+              type="button"
+              onClick={() => setShowUploadGuidelinesTooltip((prev) => !prev)}
+              className="upload-guidelines-btn"
+              aria-label="Upload guidelines"
+              aria-expanded={showUploadGuidelinesTooltip}
+            >
+              {MdInfoOutline({ size: 18 })}
+              <span>Guidelines</span>
+            </button>
+            {showUploadGuidelinesTooltip && (
+              <div className="upload-guidelines-tooltip" role="tooltip" id="upload-guidelines-tooltip">
+                <div className="upload-guidelines-tooltip-title">Guidelines to upload art</div>
+                <ul className="upload-guidelines-tooltip-list">
+                  <li>Upload only <strong>original artwork</strong> created by you.</li>
+                  <li>Do not upload copied, AI-generated, or copyrighted content you don't own.</li>
+                  <li>Avoid heavy filters or excessive editing. Show the artwork as it truly is.</li>
+                  <li>Photograph your artwork in <strong>natural lighting</strong> with a clear background.</li>
+                  <li>Ensure the image is <strong>high resolution</strong> and not blurry.</li>
+                  <li>Not ready to sell it? You can still upload, it will be saved to your gallery. You can edit and publish to Discover anytime later.</li>
+                  <li>Use a <strong>title and description</strong> that match your art so it’s easy to find in Discover.</li>
+                  <li>When publishing your work, include accurate <strong>pricing</strong>, <strong>category</strong>, <strong>medium</strong>, and <strong>size</strong>.</li>
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="create-artwork-form">
@@ -842,13 +888,12 @@ const CreateArtwork: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="button-group">
-            {/* Clear Draft Button - Only show for new artworks with data that haven't been saved yet */}
-            {!editArtworkId && !savedArtworkId && (formData.title || formData.description || images.length > 0) && (
+            {/* Clear Draft Button - Show when draft was restored or form has content (new artworks only) */}
+            {!editArtworkId && !savedArtworkId && (hasRestoredDraft || formData.title || formData.description || formData.category || formData.medium || formData.createdDate || formData.width || formData.height || formData.price || images.length > 0) && (
               <button
                 type="button"
                 className="button button-outline"
                 onClick={() => {
-             
                     setFormData({
                       title: '',
                       description: '',
@@ -861,9 +906,9 @@ const CreateArtwork: React.FC = () => {
                       isCommissioned: false,
                     });
                     setImages([]);
+                    setHasRestoredDraft(false);
                     localStorage.removeItem('artworkDraft');
                     toast.success('Draft cleared');
-                  
                 }}
                 style={{ color: 'var(--color-royal)'}}
               >

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MdHome, MdEmail, MdLock, MdPerson, MdCheckCircle, MdCancel } from 'react-icons/md';
+import { MdHome, MdEmail, MdLock, MdPerson, MdCheckCircle, MdCancel, MdInfoOutline } from 'react-icons/md';
 import { FaGoogle } from 'react-icons/fa';
 import Lottie from 'lottie-react';
 import { toast } from 'react-toastify';
@@ -31,9 +31,24 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [error, setError] = useState('');  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showRoleGuideTooltip, setShowRoleGuideTooltip] = useState(false);
   const [randomAnimation, setRandomAnimation] = useState<any>(null);
   const lottieRef = useRef<any>(null);
+  const roleGuideRef = useRef<HTMLDivElement>(null);
+
+  // Close role guide tooltip when clicking outside
+  useEffect(() => {
+    if (!showRoleGuideTooltip) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (roleGuideRef.current && !roleGuideRef.current.contains(e.target as Node)) {
+        setShowRoleGuideTooltip(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showRoleGuideTooltip]);
 
   useEffect(() => {
     if (!randomAnimation) return;
@@ -310,16 +325,59 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
 
           <form onSubmit={handleSubmit} className="login-form" style={{ gap: '0.8rem' }}>
             <div className="login-input-group" style={{ marginBottom: '0.25rem' }}>
-              <label style={{ 
-                fontSize: '0.75rem', 
-                fontWeight: 600, 
-                color: 'var(--color-primary)', 
-                marginBottom: '0.35rem',
-                display: 'block',
-                textAlign: 'center'
+              <div ref={roleGuideRef} className="role-guide-trigger" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                marginBottom: '0.35rem'
               }}>
-                I am joining as
-              </label>
+                <label style={{ 
+                  fontSize: '0.75rem', 
+                  fontWeight: 600, 
+                  color: 'var(--color-primary)', 
+                  marginBottom: 0,
+                  textAlign: 'center'
+                }}>
+                  I am joining as
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowRoleGuideTooltip((prev) => !prev)}
+                  aria-label="What should I choose?"
+                  aria-expanded={showRoleGuideTooltip}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
+                    margin: 0,
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--color-primary)',
+                    cursor: 'pointer',
+                    opacity: 0.85
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                    e.currentTarget.style.textDecoration = 'underline';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '0.85';
+                    e.currentTarget.style.textDecoration = 'none';
+                  }}
+                >
+                  {MdInfoOutline({ size: 16 })}
+                </button>
+                {showRoleGuideTooltip && (
+                  <div className="role-guide-tooltip" role="tooltip" id="role-guide-tooltip">
+                    <div className="role-guide-tooltip-title">Which role should I choose?</div>
+                    <p><strong>Artist</strong> — You create art and want to connect with buyers to sell your work. You can still discover and buy art from others.</p>
+                    <p><strong>Buyer</strong> — You're here to discover and buy art and connect with artists.</p>
+                    <p><strong>Do both?</strong> Choose <strong>Artist</strong> — you get the full experience to sell your work and buy from others.</p>
+                  </div>
+                )}
+              </div>
               <div style={{ 
                 display: 'grid', 
                 gridTemplateColumns: '1fr 1fr', 

@@ -76,7 +76,12 @@ const ArtworkMetadataForm: React.FC<ArtworkMetadataFormProps> = ({
             <label className="form-label">Category *</label>
             <CustomDropdown
               value={formData.category}
-              onChange={(value) => onFormDataChange('category', value)}
+              onChange={(value) => {
+                onFormDataChange('category', value);
+                if (value === 'craft' || value === 'sculpture' || value === 'digital') {
+                  onFormDataChange('medium', value);
+                }
+              }}
               options={[
                 { value: 'abstract', label: 'Abstract' },
                 { value: 'landscape', label: 'Landscape' },
@@ -106,6 +111,8 @@ const ArtworkMetadataForm: React.FC<ArtworkMetadataFormProps> = ({
                 { value: 'colored-pencil', label: 'Colored Pencil' },
                 { value: 'gouache', label: 'Gouache' },
                 { value: 'pen-ink', label: 'Pen/Ink' },
+                { value: 'craft', label: 'Craft' },
+                { value: 'sculpture', label: 'Sculpture' },
               ]}
               placeholder="Select medium"
               required
