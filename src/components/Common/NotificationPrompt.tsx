@@ -8,7 +8,7 @@ function storageKey(uid: string, key: string) {
   return `kalarang_notif_${key}_${uid}`;
 }
 
-const COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000;
+const COOLDOWN_MS = 1 * 24 * 60 * 60 * 1000;
 
 const NotificationPrompt: React.FC = () => {
   const { appUser } = useAuth();
@@ -56,7 +56,7 @@ const NotificationPrompt: React.FC = () => {
       }
     }
 
-    const timer = setTimeout(shouldShow, 5000);
+    const timer = setTimeout(shouldShow, 3000);
     return () => {
       cancelled = true;
       clearTimeout(timer);

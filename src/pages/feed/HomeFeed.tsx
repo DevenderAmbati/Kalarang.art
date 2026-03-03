@@ -838,27 +838,30 @@ const HomeFeed: React.FC = () => {
           <div className="stories-section">
             <div className="stories-container">
               {groupedStories.length === 0 ? (
-                <div className="story-item" onClick={() => {
-                  const defaultUserStories: Story[] = [{
-                    id: 'default-story',
-                    image: '/logo.jpeg',
-                    name: 'Kalarang',
-                    userIcon: '/logo.jpeg',
-                    price: '',
-                    artworkId: '',
-                    artworkTitle: 'Welcome to Stories',
-                    artistId: 'system',
-                  }];
-                  handleStoryClick('system', defaultUserStories);
-                }}>
-                  <div className="story-square default-story">
-                    <img src="/logo.jpeg" alt="Kalarang" className="story-thumbnail" />
-                    <div className="story-user-icon">
-                      <img src="/logo.jpeg" alt="Kalarang" className="user-avatar" />
+                // Only show Kalarang story for artists
+                appUser?.role === 'artist' ? (
+                  <div className="story-item" onClick={() => {
+                    const defaultUserStories: Story[] = [{
+                      id: 'default-story',
+                      image: '/logo.jpeg',
+                      name: 'Kalarang',
+                      userIcon: '/logo.jpeg',
+                      price: '',
+                      artworkId: '',
+                      artworkTitle: 'Welcome to Stories',
+                      artistId: 'system',
+                    }];
+                    handleStoryClick('system', defaultUserStories);
+                  }}>
+                    <div className="story-square default-story">
+                      <img src="/logo.jpeg" alt="Kalarang" className="story-thumbnail" />
+                      <div className="story-user-icon">
+                        <img src="/logo.jpeg" alt="Kalarang" className="user-avatar" />
+                      </div>
                     </div>
+                    <span className="story-name">Kalarang</span>
                   </div>
-                  <span className="story-name">Kalarang</span>
-                </div>
+                ) : null
               ) : (
                 sortedGroupedStories.map((group) => {
                   const isOwnStory = group.artistId === appUser?.uid;

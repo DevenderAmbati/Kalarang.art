@@ -24,7 +24,6 @@ messaging.onBackgroundMessage((payload) => {
   return self.registration.showNotification(title, {
     body,
     icon: iconUrl,
-    badge: iconUrl,
     tag,
     renotify: true,
     data: { url: data.url || "/" },
