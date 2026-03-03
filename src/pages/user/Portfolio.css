@@ -29,12 +29,16 @@
   }
 }
 
-/* Tab switcher - smaller on mobile below 421px */
+/* Tab switcher - smaller on mobile below 421px; keep gap same as >420px */
 @media (max-width: 420px) {
+  .portfolio-tab-section {
+    margin-top: 1.5rem !important;
+  }
+
   .portfolio-tab-container {
     padding-left: 0.5rem !important;
     padding-right: 0.5rem !important;
-    margin-bottom: 1rem !important;
+    margin-bottom: 2rem !important;
   }
 
   .portfolio-tab-button {
