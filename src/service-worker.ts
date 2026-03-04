@@ -85,8 +85,21 @@ self.addEventListener('push', (event: PushEvent) => {
   // Show notification for all other cases
   const icon = `${self.location.origin}/square%20logo.png`;
   event.waitUntil(
-    self.registration.showNotification(title, { body, icon, data: { url } }).catch(() => {
-      return self.registration.showNotification(title, { body, data: { url } });
+    self.registration.showNotification(title, { 
+      body, 
+      icon,
+      badge: icon,
+      data: { url },
+      silent: false,
+      requireInteraction: false
+    }).catch(() => {
+      return self.registration.showNotification(title, { 
+        body, 
+        badge: icon,
+        data: { url },
+        silent: false,
+        requireInteraction: false
+      });
     })
   );
 });
