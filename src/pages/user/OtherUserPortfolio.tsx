@@ -191,11 +191,9 @@ const OtherUserPortfolio: React.FC = () => {
       if (isFollowing) {
         await unfollowArtist(appUser.uid, userId);
         setIsFollowing(false);
-        toast.success('Unfollowed artist');
       } else {
         await followArtist(appUser.uid, userId, appUser.name, appUser.avatar);
         setIsFollowing(true);
-        toast.success('Following artist');
       }
       
       // Refresh stats after follow/unfollow

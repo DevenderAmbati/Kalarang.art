@@ -213,11 +213,9 @@ const CardDetail: React.FC = () => {
       if (artist.isFollowing) {
         await unfollowArtist(appUser.uid, artistId);
         setArtist({ ...artist, isFollowing: false });
-        toast.success('Unfollowed artist');
       } else {
         await followArtist(appUser.uid, artistId, appUser.name, appUser.avatar);
         setArtist({ ...artist, isFollowing: true });
-        toast.success('Following artist');
       }
       
       // Broadcast change to other components
