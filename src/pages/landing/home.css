@@ -214,3 +214,24 @@
     overflow-y: auto;
   }
 }
+/* Extra small screens - reduce heading sizes */
+@media (max-width: 465px) {
+  .login-brand-section .home-hero-headline {
+    font-size: 1.25rem !important;
+  }
+  
+  .login-brand-section .login-hero-subtext {
+    font-size: 0.8rem !important;
+  }
+}
+
+/* Extra extra small screens - reduce even more */
+@media (max-width: 403px) {
+  .login-brand-section .home-hero-headline {
+    font-size: 1.1rem !important;
+  }
+  
+  .login-brand-section .login-hero-subtext {
+    font-size: 0.75rem !important;
+  }
+}

@@ -125,8 +125,6 @@ const CreateUsername: React.FC = () => {
       await updateDoc(userRef, {
         username: username.toLowerCase(),
       });
-
-      toast.success('Username created successfully!');
       
       // Refresh user profile to get updated data
       await refreshUserProfile();

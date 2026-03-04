@@ -460,9 +460,9 @@
   }
 
   .btn {
-    width: auto;
-    min-width: 120px;
-    padding: 0.75rem 1.25rem;
+    width: 140px;
+    min-width: 140px;
+    padding: 0.75rem 1rem;
     font-size: 0.9rem;
   }
 }
@@ -516,9 +516,9 @@
   }
 
   .btn {
-    width: auto !important;
-    min-width: 100px !important;
-    padding: 0.65rem 1rem !important;
+    width: 130px !important;
+    min-width: 130px !important;
+    padding: 0.65rem 0.75rem !important;
     font-size: 0.85rem !important;
   }
 }
@@ -531,8 +531,9 @@
   }
 
   .btn {
-    min-width: 0 !important;
-    padding: 0.5rem 0.65rem !important;
+    width: 110px !important;
+    min-width: 110px !important;
+    padding: 0.5rem 0.5rem !important;
     font-size: 0.75rem !important;
   }
 }

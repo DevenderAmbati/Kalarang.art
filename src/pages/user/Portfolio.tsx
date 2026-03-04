@@ -132,7 +132,6 @@ const Portfolio: React.FC = () => {
     try {
       // Remove the follower by unfollowing from their side
       await unfollowArtist(followerId, appUser.uid);
-      toast.success('Follower removed');
       
       // Refresh the followers list
       const updatedFollowers = await getFollowersList(appUser.uid);
@@ -149,7 +148,6 @@ const Portfolio: React.FC = () => {
     if (!appUser) return;
     try {
       await unfollowArtist(appUser.uid, artistId);
-      toast.success('Unfollowed successfully');
       
       // Refresh the following list
       const updatedFollowing = await getFollowingList(appUser.uid);
@@ -413,7 +411,6 @@ const Portfolio: React.FC = () => {
       // Refresh user profile in AuthContext to update avatar/banner throughout app
       await refreshUserProfile();
       
-      toast.success('Banner updated successfully!');
     } catch (error) {
       toast.error('Failed to update banner. Please try again.');
     }
@@ -440,7 +437,6 @@ const Portfolio: React.FC = () => {
       // Refresh user profile in AuthContext to update avatar throughout app
       await refreshUserProfile();
       
-      toast.success('Avatar updated successfully!');
     } catch (error) {
       toast.error('Failed to update avatar. Please try again.');
     }

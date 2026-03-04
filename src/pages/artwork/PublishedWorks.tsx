@@ -145,7 +145,7 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
     try {
       if (isSaved) {
         await removeArtworkFromFavorites(appUser.uid, id);
-        toast.success('Removed from favorites');
+         
       } else {
         await saveArtworkToFavorites(appUser.uid, id);
         toast.success('Saved to your favourites');

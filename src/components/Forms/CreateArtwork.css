@@ -677,19 +677,22 @@
   .action-buttons {
     flex-direction: column;
     gap: 1rem;
+    padding: 1rem 0.75rem;
   }
   
   .button-group {
     width: 100%;
     flex: 1;
+    margin: 1rem -0.75rem 0;
+    padding: 0 0.75rem;
   }
   
   .button {
     width: 100%;
     flex: 1;
     justify-content: center;
-    padding: 0.65rem 0.75rem;
-    font-size: 0.85rem;
+    padding: 0.55rem 0.65rem;
+    font-size: 0.8rem;
     white-space: nowrap;
   }
 }
@@ -750,19 +753,22 @@
   .action-buttons {
     flex-direction: column;
     gap: 1rem;
+    padding: 1rem 0.75rem;
   }
   
   .button-group {
     width: 100%;
     flex: 1;
+    margin: 1rem -0.75rem 0;
+    padding: 0 0.75rem;
   }
   
   .button {
     width: 100%;
     flex: 1;
     justify-content: center;
-    padding: 0.65rem 0.75rem;
-    font-size: 0.85rem;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.78rem;
     white-space: nowrap;
   }
   
@@ -784,6 +790,24 @@
   .size-separator {
     align-self: center;
     margin: 0.25rem 0;
+  }
+  
+  .gallery-hint-box {
+    padding: 0.75rem 1rem !important;
+  }
+  
+  .gallery-hint-text {
+    font-size: 0.85rem !important;
+    line-height: 1.5 !important;
+  }
+}
+
+/* Medium small screens - prevent button dislocation */
+@media (max-width: 450px) {
+  .button {
+    padding: 0.5rem 0.5rem !important;
+    font-size: 0.75rem !important;
+    min-height: 38px;
   }
 }
 
@@ -817,6 +841,21 @@
   .dropdown-trigger {
     font-size: 16px; /* Prevents zoom on iOS */
     padding: 0.75rem 0.85rem;
+  }
+  
+  .gallery-hint-box {
+    padding: 0.75rem 1rem !important;
+  }
+  
+  .gallery-hint-text {
+    font-size: 0.8rem !important;
+    line-height: 1.5 !important;
+  }
+  
+  .button {
+    padding: 0.45rem 0.5rem !important;
+    font-size: 0.72rem !important;
+    min-height: 36px;
   }
 }
 

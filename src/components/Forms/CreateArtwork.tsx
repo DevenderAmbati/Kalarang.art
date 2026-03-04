@@ -172,7 +172,6 @@ const CreateArtwork: React.FC = () => {
             timestamp: Date.now(),
           };
           localStorage.setItem('artworkDraft', JSON.stringify(draftWithoutImages));
-          toast.warning('Draft saved without images (size limit)', { autoClose: 2000 });
         } else {
           localStorage.setItem('artworkDraft', draftStr);
         }
@@ -848,7 +847,7 @@ const CreateArtwork: React.FC = () => {
           />
 
           {/* Info Message */}
-          <div style={{
+          <div className="gallery-hint-box" style={{
             margin: '0.5rem 0',
             marginTop: '0rem',
             padding: '1rem 1.25rem',
@@ -856,7 +855,7 @@ const CreateArtwork: React.FC = () => {
             borderLeft: '4px solid var(--color-primary)',
             borderRadius: '8px',
           }}>
-            <p style={{ 
+            <p className="gallery-hint-text" style={{ 
               color: 'var(--color-text-secondary)', 
               fontSize: '0.95rem',
               lineHeight: '1.6',
@@ -888,7 +887,6 @@ const CreateArtwork: React.FC = () => {
                     setImages([]);
                     setHasRestoredDraft(false);
                     localStorage.removeItem('artworkDraft');
-                    toast.success('Draft cleared');
                 }}
                 style={{ color: 'var(--color-royal)'}}
               >

@@ -308,7 +308,6 @@ const Profile: React.FC = () => {
     try {
       // Remove the follower by unfollowing from their side
       await unfollowArtist(followerId, appUser.uid);
-      toast.success('Follower removed');
       
       // Refresh the followers list
       const updatedFollowers = await getFollowersList(appUser.uid);
@@ -326,7 +325,6 @@ const Profile: React.FC = () => {
     if (!appUser) return;
     try {
       await unfollowArtist(appUser.uid, artistId);
-      toast.success('Unfollowed successfully');
       
       // Refresh the following list
       const updatedFollowing = await getFollowingList(appUser.uid);

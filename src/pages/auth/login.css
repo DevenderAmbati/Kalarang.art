@@ -1399,6 +1399,54 @@ a:hover {
   }
 }
 
+/* Extra small screens - reduce heading sizes further */
+@media (max-width: 470px) {
+  .login-hero-headline-about {
+    font-size: 2.2rem !important;
+  }
+}
+
+@media (max-width: 465px) {
+  .login-mobile-headline {
+    font-size: 1.1rem !important;
+  }
+  
+  .login-mobile-subtext {
+    font-size: 0.75rem !important;
+  }
+  
+  .login-hero-headline {
+    font-size: 1.25rem !important;
+  }
+  
+  .login-hero-subtext {
+    font-size: 0.8rem !important;
+  }
+}
+
+/* Extra extra small screens - reduce even more */
+@media (max-width: 403px) {
+  .login-mobile-headline {
+    font-size: 1rem !important;
+  }
+  
+  .login-mobile-subtext {
+    font-size: 0.7rem !important;
+  }
+  
+  .login-hero-headline {
+    font-size: 1.1rem !important;
+  }
+  
+  .login-hero-subtext {
+    font-size: 0.75rem !important;
+  }
+  
+  .login-hero-headline-about {
+    font-size: 1.8rem !important;
+  }
+}
+
 @keyframes slideUp {
   from {
     transform: translateY(100px);

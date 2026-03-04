@@ -774,7 +774,7 @@ const HomeFeed: React.FC = () => {
     try {
       if (isSaved) {
         await removeArtworkFromFavorites(appUser.uid, artworkId);
-        toast.success('Removed from favorites');
+         
       } else {
         await saveArtworkToFavorites(appUser.uid, artworkId, appUser.name, appUser.avatar);
         toast.success('Saved to your favourites');

@@ -472,6 +472,10 @@
     border-radius: 10px;
   }
 
+  .discover-search-input::placeholder {
+    font-size: 0.8rem;
+  }
+
   .discover-search-icon {
     left: 14px;
     width: 18px;
@@ -514,6 +518,10 @@
     padding: 8px 10px 8px 36px;
     font-size: 0.8rem;
     border-radius: 8px;
+  }
+
+  .discover-search-input::placeholder {
+    font-size: 0.75rem;
   }
 
   .discover-search-icon {

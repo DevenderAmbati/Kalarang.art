@@ -151,7 +151,6 @@ const CardDetail: React.FC = () => {
     try {
       if (isSaved) {
         await removeArtworkFromFavorites(appUser.uid, id);
-        toast.success('Removed from favorites');
       } else {
         await saveArtworkToFavorites(appUser.uid, id, appUser.name, appUser.avatar);
         toast.success('Added to favorites');

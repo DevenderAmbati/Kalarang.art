@@ -124,6 +124,8 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
         // All validations passed, now signup
         await signup(formData.fullName, formData.email, formData.password, userType);
         
+        // Dismiss all toasts after successful signup
+        toast.dismiss();
         onSignUp();
       } catch (error: unknown) {
         setIsLoading(false);
@@ -172,6 +174,9 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
       
       // All validations passed, proceed with Google sign-in
       await signInWithGoogle(userType); // role = artist | buyer
+      
+      // Dismiss all toasts after successful signup
+      toast.dismiss();
     } catch (err: any) {
       setIsLoading(false);
       setRandomAnimation(null);

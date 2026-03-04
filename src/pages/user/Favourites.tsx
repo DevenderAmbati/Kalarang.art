@@ -183,7 +183,7 @@ const Favourites: React.FC = () => {
           newSet.delete(id);
           return newSet;
         });
-        toast.success('Removed from favorites');
+         
       }, 300); // 300ms matches our CSS animation duration
     } catch (error) {
       toast.error('Failed to remove from favorites');
