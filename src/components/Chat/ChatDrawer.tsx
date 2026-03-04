@@ -486,10 +486,14 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
     ? getChatId(appUser.uid, activeContact.uid)
     : null;
 
-  // Update ChatContext with drawer open state
+  // Update ChatContext with drawer open state only when this is the global drawer (no initialContact).
+  // When opened with initialContact (e.g. Reach Out from CardDetail), we don't sync — otherwise
+  // Layout's drawer would also open and sit on top showing only the list.
   useEffect(() => {
-    setIsChatDrawerOpen(isOpen);
-  }, [isOpen, setIsChatDrawerOpen]);
+    if (!initialContact) {
+      setIsChatDrawerOpen(isOpen);
+    }
+  }, [isOpen, initialContact, setIsChatDrawerOpen]);
 
   // Update ChatContext with active chat ID when it changes
   // Also notify service workers
