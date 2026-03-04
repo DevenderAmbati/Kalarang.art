@@ -13,7 +13,6 @@ import NotificationModal from '../Modals/NotificationModal';
 import ChatDrawer from '../Chat/ChatDrawer';
 import { subscribeToUnreadCount } from '../../services/notificationService';
 import { useChatContext } from '../../context/ChatContext';
-import { onForegroundMessage } from '../../services/fcmService';
 import InstallBanner from '../Common/InstallPrompt';
 import NotificationBanner from '../Common/NotificationPrompt';
 import './Layout.css';
@@ -47,21 +46,10 @@ const Layout: React.FC<LayoutProps> = ({
   const [, forceUpdate] = useState({});
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const { unreadCount: unreadChatCount, activeChatId, isChatDrawerOpen, setIsChatDrawerOpen } = useChatContext();
-  const activeChatIdRef = useRef<string | null>(null);
-  const isChatDrawerOpenRef = useRef<boolean>(false);
+  const { unreadCount: unreadChatCount, isChatDrawerOpen, setIsChatDrawerOpen } = useChatContext();
   const headerRef = useRef<HTMLDivElement>(null);
   const [headerHeight, setHeaderHeight] = useState(56);
   const [installBannerVisible, setInstallBannerVisible] = useState(false);
-
-  // Keep refs in sync with context values
-  useEffect(() => {
-    activeChatIdRef.current = activeChatId;
-  }, [activeChatId]);
-
-  useEffect(() => {
-    isChatDrawerOpenRef.current = isChatDrawerOpen;
-  }, [isChatDrawerOpen]);
 
   useEffect(() => {
     const el = headerRef.current;
@@ -84,63 +72,6 @@ const Layout: React.FC<LayoutProps> = ({
 
     return () => unsubscribe();
   }, [appUser?.uid]);
-
-  // Handle foreground push notifications for chat messages only
-  // (Service worker handles non-chat notifications directly)
-  useEffect(() => {
-    let unsubscribe: (() => void) | null = null;
-
-    const setupForegroundListener = async () => {
-      const unsub = await onForegroundMessage((payload) => {
-        // Extract notification data
-        const data = payload?.data || {};
-        const notificationType = data.type as string;
-        const chatId = data.chatId as string;
-        const title = data.title as string;
-        const body = data.body as string;
-
-        // Only handle chat notifications here - service worker handles everything else
-        if (notificationType !== 'chat' || !chatId) {
-          return;
-        }
-
-        // Use refs to get current values (avoids stale closure)
-        const currentActiveChatId = activeChatIdRef.current;
-        const currentDrawerOpen = isChatDrawerOpenRef.current;
-
-        // If drawer is open and this is the active chat, suppress notification
-        if (currentDrawerOpen && currentActiveChatId === chatId) {
-          // User is viewing this chat - no need for notification
-          return;
-        }
-
-        // Show system notification for chat messages when not viewing that chat
-        if (title && body && Notification.permission === 'granted') {
-          const notification = new Notification(title, {
-            body,
-            icon: '/square%20logo.png',
-            tag: `chat_${chatId}`,
-            renotify: true,
-          });
-          
-          notification.onclick = () => {
-            window.focus();
-            notification.close();
-          };
-        }
-      });
-
-      if (unsub) {
-        unsubscribe = unsub;
-      }
-    };
-
-    setupForegroundListener();
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, []);
 
   // Force re-render when document title changes (for dynamic portfolio titles)
   useEffect(() => {

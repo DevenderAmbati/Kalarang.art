@@ -38,15 +38,21 @@ registerRoute(
   })
 );
 
+// Track the currently active chat ID (sent from the app)
+let activeChatId: string | null = null;
+
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  if (event.data && event.data.type === 'SET_ACTIVE_CHAT') {
+    activeChatId = event.data.chatId;
   }
 });
 
 // If this SW is the controller and receives a push (e.g. FCM), we must show a notification
 // or Chrome will show "This site has been updated in the background".
-// For chat notifications when app is in foreground, let the app handle it (for active chat filtering).
+// Suppress notifications for the currently active chat.
 self.addEventListener('push', (event: PushEvent) => {
   let title = 'Kalarang';
   let body = 'You have a new notification';
@@ -70,24 +76,17 @@ self.addEventListener('push', (event: PushEvent) => {
     }
   }
 
+  // If this is a chat notification for the currently active chat, suppress it
+  if (notificationType === 'chat' && chatId && activeChatId === chatId) {
+    event.waitUntil(Promise.resolve());
+    return;
+  }
+
+  // Show notification for all other cases
+  const icon = `${self.location.origin}/square%20logo.png`;
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Check if any client window is currently visible/focused
-      const hasVisibleClient = clientList.some((client) => 
-        (client as WindowClient).visibilityState === 'visible'
-      );
-
-      // If app is in foreground and this is a chat notification, let the app handle it
-      // (the app will decide whether to show it based on active chat)
-      if (hasVisibleClient && notificationType === 'chat' && chatId) {
-        return;
-      }
-
-      // For all other cases (background, or non-chat notifications), show the notification
-      const icon = `${self.location.origin}/square%20logo.png`;
-      return self.registration.showNotification(title, { body, icon, data: { url } }).catch(() => {
-        return self.registration.showNotification(title, { body, data: { url } });
-      });
+    self.registration.showNotification(title, { body, icon, data: { url } }).catch(() => {
+      return self.registration.showNotification(title, { body, data: { url } });
     })
   );
 });

@@ -14,6 +14,16 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Track the currently active chat ID (sent from the app)
+let activeChatId = null;
+
+// Listen for messages from the app about active chat
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SET_ACTIVE_CHAT") {
+    activeChatId = event.data.chatId;
+  }
+});
+
 // Chrome shows "This site has been updated in the background" if we receive a push
 // but never display a visible notification. Always show a notification and catch errors.
 function showSafeNotification(title, body, iconUrl, tag, url) {
@@ -27,8 +37,7 @@ function showSafeNotification(title, body, iconUrl, tag, url) {
   return self.registration.showNotification(String(title || "Kalarang"), options);
 }
 
-// For chat notifications when app is in foreground, let the app handle it (for active chat filtering).
-// For all other notifications, show them directly.
+// Show notifications, but suppress for the currently active chat
 messaging.onBackgroundMessage((payload) => {
   const data = (payload && payload.data) || {};
   const title = data.title || "Kalarang";
@@ -39,27 +48,19 @@ messaging.onBackgroundMessage((payload) => {
   const notificationType = data.type || "";
   const chatId = data.chatId || "";
 
-  // Check if any client window is currently visible/focused
-  return self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-    const hasVisibleClient = clientList.some((client) => 
-      client.visibilityState === "visible"
-    );
+  // If this is a chat notification for the currently active chat, suppress it
+  if (notificationType === "chat" && chatId && activeChatId === chatId) {
+    return;
+  }
 
-    // If app is in foreground and this is a chat notification, let the app handle it
-    // (the app will decide whether to show it based on active chat)
-    if (hasVisibleClient && notificationType === "chat" && chatId) {
-      return;
-    }
-
-    // For all other cases (background, or non-chat notifications), show the notification
-    try {
-      return showSafeNotification(title, body, iconUrl, tag, url).catch(() => {
-        return showSafeNotification(title, body, null, tag, url);
-      });
-    } catch (e) {
-      return showSafeNotification("Kalarang", "You have a new notification", null, "default", "/");
-    }
-  });
+  // Show notification for all other cases
+  try {
+    return showSafeNotification(title, body, iconUrl, tag, url).catch(() => {
+      return showSafeNotification(title, body, null, tag, url);
+    });
+  } catch (e) {
+    return showSafeNotification("Kalarang", "You have a new notification", null, "default", "/");
+  }
 });
 
 self.addEventListener("notificationclick", (event) => {

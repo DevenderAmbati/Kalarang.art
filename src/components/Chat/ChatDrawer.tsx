@@ -454,6 +454,27 @@ const ChatView: React.FC<{
 
 const CLOSE_ANIMATION_MS = 260;
 
+// Send active chat ID to service workers so they can suppress notifications for active chats
+function notifyServiceWorkerActiveChatId(chatId: string | null) {
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'SET_ACTIVE_CHAT',
+      chatId: chatId,
+    });
+  }
+  // Also notify firebase-messaging-sw if it's registered separately
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => {
+      if (registration.active) {
+        registration.active.postMessage({
+          type: 'SET_ACTIVE_CHAT',
+          chatId: chatId,
+        });
+      }
+    });
+  });
+}
+
 const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact, initialMessage, reachOutMetadata }) => {
   const { appUser } = useAuth();
   const { setActiveChatId, setIsChatDrawerOpen } = useChatContext();
@@ -471,11 +492,16 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
   }, [isOpen, setIsChatDrawerOpen]);
 
   // Update ChatContext with active chat ID when it changes
+  // Also notify service workers
   useEffect(() => {
     setActiveChatId(activeChatId);
+    notifyServiceWorkerActiveChatId(activeChatId);
     return () => {
       // Clear active chat when component unmounts or chat changes
-      if (activeChatId) setActiveChatId(null);
+      if (activeChatId) {
+        setActiveChatId(null);
+        notifyServiceWorkerActiveChatId(null);
+      }
     };
   }, [activeChatId, setActiveChatId]);
 
