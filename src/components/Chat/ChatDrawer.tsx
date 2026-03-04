@@ -456,6 +456,7 @@ const CLOSE_ANIMATION_MS = 260;
 
 const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact, initialMessage, reachOutMetadata }) => {
   const { appUser } = useAuth();
+  const { setActiveChatId, setIsChatDrawerOpen } = useChatContext();
   const [activeContact, setActiveContact] = useState<ChatContact | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   const isClosingRef = useRef(false);
@@ -463,6 +464,20 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
   const activeChatId = activeContact && appUser
     ? getChatId(appUser.uid, activeContact.uid)
     : null;
+
+  // Update ChatContext with drawer open state
+  useEffect(() => {
+    setIsChatDrawerOpen(isOpen);
+  }, [isOpen, setIsChatDrawerOpen]);
+
+  // Update ChatContext with active chat ID when it changes
+  useEffect(() => {
+    setActiveChatId(activeChatId);
+    return () => {
+      // Clear active chat when component unmounts or chat changes
+      if (activeChatId) setActiveChatId(null);
+    };
+  }, [activeChatId, setActiveChatId]);
 
   const clearActiveContact = useCallback(() => {
     if (activeContact && appUser) {

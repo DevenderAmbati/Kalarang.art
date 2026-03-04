@@ -46,27 +46,48 @@ self.addEventListener('message', (event) => {
 
 // If this SW is the controller and receives a push (e.g. FCM), we must show a notification
 // or Chrome will show "This site has been updated in the background".
+// For chat notifications when app is in foreground, let the app handle it (for active chat filtering).
 self.addEventListener('push', (event: PushEvent) => {
   let title = 'Kalarang';
   let body = 'You have a new notification';
   let url = '/';
+  let notificationType = '';
+  let chatId = '';
+  
   if (event.data) {
     try {
-      const json = event.data.json() as { data?: Record<string, unknown>; title?: string; body?: string; url?: string };
+      const json = event.data.json() as { data?: Record<string, unknown>; title?: string; body?: string; url?: string; type?: string; chatId?: string };
       const d = json.data || json;
       if (d && typeof d === 'object') {
         if (typeof d.title === 'string') title = d.title;
         if (typeof d.body === 'string') body = d.body;
         if (typeof d.url === 'string') url = d.url;
+        if (typeof d.type === 'string') notificationType = d.type;
+        if (typeof d.chatId === 'string') chatId = d.chatId;
       }
     } catch {
       // use defaults
     }
   }
-  const icon = `${self.location.origin}/square%20logo.png`;
+
   event.waitUntil(
-    self.registration.showNotification(title, { body, icon, data: { url } }).catch(() => {
-      return self.registration.showNotification(title, { body, data: { url } });
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Check if any client window is currently visible/focused
+      const hasVisibleClient = clientList.some((client) => 
+        (client as WindowClient).visibilityState === 'visible'
+      );
+
+      // If app is in foreground and this is a chat notification, let the app handle it
+      // (the app will decide whether to show it based on active chat)
+      if (hasVisibleClient && notificationType === 'chat' && chatId) {
+        return;
+      }
+
+      // For all other cases (background, or non-chat notifications), show the notification
+      const icon = `${self.location.origin}/square%20logo.png`;
+      return self.registration.showNotification(title, { body, icon, data: { url } }).catch(() => {
+        return self.registration.showNotification(title, { body, data: { url } });
+      });
     })
   );
 });

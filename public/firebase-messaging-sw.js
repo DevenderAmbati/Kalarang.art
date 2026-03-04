@@ -27,21 +27,39 @@ function showSafeNotification(title, body, iconUrl, tag, url) {
   return self.registration.showNotification(String(title || "Kalarang"), options);
 }
 
+// For chat notifications when app is in foreground, let the app handle it (for active chat filtering).
+// For all other notifications, show them directly.
 messaging.onBackgroundMessage((payload) => {
-  try {
-    const data = (payload && payload.data) || {};
-    const title = data.title || "Kalarang";
-    const body = data.body || "You have a new notification";
-    const iconUrl = self.location.origin + "/square%20logo.png";
-    const tag = data.chatId ? "chat_" + data.chatId : (data.type || "default");
-    const url = data.url || "/";
+  const data = (payload && payload.data) || {};
+  const title = data.title || "Kalarang";
+  const body = data.body || "You have a new notification";
+  const iconUrl = self.location.origin + "/square%20logo.png";
+  const tag = data.chatId ? "chat_" + data.chatId : (data.type || "default");
+  const url = data.url || "/";
+  const notificationType = data.type || "";
+  const chatId = data.chatId || "";
 
-    return showSafeNotification(title, body, iconUrl, tag, url).catch(() => {
-      return showSafeNotification(title, body, null, tag, url);
-    });
-  } catch (e) {
-    return showSafeNotification("Kalarang", "You have a new notification", null, "default", "/");
-  }
+  // Check if any client window is currently visible/focused
+  return self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+    const hasVisibleClient = clientList.some((client) => 
+      client.visibilityState === "visible"
+    );
+
+    // If app is in foreground and this is a chat notification, let the app handle it
+    // (the app will decide whether to show it based on active chat)
+    if (hasVisibleClient && notificationType === "chat" && chatId) {
+      return;
+    }
+
+    // For all other cases (background, or non-chat notifications), show the notification
+    try {
+      return showSafeNotification(title, body, iconUrl, tag, url).catch(() => {
+        return showSafeNotification(title, body, null, tag, url);
+      });
+    } catch (e) {
+      return showSafeNotification("Kalarang", "You have a new notification", null, "default", "/");
+    }
+  });
 });
 
 self.addEventListener("notificationclick", (event) => {
