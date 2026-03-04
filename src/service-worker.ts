@@ -84,23 +84,66 @@ self.addEventListener('push', (event: PushEvent) => {
 
   // Show notification for all other cases
   const icon = `${self.location.origin}/square%20logo.png`;
+  
+  // Create tag for grouping notifications by type
+  // For chat messages, group by chatId; for others, group by type
+  const tag = notificationType === 'chat' && chatId 
+    ? `chat-${chatId}` 
+    : notificationType || 'default';
+  
   event.waitUntil(
-    self.registration.showNotification(title, { 
-      body, 
-      icon,
-      badge: icon,
-      data: { url },
-      silent: false,
-      requireInteraction: false
-    }).catch(() => {
-      return self.registration.showNotification(title, { 
-        body, 
-        badge: icon,
-        data: { url },
-        silent: false,
-        requireInteraction: false
-      });
-    })
+    (async () => {
+      // Get existing notifications with the same tag to accumulate messages
+      const existingNotifications = await self.registration.getNotifications({ tag });
+      let messages: string[] = [];
+      let notificationTitle = title;
+      
+      // If there are existing notifications, get their messages
+      if (existingNotifications.length > 0) {
+        const existingData = existingNotifications[0].data;
+        if (existingData && Array.isArray(existingData.messages)) {
+          messages = existingData.messages;
+        }
+        // Close existing notifications since we'll replace them
+        existingNotifications.forEach(n => n.close());
+      }
+      
+      // Add the new message to the list
+      messages.push(body);
+      
+      // Limit to last 5 messages to avoid overly long notifications
+      if (messages.length > 5) {
+        messages = messages.slice(-5);
+      }
+      
+      // Format the notification body
+      let displayBody = body;
+      if (messages.length > 1) {
+        // Show all messages on separate lines
+        displayBody = messages.join('\n');
+      }
+      
+      try {
+        await self.registration.showNotification(notificationTitle, { 
+          body: displayBody, 
+          icon,
+          badge: icon,
+          tag,
+          data: { url, messages },
+          silent: false,
+          requireInteraction: false
+        });
+      } catch {
+        await self.registration.showNotification(notificationTitle, { 
+          body: displayBody, 
+          badge: icon,
+          tag,
+          data: { url, messages },
+          silent: false,
+          requireInteraction: false
+        });
+      }
+    })()
   );
 });
 
