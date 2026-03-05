@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import ArtworkGrid from '../../components/Artwork/ArtworkGrid';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -970,8 +971,8 @@ const HomeFeed: React.FC = () => {
         )}
       </div>
 
-      {/* Fullscreen Story Modal */}
-      {selectedStory && (
+      {/* Fullscreen Story Modal - Rendered via portal to escape layout stacking context */}
+      {selectedStory && ReactDOM.createPortal(
         <div className="story-fullscreen" onClick={handleCloseStory}>
           <div className="story-fullscreen-content" onClick={(e) => e.stopPropagation()}>            {/* Progress bars for multiple stories */}
             {selectedStory.id !== 'default-story' && (
@@ -1072,7 +1073,8 @@ const HomeFeed: React.FC = () => {
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <ConfirmModal

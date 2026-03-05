@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import Layout from '../../components/Layout/Layout';
 import ProfileHeader from '../../components/Profile/ProfileHeader';
 import AboutTab from '../../components/Profile/AboutTab';
@@ -530,17 +531,18 @@ const Portfolio: React.FC = () => {
           </div>
         </div>
 
-        {/* Edit Profile Modal */}
-        {isEditingProfile && (
+        {/* Edit Profile Modal - Rendered via portal to escape layout stacking context */}
+        {isEditingProfile && ReactDOM.createPortal(
           <EditProfile
             profileData={profileData}
             onSave={handleSaveProfile}
             onCancel={handleCancelEdit}
-          />
+          />,
+          document.body
         )}
 
-        {/* Story Modal */}
-        {storyArtwork && (
+        {/* Story Modal - Rendered via portal to escape layout stacking context */}
+        {storyArtwork && ReactDOM.createPortal(
           <div className="story-fullscreen" onClick={handleCloseStory}>
             <div className="story-fullscreen-content" onClick={(e) => e.stopPropagation()}>
               <button className="story-close-btn" onClick={handleCloseStory}>
@@ -569,7 +571,8 @@ const Portfolio: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
         
         {/* Followers/Following Modal */}
