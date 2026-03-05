@@ -35,7 +35,8 @@ interface UseChatReturn {
   loading: boolean;
   sending: boolean;
   hasMore: boolean;
-  sendMessage: (text: string) => Promise<void>;
+  ready: boolean;
+  sendMessage: (text: string, artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number }) => Promise<void>;
   loadMore: () => Promise<void>;
 }
 
@@ -78,11 +79,20 @@ export function useChat(
     createOrGetChat(currentUserId, otherUserId)
       .then(() => {
         if (!cancelled) {
-          setChatId(getChatId(currentUserId, otherUserId));
+          const newChatId = getChatId(currentUserId, otherUserId);
+          setChatId(newChatId);
+          // Check if we have cached messages - if so, loading is done
+          const cached = messagesCache[newChatId];
+          if (cached) {
+            setLoading(false);
+          }
         }
       })
       .catch(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setChatId(null);
+        }
       });
 
     return () => {
@@ -117,12 +127,27 @@ export function useChat(
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const msgs: ChatMessage[] = snapshot.docs.map((d) => ({
-          id: d.id,
-          senderId: d.data().senderId,
-          text: d.data().text,
-          createdAt: d.data().createdAt as Timestamp | null,
-        }));
+        const msgs: ChatMessage[] = snapshot.docs.map((d) => {
+          const data = d.data();
+          // eslint-disable-next-line no-console
+          console.log('Message from Firestore:', {
+            id: d.id,
+            senderId: data.senderId,
+            seenBy: data.seenBy,
+            artworkId: data.artworkId,
+          });
+          return {
+            id: d.id,
+            senderId: data.senderId,
+            text: data.text,
+            createdAt: data.createdAt as Timestamp | null,
+            seenBy: data.seenBy || [],
+            artworkId: data.artworkId,
+            artworkTitle: data.artworkTitle,
+            artworkImage: data.artworkImage,
+            artworkPrice: data.artworkPrice,
+          };
+        });
 
         const ordered = msgs.reverse();
         setRealtimeMessages(ordered);
@@ -176,14 +201,14 @@ export function useChat(
   }, [chatId, hasMore]);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number }) => {
       if (!chatId || !currentUserId || !text.trim()) {
         throw new Error('Cannot send message: missing required data');
       }
 
       setSending(true);
       try {
-        await sendChatMessage(chatId, currentUserId, text.trim(), otherUserId);
+        await sendChatMessage(chatId, currentUserId, text.trim(), otherUserId, artworkMetadata);
       } catch (error) {
         throw error;
       } finally {
@@ -206,5 +231,8 @@ export function useChat(
     });
   }, [olderMessages, realtimeMessages]);
 
-  return { messages, loading, sending, hasMore, sendMessage, loadMore };
+  // Chat is ready when chatId is set and initial messages have loaded
+  const ready = !!chatId && !loading;
+
+  return { messages, loading, sending, hasMore, ready, sendMessage, loadMore };
 }

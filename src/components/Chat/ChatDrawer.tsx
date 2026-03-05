@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../hooks/useChat';
 import { useDrawerBackNavigation } from '../../hooks/useDrawerBackNavigation';
-import { markChatRead, getChatId } from '../../services/chatService';
+import { markChatRead, markMessagesAsSeen, getChatId } from '../../services/chatService';
 import { useChatContext } from '../../context/ChatContext';
 import { getUserProfile } from '../../services/userService';
 import { createNotification } from '../../services/notificationService';
@@ -27,6 +28,7 @@ export interface ReachOutMetadata {
   artworkId: string;
   artworkTitle: string;
   artworkImage?: string;
+  artworkPrice?: number;
 }
 
 interface ChatDrawerProps {
@@ -160,9 +162,11 @@ const ChatView: React.FC<{
   contact: ChatContact;
   initialMessage?: string;
   reachOutMetadata?: ReachOutMetadata | null;
-}> = ({ contact, initialMessage, reachOutMetadata }) => {
+  onClose: () => void;
+}> = ({ contact, initialMessage, reachOutMetadata, onClose }) => {
   const { appUser } = useAuth();
-  const { messages, loading, sending, hasMore, sendMessage, loadMore } = useChat(
+  const navigate = useNavigate();
+  const { messages, loading, sending, hasMore, ready, sendMessage, loadMore } = useChat(
     appUser?.uid,
     contact.uid
   );
@@ -173,10 +177,12 @@ const ChatView: React.FC<{
   useEffect(() => {
     if (!appUser?.uid || !contact.uid) return;
     if (markReadTimeoutRef.current) clearTimeout(markReadTimeoutRef.current);
-    markReadTimeoutRef.current = setTimeout(() => {
+    markReadTimeoutRef.current = setTimeout(async () => {
       markReadTimeoutRef.current = null;
       const chatId = getChatId(appUser.uid, contact.uid);
-      markChatRead(chatId, appUser.uid);
+      await markChatRead(chatId, appUser.uid);
+      // Mark messages as seen by the current user
+      await markMessagesAsSeen(chatId, appUser.uid);
     }, 400);
     return () => {
       if (markReadTimeoutRef.current) {
@@ -188,6 +194,7 @@ const ChatView: React.FC<{
 
   const [inputText, setInputText] = useState(initialMessage || '');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [artworkSent, setArtworkSent] = useState(false);
   const reachOutNotificationSentRef = useRef(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
@@ -277,9 +284,40 @@ const ChatView: React.FC<{
   const handleSend = async () => {
     const text = inputText.trim();
     if (!text) return;
+    
+    // eslint-disable-next-line no-console
+    console.log('handleSend called', { text, ready, loading, sending });
+    
+    if (!ready) {
+      // eslint-disable-next-line no-console
+      console.warn('Cannot send: chat not ready');
+      return;
+    }
+    
     setInputText('');
     try {
-      await sendMessage(text);
+      // Pass artwork metadata if it exists and hasn't been sent yet
+      // Only include artworkPrice if it's defined to avoid Firestore errors
+      const metadata = reachOutMetadata && !artworkSent ? {
+        artworkId: reachOutMetadata.artworkId,
+        artworkTitle: reachOutMetadata.artworkTitle,
+        artworkImage: reachOutMetadata.artworkImage,
+        ...(reachOutMetadata.artworkPrice !== undefined && { artworkPrice: reachOutMetadata.artworkPrice }),
+      } : undefined;
+      
+      // eslint-disable-next-line no-console
+      console.log('ChatDrawer - reachOutMetadata:', reachOutMetadata);
+      // eslint-disable-next-line no-console
+      console.log('ChatDrawer - artworkSent:', artworkSent);
+      // eslint-disable-next-line no-console
+      console.log('ChatDrawer - metadata to send:', metadata);
+      
+      await sendMessage(text, metadata);
+      
+      if (metadata) {
+        setArtworkSent(true);
+      }
+      
       if (reachOutMetadata && appUser && !reachOutNotificationSentRef.current) {
         reachOutNotificationSentRef.current = true;
         try {
@@ -297,7 +335,9 @@ const ChatView: React.FC<{
           // Reach-out notification failed; ignore
         }
       }
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Error sending message:', error);
       setInputText(text);
     }
   };
@@ -373,12 +413,51 @@ const ChatView: React.FC<{
               const prevDate = i > 0 ? (messages[i - 1].createdAt?.toDate?.() ?? null) : null;
               const divider = getDateDivider(msgDate, prevDate);
               const isMine = msg.senderId === appUser?.uid;
+              
+              // Find the last message sent by current user
+              const lastMyMessageIndex = messages.map((m, idx) => m.senderId === appUser?.uid ? idx : -1)
+                .filter(idx => idx !== -1)
+                .pop();
+              const isLastMyMessage = i === lastMyMessageIndex;
+              
+              const isSeen = isMine && isLastMyMessage && Array.isArray(msg.seenBy) && msg.seenBy.includes(contact.uid);
+              
+              // Debug logging for sent messages
+              if (isMine && isLastMyMessage) {
+                // eslint-disable-next-line no-console
+                console.log('Last sent message debug:', {
+                  msgId: msg.id,
+                  text: msg.text.substring(0, 20),
+                  seenBy: msg.seenBy,
+                  contactUid: contact.uid,
+                  isArray: Array.isArray(msg.seenBy),
+                  includesContact: Array.isArray(msg.seenBy) && msg.seenBy.includes(contact.uid),
+                  isSeen
+                });
+              }
+              
               return (
                 <React.Fragment key={msg.id}>
                   {divider && <div className="cd-chat-divider">{divider}</div>}
-                  <div className={`cd-bubble ${isMine ? 'cd-bubble-mine' : 'cd-bubble-theirs'}`}>
-                    <p className="cd-bubble-text">{renderMessageText(msg.text)}</p>
-                    <span className="cd-bubble-time">{formatMessageTime(msg.createdAt)}</span>
+                  <div className={`cd-bubble-wrapper ${isMine ? 'cd-bubble-wrapper-mine' : ''}`}>
+                    <div className={`cd-bubble ${isMine ? 'cd-bubble-mine' : 'cd-bubble-theirs'}`}>
+                      {msg.artworkId && msg.artworkTitle && (
+                        <div className="cd-message-artwork-banner">
+                          <div className="cd-message-artwork-image">
+                            <img src={msg.artworkImage || '/logo.jpeg'} alt={msg.artworkTitle} />
+                          </div>
+                          <div className="cd-message-artwork-details">
+                            <span className="cd-message-artwork-title">{msg.artworkTitle}</span>
+                            {msg.artworkPrice !== undefined && (
+                              <span className="cd-message-artwork-price">₹{msg.artworkPrice.toLocaleString()}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      <p className="cd-bubble-text">{renderMessageText(msg.text)}</p>
+                      <span className="cd-bubble-time">{formatMessageTime(msg.createdAt)}</span>
+                    </div>
+                    {isSeen && <span className="cd-bubble-seen">Seen</span>}
                   </div>
                 </React.Fragment>
               );
@@ -391,6 +470,18 @@ const ChatView: React.FC<{
       {/* Input */}
       <footer className="cd-chat-input-area">
         <div style={{ display: 'contents' }}>
+        {/* Artwork banner for reach-out context */}
+        {reachOutMetadata && !artworkSent && (
+          <div className="cd-artwork-banner">
+            <div className="cd-artwork-banner-image">
+              <img src={reachOutMetadata.artworkImage || '/logo.jpeg'} alt={reachOutMetadata.artworkTitle} />
+            </div>
+            <div className="cd-artwork-banner-details">
+              <span className="cd-artwork-banner-label">Reaching out about</span>
+              <span className="cd-artwork-banner-title">{reachOutMetadata.artworkTitle}</span>
+            </div>
+          </div>
+        )}
         {showEmojiPicker && (
           <div ref={emojiPickerRef} className="cd-emoji-picker-wrapper">
             <EmojiPicker
@@ -410,7 +501,7 @@ const ChatView: React.FC<{
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={sending}
+            disabled={sending || !ready}
             autoFocus
             rows={1}
             aria-label="Message input"
@@ -420,7 +511,7 @@ const ChatView: React.FC<{
             type="button"
             className="cd-chat-emoji-btn"
             onClick={() => setShowEmojiPicker((prev) => !prev)}
-            disabled={sending}
+            disabled={sending || !ready}
             aria-label="Emoji"
           >
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -433,7 +524,7 @@ const ChatView: React.FC<{
           <button
             className="cd-chat-send"
             onClick={handleSend}
-            disabled={!inputText.trim() || sending}
+            disabled={!inputText.trim() || sending || !ready}
             aria-label="Send message"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -652,6 +743,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
                     ? reachOutMetadata
                     : undefined
                 }
+                onClose={closeDrawer}
               />
             </div>
           )}

@@ -594,10 +594,17 @@ const HomeFeed: React.FC = () => {
       name: selectedStory.name,
       avatar: selectedStory.userIcon,
     };
-    const message = `Hi ${selectedStory.name}, I came across your Artwork "${selectedStory.artworkTitle}" and I am really impressed, I would like to learn more about it.`;
     setReachOutContact(contact);
-    setReachOutMessage(message);
-    setReachOutMetadata({ artworkId: selectedStory.artworkId, artworkTitle: selectedStory.artworkTitle, artworkImage: selectedStory.image });
+    setReachOutMessage('');
+    // Parse price from string to number - strip currency symbol and commas first
+    const priceString = selectedStory.price?.replace(/[₹,\s]/g, '') || '';
+    const artworkPrice = priceString ? parseFloat(priceString) : undefined;
+    setReachOutMetadata({ 
+      artworkId: selectedStory.artworkId, 
+      artworkTitle: selectedStory.artworkTitle, 
+      artworkImage: selectedStory.image,
+      artworkPrice: artworkPrice && !isNaN(artworkPrice) ? artworkPrice : undefined
+    });
     setChatDrawerOpen(true);
   };
 

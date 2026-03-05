@@ -175,9 +175,8 @@ const OtherUserPortfolio: React.FC = () => {
       name: profileUser.name,
       avatar: profileUser.avatar,
     };
-    const message = `Hi ${profileUser.name}, I'm interested in commissioning work and would like to learn more about your process and availability. Could you share the details?`;
     setCommissionReachOutContact(contact);
-    setCommissionReachOutMessage(message);
+    setCommissionReachOutMessage('');
     setChatDrawerOpen(true);
   };
 
@@ -335,7 +334,11 @@ const OtherUserPortfolio: React.FC = () => {
             }}
             initialContact={commissionReachOutContact}
             initialMessage={commissionReachOutMessage || undefined}
-            reachOutMetadata={{ artworkId: 'commission', artworkTitle: 'Commission inquiry' }}
+            reachOutMetadata={{ 
+              artworkId: 'commission', 
+              artworkTitle: 'Commission Inquiry',
+              artworkImage: '/sq_mobile1.png' 
+            }}
           />
         )}
       </PortfolioProvider>

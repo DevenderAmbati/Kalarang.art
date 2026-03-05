@@ -14,6 +14,7 @@ import {
   serverTimestamp,
   updateDoc,
   increment,
+  arrayUnion,
   Timestamp,
   DocumentSnapshot,
   Unsubscribe,
@@ -25,6 +26,11 @@ export interface ChatMessage {
   senderId: string;
   text: string;
   createdAt: Timestamp | null;
+  seenBy?: string[]; // Array of user IDs who have seen this message
+  artworkId?: string;
+  artworkTitle?: string;
+  artworkImage?: string;
+  artworkPrice?: number;
 }
 
 export interface Chat {
@@ -88,16 +94,39 @@ export async function sendMessage(
   chatId: string,
   senderId: string,
   text: string,
-  otherUserId?: string
+  otherUserId?: string,
+  artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number }
 ): Promise<void> {
   const messagesRef = collection(db, 'chats', chatId, 'messages');
 
   try {
-    await addDoc(messagesRef, {
+    const messageData: any = {
       senderId,
       text,
       createdAt: serverTimestamp(),
-    });
+    };
+    
+    if (artworkMetadata?.artworkId) {
+      messageData.artworkId = artworkMetadata.artworkId;
+      messageData.artworkTitle = artworkMetadata.artworkTitle;
+      messageData.artworkImage = artworkMetadata.artworkImage;
+      // Only include price if it's defined - Firestore doesn't accept undefined values
+      if (artworkMetadata.artworkPrice !== undefined) {
+        messageData.artworkPrice = artworkMetadata.artworkPrice;
+      }
+      // eslint-disable-next-line no-console
+      console.log('Saving message with artwork metadata:', {
+        artworkId: messageData.artworkId,
+        artworkTitle: messageData.artworkTitle,
+        artworkImage: messageData.artworkImage,
+        artworkPrice: messageData.artworkPrice,
+      });
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('No artwork metadata provided to sendMessage');
+    }
+    
+    await addDoc(messagesRef, messageData);
   } catch (error) {
     throw error;
   }
@@ -148,6 +177,11 @@ export async function getMessages(
     id: d.id,
     senderId: d.data().senderId,
     text: d.data().text,
+    seenBy: d.data().seenBy || [],
+    artworkId: d.data().artworkId,
+    artworkTitle: d.data().artworkTitle,
+    artworkImage: d.data().artworkImage,
+    artworkPrice: d.data().artworkPrice,
     createdAt: d.data().createdAt,
   }));
 
@@ -165,6 +199,48 @@ export async function getMessages(
 export async function markChatRead(chatId: string, userId: string): Promise<void> {
   const chatRef = doc(db, 'chats', chatId);
   await updateDoc(chatRef, { [`unreadFor.${userId}`]: 0 } as any);
+}
+
+/**
+ * Marks messages as seen by the given user.
+ * Updates all messages in the chat where the user is not the sender and hasn't seen yet.
+ */
+export async function markMessagesAsSeen(
+  chatId: string,
+  userId: string
+): Promise<void> {
+  const messagesRef = collection(db, 'chats', chatId, 'messages');
+  // Fetch recent messages (limit to avoid excessive reads)
+  const q = query(
+    messagesRef,
+    orderBy('createdAt', 'desc'),
+    limit(50)
+  );
+  
+  try {
+    const snapshot = await getDocs(q);
+    let updatedCount = 0;
+    
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      const seenBy = data.seenBy || [];
+      
+      // Only update if user is not the sender and hasn't seen this message yet
+      if (data.senderId !== userId && !seenBy.includes(userId)) {
+        const messageRef = doc(db, 'chats', chatId, 'messages', docSnap.id);
+        await updateDoc(messageRef, {
+          seenBy: arrayUnion(userId)
+        });
+        updatedCount++;
+      }
+    }
+    
+    // eslint-disable-next-line no-console
+    console.log(`Marked ${updatedCount} messages as seen by ${userId} in chat ${chatId}`);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Error marking messages as seen:', error);
+  }
 }
 
 const CHATS_QUERY_LIMIT = 50;

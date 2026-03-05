@@ -195,8 +195,10 @@ const CardDetail: React.FC = () => {
 
     if (!artist || !artwork) return;
 
-    const message = `Hi ${artist.name}, I came across your Artwork "${artwork.title}" and I am really impressed, I would like to learn more about it.`;
-    setReachOutMessage(message);
+    // eslint-disable-next-line no-console
+    console.log('CardDetail - Opening chat with artworkId:', id, 'title:', artwork.title);
+    
+    // Don't set a predefined message, let the user type their own
     setChatDrawerOpen(true);
   };
 
@@ -264,7 +266,7 @@ const CardDetail: React.FC = () => {
         currentUserId={appUser?.uid}
       />
 
-      {appUser && artwork && artist && (
+      {appUser && artwork && artist && id && (
         <ChatDrawer
           isOpen={chatDrawerOpen}
           onClose={() => {
@@ -273,7 +275,12 @@ const CardDetail: React.FC = () => {
           }}
           initialContact={{ uid: artist.id, name: artist.name, avatar: artist.avatar } as ChatContact}
           initialMessage={reachOutMessage || undefined}
-          reachOutMetadata={{ artworkId: String(artwork.id), artworkTitle: artwork.title, artworkImage: artwork.artworkImage }}
+          reachOutMetadata={{
+            artworkId: id,
+            artworkTitle: artwork.title,
+            artworkImage: artwork.artworkImage,
+            artworkPrice: artwork.price
+          }}
         />
       )}
     </>
