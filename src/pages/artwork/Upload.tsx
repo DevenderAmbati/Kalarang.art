@@ -20,7 +20,7 @@ const Upload: React.FC = () => {
   };
 
   return (
-    <Layout onLogout={handleLogout} pageTitle="Upload Artwork">
+    <Layout onLogout={handleLogout} pageTitle="Upload">
       <CreateArtwork />
     </Layout>
   );

@@ -114,3 +114,33 @@
       max-height: calc(100vh - max(env(safe-area-inset-bottom, 0px), 65px));    }
   }
 }
+
+/* ============================================
+   HEADER LOGO RESPONSIVE SWITCHING
+   ============================================ */
+
+/* Desktop: Show page title, hide mobile logo */
+@media (min-width: 640px) {
+  .header-title-desktop {
+    display: block !important;
+  }
+  
+  .header-logo-mobile {
+    display: none !important;
+  }
+}
+
+/* Mobile: Hide page title, show mobile logo with adjustments */
+@media (max-width: 639px) {
+  .header-title-desktop {
+    display: none !important;
+  }
+  
+  .header-logo-mobile {
+    display: block !important;
+    height: 32px !important;
+    width: auto !important;
+    margin-left: -0.5rem !important;
+    margin-top: 0.25rem !important;
+  }
+}

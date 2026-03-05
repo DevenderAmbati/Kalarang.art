@@ -184,6 +184,26 @@ input:focus, textarea:focus, select:focus {
   scroll-behavior: smooth; /* Add smooth scrolling to all elements */
 }
 
+/* Hide scrollbar on mobile (when bottom navbar is visible) */
+@media (max-width: 639px) {
+  /* For Webkit browsers (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+  
+  /* For Firefox */
+  * {
+    scrollbar-width: none;
+  }
+  
+  /* For IE and Edge */
+  * {
+    -ms-overflow-style: none;
+  }
+}
+
 /* Spin animation for loading indicators */
 @keyframes spin {
   from {

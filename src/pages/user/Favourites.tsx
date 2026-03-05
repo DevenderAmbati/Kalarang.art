@@ -213,7 +213,7 @@ const Favourites: React.FC = () => {
       <div className="discover-container">
         <div className="discover-header favourites-header">
           <p className="discover-description">
-            Your personally curated art collection.
+            Your favourite artworks.
           </p>
         </div>
 

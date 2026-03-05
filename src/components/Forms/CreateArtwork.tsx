@@ -764,7 +764,7 @@ const CreateArtwork: React.FC = () => {
         <div className="create-artwork-header">
           <div className="create-artwork-header-left">
             <p className="create-artwork-subtitle">
-              Share your latest creation with the Kalarang community.
+              Upload and share your creations.
             </p>
           </div>
           <div ref={uploadGuidelinesRef} className="upload-guidelines-trigger">

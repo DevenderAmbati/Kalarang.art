@@ -134,7 +134,15 @@ const Layout: React.FC<LayoutProps> = ({
         <div ref={headerRef} className="layout-header" style={styles.header}>
           <div className="header-row" style={styles.headerRow}>
             <div className="header-left" style={styles.headerLeft}>
-              <h1 style={styles.pageTitle}>{getPageTitle()}</h1>
+              {/* Desktop - show page title with sidebar */}
+              <h1 style={styles.pageTitle} className="header-title-desktop">{getPageTitle()}</h1>
+              {/* Mobile - show logo with bottom nav */}
+              <img 
+                src="/header_logo.png" 
+                alt="Kalarang Logo" 
+                style={styles.headerLogo}
+                className="header-logo-mobile"
+              />
             </div>
             <div className="header-right" style={styles.headerRight}>
               {appUser && (
@@ -282,6 +290,11 @@ const styles = {
     color: 'var(--color-text-primary-light)',
     fontFamily: '"Poppins", "Segoe UI", "Roboto", sans-serif',
     letterSpacing: '0px',
+  } as React.CSSProperties,
+  headerLogo: {
+    height: '40px',
+    width: 'auto',
+    objectFit: 'contain',
   } as React.CSSProperties,
   profileImage: {
     width: '40px',
