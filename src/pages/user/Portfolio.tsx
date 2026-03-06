@@ -186,7 +186,7 @@ const Portfolio: React.FC = () => {
         storyArtwork.price
       );
       
-      toast.success('Story shared successfully!');
+      toast.success('✅Story shared');
       
       // Add artwork to the set of artworks in stories
       setArtworkIdsInStories(prev => new Set(prev).add(storyArtwork.id));
@@ -381,7 +381,7 @@ const Portfolio: React.FC = () => {
       }));
       
       setIsEditingProfile(false);
-      toast.success('Profile updated successfully!');
+      toast.success('✅Profile updated');
     } catch (error) {
       toast.error('Failed to save profile. Please try again.');
     }

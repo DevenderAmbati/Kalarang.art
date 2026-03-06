@@ -24,13 +24,11 @@ const Gallery: React.FC<GalleryProps> = ({ cachedData, isOwnProfile = true }) =>
 
   const handleImageClick = (artworkId: string) => {
     const artwork = artworks?.find(a => a.id === artworkId);
+    // Only allow editing unpublished artworks
     if (artwork && !artwork.published) {
-      // If unpublished, navigate to edit page
       navigate(`/post?edit=${artworkId}`);
-    } else {
-      // If published, navigate to detail page
-      navigate(`/artwork/${artworkId}`);
     }
+    // Published artworks are not clickable in gallery
   };
 
   // Convert artworks to gallery images (only first image of each artwork)

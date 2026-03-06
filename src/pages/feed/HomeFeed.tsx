@@ -545,7 +545,7 @@ const HomeFeed: React.FC = () => {
     try {
       // Delete from Firestore
       await deleteStory(confirmModal.storyId);
-      toast.success('Story deleted successfully');
+      toast.success('✅ Story deleted');
       
       // Invalidate stories cache
       if (appUser?.uid) {

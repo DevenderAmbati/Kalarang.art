@@ -7,6 +7,7 @@ interface ImagePreview {
   file?: File;
   url: string;
   isExisting?: boolean;
+  isUploading?: boolean;
 }
 
 interface ImagePreviewGridProps {
@@ -35,7 +36,7 @@ const SortableItem: React.FC<SortableItemProps> = ({ image, index, onRemoveImage
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    cursor: 'grab',
+    cursor: image.isUploading ? 'wait' : 'grab',
     touchAction: 'none',
   };
 
@@ -51,9 +52,42 @@ const SortableItem: React.FC<SortableItemProps> = ({ image, index, onRemoveImage
         src={image.url}
         alt={`Preview ${index + 1}`}
         className="preview-image"
-        style={{ pointerEvents: 'none' }}
+        style={{ 
+          pointerEvents: 'none',
+          opacity: image.isUploading ? 0.5 : 1,
+        }}
       />
       <div className="preview-badge">{index + 1}</div>
+      
+      {/* Upload progress indicator */}
+      {image.isUploading && (
+        <div 
+          className="preview-uploading"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0, 0, 0, 0.4)',
+            borderRadius: '12px',
+          }}
+        >
+          <div 
+            style={{
+              width: '24px',
+              height: '24px',
+              border: '3px solid rgba(255, 255, 255, 0.3)',
+              borderTopColor: 'var(--color-primary)',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }}
+          />
+        </div>
+      )}
       
       <button
         type="button"
@@ -63,7 +97,10 @@ const SortableItem: React.FC<SortableItemProps> = ({ image, index, onRemoveImage
           onRemoveImage(image.id);
         }}
         title="Remove image"
-        style={{ pointerEvents: 'auto' }}
+        style={{ 
+          pointerEvents: 'auto',
+          display: image.isUploading ? 'none' : 'flex',
+        }}
       >
         ×
       </button>

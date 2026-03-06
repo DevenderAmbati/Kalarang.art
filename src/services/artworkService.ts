@@ -21,8 +21,10 @@ import {
   uploadBytes,
   getDownloadURL,
   deleteObject,
+  UploadMetadata,
 } from "firebase/storage";
 import { Artwork, ArtworkUpload } from "../types/artwork";
+import { compressImage } from "../utils/imageCompression";
 
 /**
  * Upload images to Firebase Storage
@@ -33,15 +35,63 @@ export async function uploadArtworkImages(
 ): Promise<string[]> {
   const uploadPromises = files.map(async (file, index) => {
     const timestamp = Date.now();
-    const filename = `${timestamp}_${index}_${file.name}`;
+    // Compress image before upload (converts to WebP)
+    const compressedFile = await compressImage(file);
+    const filename = `${timestamp}_${index}_${compressedFile.name.replace(/\.[^/.]+$/, '')}.webp`;
     const storageRef = ref(storage, `artworks/${userId}/${filename}`);
 
-    await uploadBytes(storageRef, file);
+    // Set cache headers for CDN optimization (1 year cache)
+    const metadata: UploadMetadata = {
+      contentType: 'image/webp',
+      cacheControl: 'public, max-age=31536000',
+    };
+
+    await uploadBytes(storageRef, compressedFile, metadata);
     const downloadURL = await getDownloadURL(storageRef);
     return downloadURL;
   });
 
   return Promise.all(uploadPromises);
+}
+
+/**
+ * Upload a single image to Firebase Storage (for immediate upload flow)
+ */
+export async function uploadSingleArtworkImage(
+  userId: string,
+  file: File
+): Promise<string> {
+  const timestamp = Date.now();
+  // Compress image before upload (converts to WebP)
+  const compressedFile = await compressImage(file);
+  const filename = `${timestamp}_${Math.random().toString(36).substring(7)}_${compressedFile.name.replace(/\.[^/.]+$/, '')}.webp`;
+  const storageRef = ref(storage, `artworks/${userId}/${filename}`);
+
+  // Set cache headers for CDN optimization (1 year cache)
+  const metadata: UploadMetadata = {
+    contentType: 'image/webp',
+    cacheControl: 'public, max-age=31536000',
+  };
+
+  await uploadBytes(storageRef, compressedFile, metadata);
+  const downloadURL = await getDownloadURL(storageRef);
+  return downloadURL;
+}
+
+/**
+ * Delete artwork images by URLs (for cleanup when user discards draft)
+ */
+export async function deleteArtworkImagesByUrls(imageUrls: string[]): Promise<void> {
+  const deletePromises = imageUrls.map(async (imageUrl) => {
+    try {
+      const imageRef = ref(storage, imageUrl);
+      await deleteObject(imageRef);
+    } catch (error) {
+      // Silently fail - image may already be deleted or URL invalid
+    }
+  });
+  
+  await Promise.all(deletePromises);
 }
 
 /**
@@ -58,6 +108,46 @@ export async function createArtwork(
   const imageUrls = await uploadArtworkImages(userId, imageFiles);
 
   // Create artwork document
+  const artworkRef = doc(collection(db, "artworks"));
+  const artworkId = artworkRef.id;
+
+  const artwork = {
+    artistId: userId,
+    artistName: userName,
+    artistAvatar: userAvatar || '',
+    title: artworkData.title,
+    description: artworkData.description,
+    images: imageUrls,
+    category: artworkData.category,
+    medium: artworkData.medium,
+    width: artworkData.width || '',
+    height: artworkData.height || '',
+    price: artworkData.price,
+    isCommissioned: artworkData.isCommissioned,
+    published: false, // Default to unpublished
+    createdDate: artworkData.createdDate || '',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    views: 0,
+    likes: 0,
+  };
+
+  await setDoc(artworkRef, artwork);
+
+  return artworkId;
+}
+
+/**
+ * Create new artwork with pre-uploaded image URLs (for immediate upload flow)
+ */
+export async function createArtworkWithUrls(
+  userId: string,
+  userName: string,
+  userAvatar: string | undefined,
+  artworkData: ArtworkUpload,
+  imageUrls: string[]
+): Promise<string> {
+  // Create artwork document directly with the provided URLs
   const artworkRef = doc(collection(db, "artworks"));
   const artworkId = artworkRef.id;
 

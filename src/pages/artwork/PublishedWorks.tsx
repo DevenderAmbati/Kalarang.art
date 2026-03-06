@@ -192,7 +192,7 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
         await deleteArtwork(artworkId);
         
         // Show success toast only after actual deletion succeeds
-        toast.success('Artwork deleted successfully');
+        toast.success('✅Artwork deleted');
         
         // Invalidate gallery cache as well since artwork is deleted completely
         if (appUser) {

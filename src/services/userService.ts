@@ -11,8 +11,9 @@ import {
   onSnapshot,
   Unsubscribe,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, UploadMetadata } from "firebase/storage";
 import { AppUser } from "../types/user";
+import { compressImage } from "../utils/imageCompression";
 
 export interface UserProfile extends AppUser {
   bio?: string;
@@ -52,7 +53,7 @@ export async function uploadProfileImage(
   type: "avatar" | "banner"
 ): Promise<string> {
   const timestamp = Date.now();
-  const filename = `${type}_${timestamp}.jpg`;
+  const filename = `${type}_${timestamp}.webp`;
   const storageRef = ref(storage, `users/${userId}/${filename}`);
 
   // Handle blob URL (string) conversion
@@ -63,7 +64,16 @@ export async function uploadProfileImage(
     fileToUpload = file;
   }
 
-  await uploadBytes(storageRef, fileToUpload);
+  // Compress image before upload (converts to WebP)
+  const compressedFile = await compressImage(fileToUpload);
+
+  // Set cache headers for CDN optimization (1 year cache)
+  const metadata: UploadMetadata = {
+    contentType: 'image/webp',
+    cacheControl: 'public, max-age=31536000',
+  };
+
+  await uploadBytes(storageRef, compressedFile, metadata);
   const downloadURL = await getDownloadURL(storageRef);
   return downloadURL;
 }
