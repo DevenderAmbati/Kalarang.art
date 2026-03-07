@@ -5,7 +5,7 @@
   width: 100%;
   margin-top: 12px;
   padding: 0 6px;
-  padding-bottom: 200px; /* Extra space for dropdown menus */
+  padding-bottom: 10px; /* Space for bottom nav */
   box-sizing: border-box;
   /* Performance optimizations */
   contain: style;

@@ -83,7 +83,6 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ images, onImageClick, isOwnProf
                   <span>Commission Work</span>
                 </div>
               )}
-              // ...overlay removed for unpublished artworks
             </div>
           </div>
         ))}

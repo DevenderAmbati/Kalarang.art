@@ -1,5 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
+/* Prevent body/html/root scroll on auth pages (except signup which needs scroll) */
+html:has(.login-right-section:not(.signup-page)),
+body:has(.login-right-section:not(.signup-page)),
+#root:has(.login-right-section:not(.signup-page)) {
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
 * {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -276,6 +284,14 @@
   padding: 1rem 2rem 2rem;
   position: relative;
   overflow: hidden;
+}
+
+/* Special handling for signup page with long content */
+.login-right-section.signup-page {
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Decorative Background Shapes */
@@ -836,6 +852,15 @@ a:hover {
     align-items: center !important;
     padding: 1rem !important;
   }
+
+  /* Signup page specific overflow handling */
+  .login-right-section.signup-page {
+    justify-content: flex-start !important;
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-top: 2rem !important;
+  }
   
   /* Reduce login card size */
   .login-form-container {
@@ -967,6 +992,15 @@ a:hover {
     justify-content: center !important;
     align-items: center !important;
     padding: 1rem !important;
+  }
+
+  /* Signup page specific overflow handling */
+  .login-right-section.signup-page {
+    justify-content: flex-start !important;
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-top: 2rem !important;
   }
   
   /* Reduce login card size */

@@ -37,7 +37,6 @@ const SortableItem: React.FC<SortableItemProps> = ({ image, index, onRemoveImage
     transition,
     opacity: isDragging ? 0.5 : 1,
     cursor: image.isUploading ? 'wait' : 'grab',
-    touchAction: 'none',
   };
 
   return (

@@ -265,7 +265,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
   }
 
   return (
-    <div className="login-right-section" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', width: '100%', position: 'relative', padding: '3rem 0' }}>
+    <div className="login-right-section signup-page" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', minHeight: '100vh', width: '100%', position: 'relative', padding: '3rem 0' }}>
       {/* Decorative geometric background shapes */}
       <div className="login-bg-shape-1"></div>
       <div className="login-bg-shape-2"></div>

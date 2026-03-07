@@ -638,6 +638,8 @@ const CreateArtwork: React.FC = () => {
 
       setSavedArtworkId(artworkId);
       
+      toast.success('✅ Saved to gallery');
+      
       // Invalidate portfolio cache to reflect changes
       if (appUser) {
         cache.invalidate(cacheKeys.galleryWorks(appUser.uid));
@@ -687,7 +689,7 @@ const CreateArtwork: React.FC = () => {
     try {
       await toggleArtworkPublish(savedArtworkId, true);
 
-      toast.success('✅ Success');
+      toast.success('✅ Published');
       
       // Invalidate all portfolio caches when publishing
       if (appUser) {
