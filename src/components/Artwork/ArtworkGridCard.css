@@ -35,6 +35,19 @@
   transform: none;
 }
 
+/* Ensure dropdown content area doesn't clip */
+.artwork-grid-card.menu-open .artwork-grid-card-content {
+  overflow: visible;
+}
+
+.artwork-grid-card.menu-open .artwork-grid-card-artist {
+  overflow: visible;
+}
+
+.artwork-grid-card.menu-open .artwork-grid-card-price-container {
+  overflow: visible;
+}
+
 /* Image Section */
 .artwork-grid-card-image-container {
   position: relative;

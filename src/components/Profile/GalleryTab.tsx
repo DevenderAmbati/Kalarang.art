@@ -73,7 +73,7 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ images, onImageClick, isOwnProf
                   aspectRatio: image.aspectRatio || 'auto'
                 }}
               />
-              {isOwnProfile && image.published === false && (
+              {image.published === false && (
                 <div className="gallery-unpublished-badge">
                   <span>Unpublished</span>
                 </div>
@@ -83,7 +83,7 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ images, onImageClick, isOwnProf
                   <span>Commission Work</span>
                 </div>
               )}
-              {isOwnProfile && !image.published && <div className="gallery-tab-image-overlay" />}
+              // ...overlay removed for unpublished artworks
             </div>
           </div>
         ))}

@@ -84,10 +84,12 @@ const ArtworkGridCard: React.FC<ArtworkGridCardProps> = ({
     if (cardRef.current) {
       const rect = cardRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
-      const spaceBelow = viewportHeight - rect.bottom;
+      // Account for BottomNav (~65px) on mobile devices
+      const bottomNavHeight = window.innerWidth <= 639 ? 75 : 0;
+      const spaceBelow = viewportHeight - rect.bottom - bottomNavHeight;
       const spaceAbove = rect.top;
       
-      // If less than 200px space below and more space above, show upwards
+      // If less than 200px space below (after accounting for BottomNav) and more space above, show upwards
       if (spaceBelow < 200 && spaceAbove > spaceBelow) {
         setDropdownDirection('up');
       } else {

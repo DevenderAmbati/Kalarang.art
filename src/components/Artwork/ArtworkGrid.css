@@ -5,10 +5,12 @@
   width: 100%;
   margin-top: 12px;
   padding: 0 6px;
+  padding-bottom: 200px; /* Extra space for dropdown menus */
   box-sizing: border-box;
   /* Performance optimizations */
-  contain: layout style;
+  contain: style;
   content-visibility: auto;
+  overflow: visible;
 }
 
 /* Virtualized grid container */
