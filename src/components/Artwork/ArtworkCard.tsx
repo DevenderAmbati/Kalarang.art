@@ -38,6 +38,8 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   
   // Use artworkImages if provided, otherwise fallback to single artworkImage
   const images = artworkImages && artworkImages.length > 0 ? artworkImages : [artworkImage];
@@ -45,6 +47,9 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Minimum swipe distance (in px) to trigger navigation
+  const minSwipeDistance = 50;
 
   const handleCardClick = () => {
     if (onCardClick) {
@@ -90,6 +95,35 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({
     setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
 
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (hasMultipleImages) {
+      if (isLeftSwipe) {
+        // Swipe left - show next image
+        e.stopPropagation();
+        setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+      } else if (isRightSwipe) {
+        // Swipe right - show previous image
+        e.stopPropagation();
+        setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+      }
+    }
+  };
+
   return (
     <div className="artwork-card" onClick={handleCardClick}>
       <div className="artwork-card-header">
@@ -105,7 +139,12 @@ const ArtworkCard: React.FC<ArtworkCardProps> = ({
         </div>
       </div>
 
-      <div className="artwork-image-container">
+      <div 
+        className="artwork-image-container"
+        onTouchStart={hasMultipleImages ? onTouchStart : undefined}
+        onTouchMove={hasMultipleImages ? onTouchMove : undefined}
+        onTouchEnd={hasMultipleImages ? onTouchEnd : undefined}
+      >
         <LazyImage src={images[currentImageIndex]} alt={description} className="artwork-image" />
         
         {hasMultipleImages && (

@@ -414,27 +414,12 @@ const ChatView: React.FC<{
               const divider = getDateDivider(msgDate, prevDate);
               const isMine = msg.senderId === appUser?.uid;
               
-              // Find the last message sent by current user
-              const lastMyMessageIndex = messages.map((m, idx) => m.senderId === appUser?.uid ? idx : -1)
+              // Find the last message sent by me that the contact has seen
+              const lastSeenMessageIndex = messages
+                .map((m, idx) => (m.senderId === appUser?.uid && Array.isArray(m.seenBy) && m.seenBy.includes(contact.uid)) ? idx : -1)
                 .filter(idx => idx !== -1)
                 .pop();
-              const isLastMyMessage = i === lastMyMessageIndex;
-              
-              const isSeen = isMine && isLastMyMessage && Array.isArray(msg.seenBy) && msg.seenBy.includes(contact.uid);
-              
-              // Debug logging for sent messages
-              if (isMine && isLastMyMessage) {
-                // eslint-disable-next-line no-console
-                console.log('Last sent message debug:', {
-                  msgId: msg.id,
-                  text: msg.text.substring(0, 20),
-                  seenBy: msg.seenBy,
-                  contactUid: contact.uid,
-                  isArray: Array.isArray(msg.seenBy),
-                  includesContact: Array.isArray(msg.seenBy) && msg.seenBy.includes(contact.uid),
-                  isSeen
-                });
-              }
+              const isSeen = isMine && i === lastSeenMessageIndex;
               
               return (
                 <React.Fragment key={msg.id}>

@@ -186,7 +186,6 @@ const Portfolio: React.FC = () => {
         storyArtwork.price
       );
       
-      toast.success('✅Story shared');
       
       // Add artwork to the set of artworks in stories
       setArtworkIdsInStories(prev => new Set(prev).add(storyArtwork.id));

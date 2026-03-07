@@ -125,8 +125,8 @@ const OtherUserPortfolio: React.FC = () => {
       const published = artworks.filter(art => art.published);
       
       setPublishedArtworks(published);
-      // Gallery shows all published artworks for other users (unpublished are private drafts)
-      setGalleryArtworks(published);
+      // Gallery shows all artworks including unpublished and commissioned works
+      setGalleryArtworks(artworks);
 
     } catch (error) {
       toast.error('Failed to load profile');
