@@ -5,6 +5,24 @@
   padding: 1rem 1rem 2rem;
   position: relative;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* iOS Safari specific handling */
+@supports (-webkit-touch-callout: none) {
+  .buyer-landing {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    min-height: auto;
+    height: auto;
+    max-height: none;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 .buyer-landing::before {
