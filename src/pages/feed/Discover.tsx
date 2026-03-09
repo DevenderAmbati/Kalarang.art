@@ -79,7 +79,7 @@ const Discover: React.FC = () => {
   const [sortOption, setSortOption] = useState<'price-low' | 'price-high' | 'newest'>('newest');
   const [filters, setFilters] = useState<FilterState>({
     mediums: [],
-    priceRange: { min: 100, max: 200000 },
+    priceRange: { min: 100, max: 10000000 },
     sizes: [],
   });
 
