@@ -94,8 +94,8 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
     );
   };
 
-  // Fallback for small lists
-  if (artworks.length < 20) {
+  // Fallback for small lists, or for Discover where the parent is a scroll container (no fixed height for virtualized Grid)
+  if (artworks.length < 20 || viewType === 'discover') {
     return (
       <div className={`artwork-grid ${viewType ? `artwork-grid-${viewType}` : ''}`}>
         {artworks.map((artwork) => (
