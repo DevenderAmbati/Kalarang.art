@@ -16,6 +16,7 @@ export interface FilterPanelProps {
 const MEDIUMS = [
   'Acrylic',
   'Oil',
+  'Pastels',
   'Watercolor',
   'Digital',
   'Graphite',

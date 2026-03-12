@@ -104,6 +104,7 @@ const ArtworkMetadataForm: React.FC<ArtworkMetadataFormProps> = ({
               options={[
                 { value: 'acrylic', label: 'Acrylic' },
                 { value: 'oil', label: 'Oil' },
+                { value: 'pastels', label: 'Pastels' },
                 { value: 'watercolor', label: 'Watercolor' },
                 { value: 'digital', label: 'Digital' },
                 { value: 'graphite', label: 'Graphite' },

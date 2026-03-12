@@ -251,7 +251,7 @@ const EditProfile: React.FC<EditProfileProps> = ({
               ))}
             </div>
             <div className="art-style-options">
-              {['Acrylic', 'Oil', 'Watercolor', 'Digital', 'Graphite', 'Charcoal', 'Colored Pencil', 'Gouache', 'Pen/Ink', 'Abstract', 'Landscape', 'Portrait', 'Modern', 'Craft', 'Sculpture'].map((style) => (
+              {['Acrylic', 'Oil', 'Pastels', 'Watercolor', 'Digital', 'Graphite', 'Charcoal', 'Colored Pencil', 'Gouache', 'Pen/Ink', 'Abstract', 'Landscape', 'Portrait', 'Modern', 'Craft', 'Sculpture'].map((style) => (
                 <button
                   key={style}
                   type="button"
