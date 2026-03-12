@@ -217,24 +217,27 @@ const Discover: React.FC = () => {
         setHasMore(cached.data.hasMore);
         setLoading(false);
 
-        // If cache is stale, fetch fresh data in background
-        if (cached.isStale) {
+        // Always fetch first page in background to get lastVisible so "Load more" works.
+        // Cache doesn't store the Firestore cursor, so without this only 20 items would ever load.
+        const ensureCursor = async () => {
           try {
             const result = await getPublishedArtworksPaginated(20);
-            setArtworks(result.artworks);
             setLastVisible(result.lastVisible);
-            setHasMore(result.hasMore);
-            
-            // Update cache
-            cache.set(
-              cacheKeys.discoverPaginated(),
-              { artworks: result.artworks, hasMore: result.hasMore },
-              2 * 60 * 1000, // 2 minutes stale time
-              5 * 60 * 1000  // 5 minutes cache time
-            );
+            if (cached.isStale) {
+              setArtworks(result.artworks);
+              setHasMore(result.hasMore);
+              cache.set(
+                cacheKeys.discoverPaginated(),
+                { artworks: result.artworks, hasMore: result.hasMore },
+                2 * 60 * 1000,
+                5 * 60 * 1000
+              );
+            }
           } catch {
+            setHasMore(false);
           }
-        }
+        };
+        ensureCursor();
         return;
       }
 
@@ -270,17 +273,18 @@ const Discover: React.FC = () => {
     setLoadingMore(true);
     try {
       const result = await getPublishedArtworksPaginated(20, lastVisible);
-      const updatedArtworks = [...artworks, ...result.artworks];
+      const existingIds = new Set(artworks.map((a) => a.id));
+      const newArtworks = result.artworks.filter((a) => !existingIds.has(a.id));
+      const updatedArtworks = [...artworks, ...newArtworks];
       setArtworks(updatedArtworks);
       setLastVisible(result.lastVisible);
       setHasMore(result.hasMore);
-      
-      // Update cache with accumulated artworks
+
       cache.set(
         cacheKeys.discoverPaginated(),
         { artworks: updatedArtworks, hasMore: result.hasMore },
-        2 * 60 * 1000, // 2 minutes stale time
-        5 * 60 * 1000  // 5 minutes cache time
+        2 * 60 * 1000,
+        5 * 60 * 1000
       );
     } catch {
       toast.error('Failed to load more artworks');
@@ -289,30 +293,23 @@ const Discover: React.FC = () => {
     }
   }, [hasMore, loadingMore, lastVisible, artworks]);
 
-  // Infinite scroll detection
+  // Infinite scroll detection — use the actual scroll container (parent of discover), not layout-main-content
   useEffect(() => {
+    const scrollContainer = containerRef.current;
+    if (!scrollContainer || !isContainerReady) return;
+
     const handleScroll = () => {
       if (!hasMore || loadingMore) return;
-
-      // Get the main content container
-      const mainContent = document.querySelector('.layout-main-content');
-      if (!mainContent) return;
-
-      const { scrollTop, scrollHeight, clientHeight } = mainContent;
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
       const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
-
-      // Load more when user scrolls to 80% of content
       if (scrollPercentage > 0.8) {
         loadMoreArtworks();
       }
     };
 
-    const mainContent = document.querySelector('.layout-main-content');
-    if (mainContent) {
-      mainContent.addEventListener('scroll', handleScroll);
-      return () => mainContent.removeEventListener('scroll', handleScroll);
-    }
-  }, [hasMore, loadingMore, loadMoreArtworks]);
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [hasMore, loadingMore, loadMoreArtworks, isContainerReady]);
 
   // Convert favorite IDs array to Set for quick lookup
   const savedArtworks = useMemo(() => {
