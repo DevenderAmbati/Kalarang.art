@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import ArtworkGrid from '../../components/Artwork/ArtworkGrid';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import ArtworkCard from '../../components/Artwork/ArtworkCard';
@@ -898,48 +897,26 @@ const HomeFeed: React.FC = () => {
           />
         ) : (
           <>
-            {artworks.length < 20 ? (
-              // Regular rendering for small lists
-              <div className="homefeed-artwork-grid">
-                {artworks.map((artwork) => (
-                  <ArtworkCard
-                    key={artwork.id}
-                    id={parseInt(artwork.id) || 0}
-                    artworkImage={artwork.images[0]}
-                    artworkImages={artwork.images}
-                    artistAvatar={artwork.artistAvatar || '/artist.png'}
-                    artistName={artwork.artistName}
-                    artistId={artwork.artistId}
-                    currentUserId={appUser?.uid}
-                    title={artwork.title}
-                    description={artwork.description}
-                    onCardClick={() => handleArtworkClick(artwork.id)}
-                    onShare={() => handleShare(artwork.id)}
-                    onSave={() => handleSave(artwork.id)}
-                    isSaved={savedArtworks.has(artwork.id)}
-                  />
-                ))}
-              </div>
-            ) : (
-              // Virtualized Grid for large lists
-              <ArtworkGrid
-                artworks={artworks.map(artwork => ({
-                  id: artwork.id,
-                  title: artwork.title,
-                  artworkImage: artwork.images[0],
-                  artistName: artwork.artistName,
-                  artistAvatar: artwork.artistAvatar || '/artist.png',
-                  artistId: artwork.artistId,
-                  price: artwork.price,
-                  sold: artwork.sold,
-                }))}
-                viewType="homefeed"
-                savedArtworks={savedArtworks}
-                onArtworkClick={handleArtworkClick}
-                onSave={handleSave}
-                currentUserId={appUser?.uid}
-              />
-            )}
+            <div className="homefeed-artwork-grid">
+              {artworks.map((artwork) => (
+                <ArtworkCard
+                  key={artwork.id}
+                  id={parseInt(artwork.id) || 0}
+                  artworkImage={artwork.images[0]}
+                  artworkImages={artwork.images}
+                  artistAvatar={artwork.artistAvatar || '/artist.png'}
+                  artistName={artwork.artistName}
+                  artistId={artwork.artistId}
+                  currentUserId={appUser?.uid}
+                  title={artwork.title}
+                  description={artwork.description}
+                  onCardClick={() => handleArtworkClick(artwork.id)}
+                  onShare={() => handleShare(artwork.id)}
+                  onSave={() => handleSave(artwork.id)}
+                  isSaved={savedArtworks.has(artwork.id)}
+                />
+              ))}
+            </div>
             {loadingMore && (
               <div style={{ 
                 display: 'flex', 
