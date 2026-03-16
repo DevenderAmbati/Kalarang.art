@@ -45,6 +45,7 @@ const Explore: React.FC = () => {
   }, []);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const lastScrollY = useRef<number>(0);
   const manuallyToggled = useRef<boolean>(false);
 
@@ -233,6 +234,13 @@ const Explore: React.FC = () => {
     return Array.from(s).slice(0, 8);
   }, [searchQuery, artworks, matchedUsers]);
 
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setMatchedUsers([]);
+    setShowSuggestions(false);
+    searchInputRef.current?.focus();
+  };
+
   const filteredArtworks = useMemo(() => {
     return artworks.filter(a => {
       if (debouncedSearchQuery.trim()) {
@@ -315,28 +323,45 @@ const Explore: React.FC = () => {
                 {/* Search bar */}
                 <div className="discover-search-container">
             <div className="discover-search-bar" ref={searchContainerRef}>
-              <svg className="discover-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
-              </svg>
-              <input
-                type="text"
-                className="discover-search-input"
-                placeholder="Search by style, category, medium, artist"
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(e.target.value.trim().length > 0); }}
-                onFocus={() => searchQuery.trim() && setShowSuggestions(true)}
-              />
-              {showSuggestions && searchSuggestions.length > 0 && (
-                <div className="discover-search-suggestions">
-                  {searchSuggestions.map((s, i) => (
-                    <button key={i} className="discover-search-suggestion-item" onClick={() => { setSearchQuery(s); setShowSuggestions(false); }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="discover-search-field">
+                <svg className="discover-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                  type="text"
+                  className="discover-search-input"
+                  placeholder="Search by style, category, medium, artist"
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(e.target.value.trim().length > 0); }}
+                  onFocus={() => searchQuery.trim() && setShowSuggestions(true)}
+                  ref={searchInputRef}
+                />
+                {searchQuery.trim().length > 0 && (
+                  <button
+                    type="button"
+                    className="discover-search-clear-btn"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleClearSearch();
+                    }}
+                    aria-label="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+                {showSuggestions && searchSuggestions.length > 0 && (
+                  <div className="discover-search-suggestions">
+                    {searchSuggestions.map((s, i) => (
+                      <button key={i} className="discover-search-suggestion-item" onClick={() => { setSearchQuery(s); setShowSuggestions(false); }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="discover-btn-wrapper" ref={sortDropdownRef}>
                 <button className="discover-filter-btn" onClick={() => setIsSortDropdownOpen(v => !v)} aria-label="Sort">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m7 15 5 5 5-5" /><path d="m7 9 5-5 5 5" /></svg>

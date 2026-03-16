@@ -48,6 +48,7 @@ const Discover: React.FC = () => {
   const { appUser } = useAuth();
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLElement | null>(null);
   const lastScrollY = useRef<number>(0);
   const manuallyToggled = useRef<boolean>(false);
@@ -454,6 +455,13 @@ const Discover: React.FC = () => {
     setShowSuggestions(value.trim().length > 0);
   };
 
+  const handleClearSearch = () => {
+    handleSearchChange('');
+    setMatchedUsers([]);
+    setShowSuggestions(false);
+    searchInputRef.current?.focus();
+  };
+
   const handleSuggestionClick = (suggestion: string) => {
     setSearchQuery(suggestion);
     setShowSuggestions(false);
@@ -677,37 +685,55 @@ const Discover: React.FC = () => {
             {/* Search Bar */}
             <div className="discover-search-container">
             <div className="discover-search-bar" ref={searchContainerRef}>
-            <svg className="discover-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-            <input
-              type="text"
-              className="discover-search-input"
-              placeholder="Search by style, category, medium, artist"
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              onFocus={() => searchQuery.trim() && setShowSuggestions(true)}
-            />
-            
-            {/* Search Suggestions Dropdown */}
-            {showSuggestions && searchSuggestions.length > 0 && (
-              <div className="discover-search-suggestions">
-                {searchSuggestions.map((suggestion, index) => (
-                  <button
-                    key={index}
-                    className="discover-search-suggestion-item"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="11" cy="11" r="8" />
-                      <path d="m21 21-4.35-4.35" />
-                    </svg>
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="discover-search-field">
+              <svg className="discover-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+              <input
+                type="text"
+                className="discover-search-input"
+                placeholder="Search by style, category, medium, artist"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onFocus={() => searchQuery.trim() && setShowSuggestions(true)}
+                ref={searchInputRef}
+              />
+
+              {searchQuery.trim().length > 0 && (
+                <button
+                  type="button"
+                  className="discover-search-clear-btn"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleClearSearch();
+                  }}
+                  aria-label="Clear search"
+                >
+                  ×
+                </button>
+              )}
+
+              {/* Search Suggestions Dropdown */}
+              {showSuggestions && searchSuggestions.length > 0 && (
+                <div className="discover-search-suggestions">
+                  {searchSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      className="discover-search-suggestion-item"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                      </svg>
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             
             <div className="discover-btn-wrapper" ref={sortDropdownRef}>
               <button

@@ -91,8 +91,17 @@ const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Section: Sign In Button */}
-      <div className="home-header-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      {/* Right Section: Founding Artists + Explore + Sign In */}
+      <div className="home-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        {/* Founding Artists Program Button */}
+        <button
+          onClick={() => navigate('/founding-artists')}
+          className="home-header-join-btn"
+        >
+          <span>Founding Artists Program</span>
+          {MdArrowForward({ size: 13 })}
+        </button>
+
         {/* Explore Art Button */}
         <button
           onClick={handleExploreClick}
@@ -127,9 +136,6 @@ const Header: React.FC = () => {
           {HiOutlineSearch({ size: 16 })}
           <span className="home-explore-text">Explore Art</span>
         </button>
-
-       
-        
 
         {/* Sign In Button */}
         <button

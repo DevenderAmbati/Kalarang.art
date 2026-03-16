@@ -42,6 +42,39 @@
   font-family: 'Pacifico', 'Comic Sans MS', 'Marker Felt', cursive;
 }
 
+/* Header join CTA (desktop) */
+.home-header-center-join {
+  display: flex;
+  justify-content: center;
+  flex: 1;
+}
+
+.home-header-join-btn {
+  background: var(--white-alpha-10);
+  border-radius: 999px;
+  border: 1.5px solid var(--color-primary);
+  color: var(--color-primary);
+  padding: 0.55rem 2rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 14px rgba(47, 164, 169, 0.25);
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  position: relative;
+  top: 4px;
+}
+
+.home-header-join-btn:hover {
+  background: var(--primary-alpha-10);
+  box-shadow: 0 6px 18px rgba(47, 164, 169, 0.35);
+}
+
 @keyframes shimmer {
   0%, 100% {
     filter: brightness(1);
@@ -58,6 +91,27 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.home-cta-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Secondary outlined button for the founding artists CTA */
+.home-founding-btn {
+  background: transparent !important;
+  border: 1.5px solid var(--color-accent) !important;
+  color: var(--color-accent) !important;
+  transition: background 0.25s ease, color 0.25s ease !important;
+}
+
+.home-founding-btn:hover {
+  background: var(--accent-alpha-20) !important;
 }
 
 .home-cta-heading {
@@ -181,6 +235,31 @@
 
 /* Mobile Responsive - Hide decorative icons */
 @media (max-width: 639px) {
+  .home-header-center-join {
+    display: none;
+  }
+
+  /* Reorder header CTAs on mobile so Founding button comes below Explore + Sign In */
+  .home-header-right {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    column-gap: 0.5rem;
+    row-gap: 0.35rem;
+  }
+
+  .home-header-join-btn {
+    order: 2;
+    justify-content: center;
+    margin-right: 1rem;
+    padding: 0.6rem 1.7rem;
+    font-size: 0.75rem;
+  }
+
+  .home-explore-btn,
+  .home-signin-btn {
+    order: 1;
+  }
+
   .home-icon-bg-1,
   .home-icon-bg-2,
   .home-icon-bg-3,

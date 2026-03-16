@@ -107,7 +107,7 @@ const Home: React.FC = () => {
           <h2 className="home-cta-heading">
             Join Kalarang
           </h2>
-          <div>
+          <div className="home-cta-buttons">
           <button 
             onClick={() => navigate('/signup')}
             className="login-button primary-cta home-cta-button"
@@ -115,6 +115,7 @@ const Home: React.FC = () => {
             <span>Sign Up Free</span>
             {MdArrowForward({ size: 12 })}
           </button>
+      
           </div>
         </div>
       </div>

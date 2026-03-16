@@ -12,6 +12,21 @@
   position: relative;
 }
 
+/* Founding Artists page content wrapper */
+.founding-page-content {
+  width: 100%;
+  transition: filter 0.2s ease;
+}
+
+/* Blur the entire page content when modal is open */
+.founding-page-content.founding-page-blurred {
+  filter: blur(4px);
+  pointer-events: none;
+  user-select: none;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
 /* iOS Safari specific handling */
 @supports (-webkit-touch-callout: none) {
   .legal-container {
@@ -180,10 +195,176 @@
   font-size: 1.2rem;
 }
 
+/* Numbered steps list for Founding Artists page – no bullet dot */
+.founding-steps-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.5rem 0;
+}
+
+.founding-steps-list li {
+  padding-left: 0;
+}
+
+.founding-steps-list li::before {
+  content: none;
+}
+
+/* Founding Artists terms modal */
+.founding-terms-link {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.founding-terms-link:hover {
+  color: var(--color-primary);
+}
+
+.founding-terms-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45); /* dim full viewport, including below previous scroll */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.founding-terms-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  max-width: 520px;
+  width: 100%;
+  padding: 1.25rem 1.5rem 1.5rem;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.25);
+  box-sizing: border-box;
+}
+
+.founding-terms-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.founding-terms-modal-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-royal);
+}
+
+.founding-terms-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+}
+
+.founding-terms-close:hover {
+  color: var(--color-primary);
+}
+
+.founding-terms-modal-body ul {
+  list-style: disc;
+  padding-left: 1.2rem;
+  margin: 0.25rem 0 0;
+}
+
+.founding-terms-modal-body li {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--color-text-dark);
+  line-height: 1.5;
+}
+
+/* Founding Artists CTA counter */
+.founding-cta-counter {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  /* Simplified inline counter with no background or outline */
+  background: none;
+  border: none;
+  outline: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+.founding-counter-fire {
+  font-size: 2rem;
+  line-height: 1;
+  flex-shrink: 0;
+  animation: founding-fire-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes founding-fire-pulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.2);
+    filter: brightness(1.3);
+  }
+}
+
+.founding-counter-text {
+  display: flex;
+  /* Keep all counter text on a single line */
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.35rem;
+  line-height: 1;
+}
+
+.founding-counter-number {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-royal);
+  white-space: nowrap;
+}
+
+.founding-counter-slash {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.founding-counter-label {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-royal);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.founding-cta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Founding Artists primary CTA button - prevent full-width layout */
+.founding-cta-button {
+  width: auto;
+  display: inline-flex;
+}
+
 .legal-highlight {
   background: var(--primary-alpha-10);
   border-left: 3px solid var(--color-primary);
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 0rem;
   border-radius: 4px;
   margin: 1rem 0;
   font-weight: 500;
@@ -295,6 +476,48 @@
   .legal-footer-note {
     padding-top: 1.25rem;
     margin-top: 1.25rem;
+  }
+
+  /* Add outer gap around Founding terms modal on mobile */
+  .founding-terms-modal-overlay {
+    align-items: center;
+    padding: 1.25rem 0.75rem;
+    box-sizing: border-box;
+  }
+
+  .founding-terms-modal {
+    max-width: 100%;
+  }
+
+  /* Keep Founding Artists counter text and fire icon in a single line on mobile */
+  .founding-cta-row {
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .founding-counter-text {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.35rem;
+  }
+
+  .founding-counter-number,
+  .founding-counter-label {
+    white-space: nowrap;
+  }
+
+  /* Slightly smaller counter text on mobile */
+  .founding-counter-number {
+    font-size: 1.35rem;
+  }
+
+  .founding-counter-label {
+    font-size: 1.05rem;
+  }
+
+  .founding-counter-fire {
+    font-size: 1.7rem;
   }
 }
 

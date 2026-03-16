@@ -34,6 +34,7 @@ import { Permission } from "./utils/permissions";
 import { ThemeProvider } from "./context/ThemeContext";
 import { logout } from "./services/authService";
 import ArtistLanding from "./pages/landing/ArtistLanding";
+import FoundingArtistsPage from "./pages/landing/FoundingArtistsPage";
 import BuyerLanding from "./pages/landing/BuyerLanding";
 import { ScrollToTop } from "./components/Common/ScrollToTop";
 import PwaUpdatePrompt from "./components/PwaUpdatePrompt";
@@ -198,6 +199,8 @@ function App() {
               <Route path="/privacy" element={<PrivacyPolicy />} />
 
               <Route path="/explore" element={<Explore />} />
+
+              <Route path="/founding-artists" element={<FoundingArtistsPage />} />
 
               <Route
                 path="/login"
