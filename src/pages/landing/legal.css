@@ -353,6 +353,9 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  /* Match mobile layout: wrap and center for all viewports */
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 /* Founding Artists primary CTA button - prevent full-width layout */
@@ -491,9 +494,8 @@
 
   /* Keep Founding Artists counter text and fire icon in a single line on mobile */
   .founding-cta-row {
-    flex-wrap: wrap;
+    /* Already wrapped & centered by default; keep mobile-specific adjustments here if needed */
     align-items: center;
-    justify-content: center;
   }
 
   .founding-counter-text {
