@@ -207,6 +207,7 @@ const Portfolio: React.FC = () => {
   const [mockUser, setMockUser] = useState({
     name: appUser?.name || 'Artist Name',
     username: appUser?.username,
+    isFoundingArtist: appUser?.isFoundingArtist,
     avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
     bannerImage: '/logo.jpeg',
     stats: {
@@ -249,6 +250,7 @@ const Portfolio: React.FC = () => {
             ...prev,
             name: profile.name || appUser.name,
             username: profile.username,
+            isFoundingArtist: profile.isFoundingArtist ?? prev.isFoundingArtist,
             avatar: profile.avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
             bannerImage: profile.bannerImage || '/logo.jpeg',
             // Preserve existing stats - they're managed by real-time subscription
@@ -495,7 +497,8 @@ const Portfolio: React.FC = () => {
                 username: mockUser.username,
                 avatar: profileData.avatar,
                 bannerImage: profileData.bannerImage,
-                stats: mockUser.stats
+                stats: mockUser.stats,
+                isFoundingArtist: mockUser.isFoundingArtist
               }}
               onEditProfile={handleEditProfile}
               onShareProfile={handleShareProfile}

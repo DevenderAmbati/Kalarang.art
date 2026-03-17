@@ -182,6 +182,8 @@ export const cacheKeys = {
   artistWorks: (userId: string) => `artist-works-${userId}`,
   publishedWorks: (userId: string) => `published-works-${userId}`,
   galleryWorks: (userId: string) => `gallery-works-${userId}`,
+  /** Full page state for other user portfolio (profile + artworks) so back from card doesn't reload */
+  otherUserPortfolio: (userId: string) => `other-portfolio-${userId}`,
 };
 
 /**
@@ -210,6 +212,11 @@ export const cacheTimes = {
   },
   // Portfolio artworks are fresh for 3 minutes, stays in cache for 10 minutes
   portfolio: {
+    staleTime: 3 * 60 * 1000, // 3 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  },
+  // Other user portfolio page state – used when returning from artwork detail
+  otherUserPortfolio: {
     staleTime: 3 * 60 * 1000, // 3 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
   },

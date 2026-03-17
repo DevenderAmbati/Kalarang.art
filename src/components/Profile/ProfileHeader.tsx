@@ -17,6 +17,7 @@ interface User {
   avatar?: string;
   bannerImage?: string;
   stats: ProfileStats;
+  isFoundingArtist?: boolean;
 }
 
 interface ProfileHeaderProps {
@@ -142,7 +143,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         }}>
           {/* Avatar Section */}
           <div className="avatar-section" style={{
-            marginBottom: '1rem',
             position: 'relative',
             zIndex: 1,
             textAlign: 'center'
@@ -150,7 +150,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <div className="avatar-container" style={{
               position: 'relative',
               display: 'inline-block',
-              marginBottom: '0.5rem',
               background: 'white',
               borderRadius: '50%'
             }}>
@@ -186,7 +185,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: getAvatarBackgroundColor(user.name),
-                  fontSize: '2.5rem',
                   fontWeight: 'bold',
                   color: 'white',
                   textShadow: '0 1px 2px rgba(0,0,0,0.1)',
@@ -210,16 +208,35 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             
             {/* User Name */}
             <h1 className="user-name">{user.name}</h1>
-            {user.username && (
-              <p style={{
-                fontSize: '0.95rem',
-                color: 'var(--color-primary)',
+            {(user.username || user.isFoundingArtist) && (
+              <div className="profile-header-username-row" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
                 marginTop: '0.25rem',
                 marginBottom: '0.5rem',
-                fontWeight: 500
+                flexWrap: 'wrap'
               }}>
-                @{user.username}
-              </p>
+                {user.username && (
+                  <p style={{
+                    fontSize: '0.95rem',
+                    color: 'var(--color-primary)',
+                    margin: 0,
+                    fontWeight: 500
+                  }}>
+                    @{user.username}
+                  </p>
+                )}
+                {user.isFoundingArtist && (
+                  <img
+                    src="/founding badge.png"
+                    alt="Founding Artist"
+                    className="founding-artist-badge"
+                    title="Founding Artist"
+                  />
+                )}
+              </div>
             )}
           </div>
 
@@ -228,9 +245,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            gap: '1rem',
-            margin: '1rem auto',
-            padding: '0.75rem 1rem',
             backgroundColor: 'rgba(255, 255, 255, 0.9)',
             borderRadius: '12px',
             backdropFilter: 'blur(10px)',
@@ -293,9 +307,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <div className="action-buttons" style={{
             display: 'flex',
             flexDirection: 'row',
-            gap: '0.75rem',
             justifyContent: 'center',
-            margin: '1rem 0',
             alignItems: 'center',
             width: '100%'
           }}>
@@ -310,9 +322,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 alignItems: 'center',
                 gap: '0.4rem',
                 justifyContent: 'center',
-                height: '48px',
-                whiteSpace: 'nowrap',
-                width: '160px'
+                whiteSpace: 'nowrap'
               }}
               onClick={onShareProfile}
               aria-label="Share profile"
@@ -339,9 +349,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 background: 'transparent',
                 color: 'var(--color-primary)',
                 justifyContent: 'center',
-                height: '48px',
-                whiteSpace: 'nowrap',
-                width: '160px'
+                whiteSpace: 'nowrap'
               }}
               onClick={isOwner ? onEditProfile : onFollow}
               aria-label={isOwner ? "Edit profile" : (isFollowing ? "Unfollow" : "Follow")}

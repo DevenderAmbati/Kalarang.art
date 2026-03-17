@@ -6,7 +6,7 @@ import ArtworkGrid from '../../components/Artwork/ArtworkGrid';
 import EmptyState from '../../components/State/EmptyState';
 import LoadingState from '../../components/State/LoadingState';
 import ConfirmModal from '../../components/Modals/ConfirmModal';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { usePublishedWorks, useFavorites, UseCachedDataResult } from '../../hooks/useCachedData';
 import { cache, cacheKeys } from '../../utils/cache';
@@ -29,6 +29,7 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
 }) => {
   const { appUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
   // Use provided cached data or fetch if not provided
   const ownData = usePublishedWorks(appUser?.uid, !cachedData);
@@ -65,7 +66,7 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
   }, [favoriteIds, appUser]);
 
   const handleArtworkClick = (id: string) => {
-    sessionStorage.setItem('artworkSourceRoute', '/portfolio');
+    sessionStorage.setItem('artworkSourceRoute', isOwnProfile ? '/portfolio' : location.pathname);
     navigate(`/card/${id}`);
   };
 

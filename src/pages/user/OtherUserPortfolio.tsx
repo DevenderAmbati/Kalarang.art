@@ -15,6 +15,7 @@ import { toast } from 'react-toastify';
 import { getArtworksByArtist } from '../../services/artworkService';
 import LoadingState from '../../components/State/LoadingState';
 import lineArt1Animation from '../../animations/Line art (1).json';
+import { cache, cacheKeys, cacheTimes } from '../../utils/cache';
 import './Portfolio.css';
 
 const OtherUserPortfolio: React.FC = () => {
@@ -30,6 +31,7 @@ const OtherUserPortfolio: React.FC = () => {
   const [profileUser, setProfileUser] = useState({
     name: 'Artist Name',
     username: undefined as string | undefined,
+    isFoundingArtist: undefined as boolean | undefined,
     avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
     bannerImage: '/logo.jpeg',
     stats: {
@@ -65,6 +67,26 @@ const OtherUserPortfolio: React.FC = () => {
       return;
     }
 
+    // Restore from cache when returning from artwork detail to avoid full page reload
+    const cacheKey = cacheKeys.otherUserPortfolio(userId);
+    const { data: cached, exists } = cache.get<{
+      profileUser: typeof profileUser;
+      publishedArtworks: any[];
+      galleryArtworks: any[];
+      isFollowing: boolean;
+    }>(cacheKey);
+
+    if (exists && cached) {
+      setProfileUser(cached.profileUser);
+      setPublishedArtworks(cached.publishedArtworks);
+      setGalleryArtworks(cached.galleryArtworks);
+      setIsFollowing(cached.isFollowing);
+      setIsLoadingProfile(false);
+      // Refetch in background to keep data fresh (e.g. new follows, stats)
+      loadUserProfile(true);
+      return;
+    }
+
     loadUserProfile();
   }, [userId, appUser]);
 
@@ -78,12 +100,12 @@ const OtherUserPortfolio: React.FC = () => {
     };
   }, [profileUser.name]);
 
-  const loadUserProfile = async () => {
+  const loadUserProfile = async (backgroundRefetch = false) => {
     if (!userId) return;
 
     try {
-      setIsLoadingProfile(true);
-      
+      if (!backgroundRefetch) setIsLoadingProfile(true);
+
       // Load user profile
       const profile = await getUserProfile(userId);
       
@@ -99,6 +121,7 @@ const OtherUserPortfolio: React.FC = () => {
       setProfileUser({
         name: profile.name,
         username: profile.username,
+        isFoundingArtist: profile.isFoundingArtist,
         avatar: profile.avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
         bannerImage: profile.bannerImage || '/logo.jpeg',
         stats: stats,
@@ -115,8 +138,9 @@ const OtherUserPortfolio: React.FC = () => {
       });
 
       // Check if current user is following this artist
+      let following = false;
       if (appUser) {
-        const following = await isFollowingArtist(appUser.uid, userId);
+        following = await isFollowingArtist(appUser.uid, userId);
         setIsFollowing(following);
       }
 
@@ -128,6 +152,36 @@ const OtherUserPortfolio: React.FC = () => {
       // Gallery shows all artworks including unpublished and commissioned works
       setGalleryArtworks(artworks);
 
+      // Cache page state so returning from artwork detail doesn't trigger full reload
+      const { staleTime, cacheTime } = cacheTimes.otherUserPortfolio;
+      cache.set(
+        cacheKeys.otherUserPortfolio(userId),
+        {
+          profileUser: {
+            name: profile.name,
+            username: profile.username,
+            isFoundingArtist: profile.isFoundingArtist,
+            avatar: profile.avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
+            bannerImage: profile.bannerImage || '/logo.jpeg',
+            stats: stats,
+            bio: profile.bio || '',
+            artStyle: profile.artStyle || [],
+            philosophy: profile.philosophy || '',
+            achievements: profile.achievements || [],
+            exhibitions: profile.exhibitions || [],
+            education: profile.education || [],
+            commissionStatus: profile.commissionStatus,
+            commissionDescription: profile.commissionDescription || '',
+            commissionCtaText: profile.commissionCtaText || 'Get in Touch',
+            links: profile.links || [],
+          },
+          publishedArtworks: published,
+          galleryArtworks: artworks,
+          isFollowing: following,
+        },
+        staleTime,
+        cacheTime
+      );
     } catch (error) {
       toast.error('Failed to load profile');
     } finally {
@@ -292,7 +346,8 @@ const OtherUserPortfolio: React.FC = () => {
                 username: profileUser.username,
                 avatar: profileUser.avatar,
                 bannerImage: profileUser.bannerImage,
-                stats: profileUser.stats
+                stats: profileUser.stats,
+                isFoundingArtist: profileUser.isFoundingArtist
               }}
               onShareProfile={handleShareProfile}
               isOwner={false}

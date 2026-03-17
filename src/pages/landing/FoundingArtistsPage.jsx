@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdArrowForward, MdAutoAwesome, MdCheckCircle } from 'react-icons/md';
 import { FaStar, FaInstagram, FaUserPlus, FaImages } from 'react-icons/fa';
+import { getFoundingArtistsCount } from '../../services/userService';
 import './legal.css';
 
 const steps = [
@@ -12,7 +13,7 @@ const steps = [
     label: 'Upload at least 4 of your best artworks',
   },
   {
-    label: 'Take a screenshot of your Kalarang portfolio and share it on your Instagram story, tagging @kalarang',
+    label: 'Share a screenshot of your Kalarang portfolio on your Instagram story tagging @kalarang, or send it to us via Instagram DM.',
   },
 ];
 
@@ -25,6 +26,11 @@ const benefits = [
 const FoundingArtistsPage = () => {
   const navigate = useNavigate();
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [foundingCount, setFoundingCount] = useState(null);
+
+  useEffect(() => {
+    getFoundingArtistsCount().then(setFoundingCount).catch(() => setFoundingCount(0));
+  }, []);
 
   // Lock body scroll while terms modal is open so the whole blurred layer stays fixed
   useEffect(() => {
@@ -132,7 +138,7 @@ const FoundingArtistsPage = () => {
                 </button>
                 <div className="founding-cta-counter">
                   <div className="founding-counter-text">
-                    <span className="founding-counter-number">x <span className="founding-counter-slash">/</span> 100</span>
+                    <span className="founding-counter-number">{foundingCount ?? '—'} <span className="founding-counter-slash">/</span> 100</span>
                     <span className="founding-counter-label">spots filled · Hurry up!</span>
                   </div>
                   <span className="founding-counter-fire">🔥</span>

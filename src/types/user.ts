@@ -15,4 +15,6 @@ export interface AppUser {
   whatsappAddedAt?: Date; // When WhatsApp number was added
   dontAskWhatsApp?: boolean; // User preference to not show WhatsApp prompt
   passwordPolicyVersion?: number;
+  /** True if user is in the first 100 Founding Artists (set manually in DB). */
+  isFoundingArtist?: boolean;
 }

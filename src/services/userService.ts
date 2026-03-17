@@ -8,6 +8,7 @@ import {
   query,
   where,
   getDocs,
+  getCountFromServer,
   onSnapshot,
   Unsubscribe,
 } from "firebase/firestore";
@@ -109,6 +110,16 @@ export async function updateUserProfile(
     ...updates,
     updatedAt: serverTimestamp(),
   });
+}
+
+/**
+ * Get count of users with isFoundingArtist === true (for Founding Artists page x/100).
+ */
+export async function getFoundingArtistsCount(): Promise<number> {
+  const usersRef = collection(db, "users");
+  const q = query(usersRef, where("isFoundingArtist", "==", true));
+  const snapshot = await getCountFromServer(q);
+  return snapshot.data().count;
 }
 
 /**

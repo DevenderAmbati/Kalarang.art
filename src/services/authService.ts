@@ -30,7 +30,7 @@ export async function signup(
 
   const user = userCredential.user;
 
-  await setDoc(doc(db, "users", user.uid), {
+  const userData = {
     uid: user.uid,
     name,
     email,
@@ -38,7 +38,9 @@ export async function signup(
     createdAt: serverTimestamp(),
     provider: "password",
     passwordPolicyVersion: 2,
-  });
+    ...(role === "artist" && { isFoundingArtist: false }),
+  };
+  await setDoc(doc(db, "users", user.uid), userData);
 
   return user;
 }
@@ -360,7 +362,7 @@ export async function signInWithGoogle(defaultRole?: "artist" | "buyer") {
 
     // Signup flow - create new account
     if (!snap.exists() && defaultRole) {
-      await setDoc(userRef, {
+      const userData = {
         uid: user.uid,
         name: user.displayName || "",
         email: user.email,
@@ -368,7 +370,9 @@ export async function signInWithGoogle(defaultRole?: "artist" | "buyer") {
         createdAt: serverTimestamp(),
         provider: "google",
         passwordPolicyVersion: 2,
-      });
+        ...(defaultRole === "artist" && { isFoundingArtist: false }),
+      };
+      await setDoc(userRef, userData);
     }
 
     return user;

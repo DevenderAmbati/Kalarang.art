@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useImagePreviewBackNavigation } from '../../hooks/useImagePreviewBackNavigation';
 import './ArtworkDetail.css';
@@ -436,8 +437,8 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({
         </div>
       </div>
 
-      {/* Full Preview Modal */}
-      {isPreviewOpen && (
+      {/* Full Preview Modal - Rendered via portal to escape layout stacking context (iOS Safari) */}
+      {isPreviewOpen && ReactDOM.createPortal(
         <div className="artwork-preview-overlay" onClick={handleOverlayClick}>
           <button className="preview-close-btn" onClick={handleClosePreview}>
             <svg
@@ -521,7 +522,8 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({
               draggable={false}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

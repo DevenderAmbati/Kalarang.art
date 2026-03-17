@@ -372,6 +372,7 @@
 
 .reach-out-button {
   flex: 1;
+  min-width: min-content;
   padding: 11px 12px;
   background: var(--gradient-button);
   color: var(--color-bg-white);
@@ -383,6 +384,7 @@
   transition: all var(--transition-base);
   box-shadow: var(--shadow-md);
   letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .reach-out-button:hover {
@@ -720,7 +722,7 @@
   }
 }
 
-/* Full Preview Modal */
+/* Full Preview Modal - Portal to body; high z-index for iOS Safari */
 .artwork-preview-overlay {
   position: fixed;
   top: 0;
@@ -731,11 +733,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: 100000;
   animation: previewFadeIn 0.2s ease-in;
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   padding: 24px;
   box-sizing: border-box;
+  /* iOS Safari: create stacking context so modal stays on top */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  isolation: isolate;
 }
 
 @keyframes previewFadeIn {
@@ -796,7 +803,7 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  z-index: 10001;
+  z-index: 100001;
 }
 
 .preview-close-btn:hover {
@@ -821,7 +828,7 @@
   backdrop-filter: blur(10px);
   padding: 12px 20px;
   border-radius: 50px;
-  z-index: 10001;
+  z-index: 100001;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
