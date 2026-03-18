@@ -144,3 +144,10 @@
     margin-top: 0.25rem !important;
   }
 }
+
+/* Public artwork / portfolio share views (guests): full width, no side nav */
+.layout-public-minimal .layout-main-content {
+  margin-left: 0 !important;
+  width: 100%;
+  max-width: 100%;
+}

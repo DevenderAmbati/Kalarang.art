@@ -87,16 +87,18 @@ const Portfolio: React.FC = () => {
   };
 
   const handleShareProfile = () => {
-    // TODO: Implement profile sharing functionality
+    if (!appUser) return;
+
+    const shareUrl = `${window.location.origin}/portfolio/${appUser.uid}`;
+
     if (navigator.share) {
       navigator.share({
         title: `${mockUser.name}'s Portfolio`,
         text: `Check out ${mockUser.name}'s amazing artwork collection on Kalarang!`,
-        url: window.location.href,
+        url: shareUrl,
       });
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      // Could show a toast notification here
+      navigator.clipboard.writeText(shareUrl);
     }
   };
 

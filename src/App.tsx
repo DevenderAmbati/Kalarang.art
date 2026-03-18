@@ -423,15 +423,9 @@ function App() {
               <Route
                 path="/portfolio/:userId"
                 element={
-                  <ProtectedRoute>
-                    {needsUsernameCreation() ? (
-                      <Navigate to="/create-username" replace />
-                    ) : (
-                      <PersistentFeedContainer>
-                        <OtherUserPortfolio />
-                      </PersistentFeedContainer>
-                    )}
-                  </ProtectedRoute>
+                <PersistentFeedContainer>
+                  <OtherUserPortfolio />
+                </PersistentFeedContainer>
                 }
               />
 
@@ -452,11 +446,9 @@ function App() {
               <Route
                 path="/card/:id"
                 element={
-                  <ProtectedRoute>
-                    <PersistentFeedContainer>
-                      <CardDetail />
-                    </PersistentFeedContainer>
-                  </ProtectedRoute>
+                <PersistentFeedContainer>
+                  <CardDetail />
+                </PersistentFeedContainer>
                 }
               />
 

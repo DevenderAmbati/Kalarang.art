@@ -579,7 +579,7 @@ const HomeFeed: React.FC = () => {
   // Handle reach out to artist from story — open chat drawer with prefilled message
   const handleReachOut = () => {
     if (!selectedStory || !appUser) {
-      toast.error('Please log in to reach out to artists');
+      navigate('/signup');
       return;
     }
 
@@ -760,7 +760,7 @@ const HomeFeed: React.FC = () => {
 
   const handleSave = async (id: number | string) => {
     if (!appUser) {
-      toast.error('Please log in to save artworks');
+      navigate('/signup');
       return;
     }
 

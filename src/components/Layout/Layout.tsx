@@ -93,6 +93,10 @@ const Layout: React.FC<LayoutProps> = ({
   const isFavouritesActive = location.pathname === '/favourites';
   const isArtworkDetail = location.pathname.startsWith('/card/');
   const isOtherUserPortfolio = location.pathname.startsWith('/portfolio/') && location.pathname !== '/portfolio';
+
+  /** Public share views: no app chrome so guests get a clean landing page */
+  const hideAppNav =
+    !appUser && (isArtworkDetail || isOtherUserPortfolio);
   
   // Determine if we're in persistent mounting mode (feed pages)
   const isPersistentMode = homeFeedComponent && discoverComponent && favouritesComponent;
@@ -117,17 +121,21 @@ const Layout: React.FC<LayoutProps> = ({
   };
   
   return (
-    <div style={styles.container}>
-      {isCollapsed ? (
-        <CollapsedSidebar onExpand={toggleSidebar} />
-      ) : (
-        <Sidebar onLogout={onLogout} />
-      )}
+    <div
+      style={styles.container}
+      className={hideAppNav ? 'layout-public-minimal' : undefined}
+    >
+      {!hideAppNav &&
+        (isCollapsed ? (
+          <CollapsedSidebar onExpand={toggleSidebar} />
+        ) : (
+          <Sidebar onLogout={onLogout} />
+        ))}
       <main 
         className="layout-main-content"
         style={{
           ...styles.main,
-          marginLeft: isCollapsed ? '80px' : '260px',
+          marginLeft: hideAppNav ? 0 : isCollapsed ? '80px' : '260px',
         }}
       >
         {/* Header with Page Title */}
@@ -145,6 +153,24 @@ const Layout: React.FC<LayoutProps> = ({
               />
             </div>
             <div className="header-right" style={styles.headerRight}>
+              {hideAppNav && (
+                <div style={styles.publicHeaderActions}>
+                  <button
+                    type="button"
+                    style={styles.publicHeaderLink}
+                    onClick={() => navigate('/login')}
+                  >
+                    Log in
+                  </button>
+                  <button
+                    type="button"
+                    style={styles.publicHeaderCta}
+                    onClick={() => navigate('/signup')}
+                  >
+                    Sign up
+                  </button>
+                </div>
+              )}
               {appUser && (
                 <div
                   onClick={() => setIsChatDrawerOpen(true)}
@@ -204,14 +230,26 @@ const Layout: React.FC<LayoutProps> = ({
               
               {/* ArtworkDetail - Independent scroll container */}
               {isArtworkDetail && (
-                <div style={{...styles.artworkDetailScrollContainer, paddingTop: `${headerHeight}px`}}>
+                <div
+                  style={{
+                    ...styles.artworkDetailScrollContainer,
+                    paddingTop: `${headerHeight}px`,
+                    paddingBottom: hideAppNav ? '1.25rem' : undefined,
+                  }}
+                >
                   {children}
                 </div>
               )}
               
               {/* OtherUserPortfolio - Independent scroll container */}
               {isOtherUserPortfolio && (
-                <div style={{...styles.artworkDetailScrollContainer, paddingTop: `${headerHeight}px`}}>
+                <div
+                  style={{
+                    ...styles.artworkDetailScrollContainer,
+                    paddingTop: `${headerHeight}px`,
+                    paddingBottom: hideAppNav ? '1.25rem' : undefined,
+                  }}
+                >
                   {children}
                 </div>
               )}
@@ -235,8 +273,7 @@ const Layout: React.FC<LayoutProps> = ({
           onClose={() => setIsChatDrawerOpen(false)}
         />
       </main>
-      {/* Mobile Bottom Navigation - Only visible on mobile devices */}
-      <BottomNav />
+      {!hideAppNav && <BottomNav />}
     </div>
   );
 };
@@ -317,6 +354,30 @@ const styles = {
     transition: 'all 0.3s ease',
     marginRight: '0.5rem',
     marginLeft: '-0.5rem',
+  } as React.CSSProperties,
+  publicHeaderActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+  } as React.CSSProperties,
+  publicHeaderLink: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '0.95rem',
+    fontWeight: 600,
+    color: 'var(--color-primary)',
+    padding: '0.25rem 0.5rem',
+  } as React.CSSProperties,
+  publicHeaderCta: {
+    background: 'var(--color-primary)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '999px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    fontWeight: 600,
+    padding: '0.45rem 1rem',
   } as React.CSSProperties,
   unreadBadge: {
     position: 'absolute',

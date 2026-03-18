@@ -66,6 +66,10 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
   }, [favoriteIds, appUser]);
 
   const handleArtworkClick = (id: string) => {
+    if (!appUser) {
+      navigate('/signup');
+      return;
+    }
     sessionStorage.setItem('artworkSourceRoute', isOwnProfile ? '/portfolio' : location.pathname);
     navigate(`/card/${id}`);
   };

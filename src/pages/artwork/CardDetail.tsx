@@ -130,7 +130,7 @@ const CardDetail: React.FC = () => {
 
   const handleLike = async (artworkId: number) => {
     if (!appUser || !id) {
-      toast.error('Please log in to save artworks');
+      navigate('/signup');
       return;
     }
 
@@ -184,7 +184,7 @@ const CardDetail: React.FC = () => {
 
   const handleReachOut = (artistId: string) => {
     if (!appUser) {
-      toast.error('Please log in to reach out to artists');
+      navigate('/signup');
       return;
     }
 
@@ -204,7 +204,7 @@ const CardDetail: React.FC = () => {
 
   const handleFollow = async (artistId: string) => {
     if (!appUser) {
-      toast.error('Please log in to follow artists');
+      navigate('/signup');
       return;
     }
 
@@ -229,9 +229,12 @@ const CardDetail: React.FC = () => {
   const handleThumbnailClick = (_imageUrl: string) => {};
 
   const handleArtistClick = (artistId: string) => {
-    const isOwnProfile = artistId === appUser?.uid;
+    if (!appUser) {
+      navigate('/signup');
+      return;
+    }
+    const isOwnProfile = artistId === appUser.uid;
     if (!isOwnProfile) {
-      // Preserve the original source route if it exists, otherwise use current path
       const currentSource = sessionStorage.getItem('artworkSourceRoute');
       if (!currentSource || currentSource.startsWith('/card/')) {
         sessionStorage.setItem('artworkSourceRoute', location.pathname);

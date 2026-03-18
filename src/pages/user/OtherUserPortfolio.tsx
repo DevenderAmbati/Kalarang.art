@@ -215,7 +215,7 @@ const OtherUserPortfolio: React.FC = () => {
 
   const handleGetInTouch = () => {
     if (!appUser || !userId) {
-      toast.error('Please log in to get in touch with artists');
+      navigate('/signup');
       return;
     }
 
@@ -236,7 +236,7 @@ const OtherUserPortfolio: React.FC = () => {
 
   const handleFollow = async () => {
     if (!appUser || !userId) {
-      toast.error('Please log in to follow artists');
+      navigate('/signup');
       return;
     }
 
