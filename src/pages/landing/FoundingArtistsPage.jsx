@@ -10,7 +10,11 @@ const steps = [
     label: 'Create an account',
   },
   {
-    label: 'Upload at least 4 of your best artworks',
+    label: (
+      <>
+        Upload at least 4 of your <strong>best artworks</strong>
+      </>
+    ),
   },
   {
     label: 'Share a screenshot of your Kalarang portfolio on your Instagram story tagging @kalarang, or send it to us via Instagram DM.',
