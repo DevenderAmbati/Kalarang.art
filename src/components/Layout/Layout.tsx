@@ -214,27 +214,40 @@ const Layout: React.FC<LayoutProps> = ({
           {showPersistentPages ? (
             <>
               {/* HomeFeed - Independent scroll container */}
-              <div style={{...(isHomeFeedActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden), paddingTop: `${headerHeight}px`}}>
+              <div
+                className={!hideAppNav ? 'layout-inner-scroll--with-bottom-nav' : undefined}
+                style={{...(isHomeFeedActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden), paddingTop: `${headerHeight}px`}}
+              >
                 {homeFeedComponent}
               </div>
               
               {/* Discover - Independent scroll container */}
-              <div style={{...(isDiscoverActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden), paddingTop: `${headerHeight}px`}}>
+              <div
+                className={!hideAppNav ? 'layout-inner-scroll--with-bottom-nav' : undefined}
+                style={{...(isDiscoverActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden), paddingTop: `${headerHeight}px`}}
+              >
                 {discoverComponent}
               </div>
               
               {/* Favourites - Independent scroll container */}
-              <div style={{...(isFavouritesActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden), paddingTop: `${headerHeight}px`}}>
+              <div
+                className={!hideAppNav ? 'layout-inner-scroll--with-bottom-nav' : undefined}
+                style={{...(isFavouritesActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden), paddingTop: `${headerHeight}px`}}
+              >
                 {favouritesComponent}
               </div>
               
               {/* ArtworkDetail - Independent scroll container */}
               {isArtworkDetail && (
                 <div
+                  className={
+                    hideAppNav
+                      ? 'layout-scroll-pad-guest'
+                      : 'layout-inner-scroll--with-bottom-nav'
+                  }
                   style={{
                     ...styles.artworkDetailScrollContainer,
                     paddingTop: `${headerHeight}px`,
-                    paddingBottom: hideAppNav ? '1.25rem' : undefined,
                   }}
                 >
                   {children}
@@ -244,10 +257,14 @@ const Layout: React.FC<LayoutProps> = ({
               {/* OtherUserPortfolio - Independent scroll container */}
               {isOtherUserPortfolio && (
                 <div
+                  className={
+                    hideAppNav
+                      ? 'layout-scroll-pad-guest'
+                      : 'layout-inner-scroll--with-bottom-nav'
+                  }
                   style={{
                     ...styles.artworkDetailScrollContainer,
                     paddingTop: `${headerHeight}px`,
-                    paddingBottom: hideAppNav ? '1.25rem' : undefined,
                   }}
                 >
                   {children}
@@ -255,7 +272,10 @@ const Layout: React.FC<LayoutProps> = ({
               )}
             </>
           ) : (
-            <div style={{...styles.standardScrollContainer, paddingTop: `${headerHeight}px`}}>
+            <div
+              className={!hideAppNav ? 'layout-inner-scroll--with-bottom-nav' : undefined}
+              style={{...styles.standardScrollContainer, paddingTop: `${headerHeight}px`}}
+            >
               {children}
             </div>
           )}

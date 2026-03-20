@@ -110,7 +110,7 @@ const SortableItem: React.FC<SortableItemProps> = ({ image, index, onRemoveImage
 const ImagePreviewGrid: React.FC<ImagePreviewGridProps> = ({
   images,
   onRemoveImage,
-  maxImages = 6,
+  maxImages = 4,
 }) => {
   // Create empty slots to fill the grid
   const displayItems = [...images];

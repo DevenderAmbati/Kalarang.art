@@ -92,7 +92,7 @@ const CreateArtwork: React.FC = () => {
     return () => clearTimeout(t);
   }, [isLoadingArtwork, isSaving, isPublishing]);
 
-  const maxImages = 6;
+  const maxImages = 4;
 
   // Load draft from localStorage if available (for new artworks only)
   useEffect(() => {

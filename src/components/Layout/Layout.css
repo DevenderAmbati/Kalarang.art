@@ -62,7 +62,6 @@
     display: none !important;
   }
   
-  /* Adjust main content area for mobile */
   .layout-main-content {
     margin-left: 0 !important;
     height: 100dvh !important;
@@ -73,6 +72,11 @@
     right: 0;
     bottom: 0;
     overflow: hidden;
+  }
+
+  /* Extra bottom padding so scroll content clears fixed bottom nav (65px + wave + home indicator) */
+  .layout-inner-scroll--with-bottom-nav {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* Adjust header for mobile */
@@ -106,14 +110,6 @@
 /* ============================================
    SAFE AREA SUPPORT (for iPhone notch, etc.)
    ============================================ */
-
-@supports (padding: max(0px)) {
-  @media (max-width: 480px) {
-    .layout-main-content {
-      /* Adjust max-height for devices with safe areas */
-      max-height: calc(100vh - max(env(safe-area-inset-bottom, 0px), 65px));    }
-  }
-}
 
 /* ============================================
    HEADER LOGO RESPONSIVE SWITCHING
@@ -150,4 +146,10 @@
   margin-left: 0 !important;
   width: 100%;
   max-width: 100%;
+}
+
+@media (max-width: 639px) {
+  .layout-scroll-pad-guest {
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px)) !important;
+  }
 }
