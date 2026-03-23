@@ -158,12 +158,14 @@ const HomeFeed: React.FC = () => {
       const cached = cache.get<{
         artworks: Artwork[];
         hasMore: boolean;
+        lastVisible: QueryDocumentSnapshot<DocumentData> | null;
       }>(cacheKey);
 
       if (cached.exists && cached.data) {
         // Load from cache immediately
         setArtworks(cached.data.artworks);
         setHasMore(cached.data.hasMore);
+        setLastVisible(cached.data.lastVisible ?? null);
         setLoading(false);
 
         // If cache is stale, fetch fresh data in background
@@ -179,7 +181,7 @@ const HomeFeed: React.FC = () => {
             // Update cache
             cache.set(
               cacheKey,
-              { artworks: result.artworks, hasMore: result.hasMore },
+              { artworks: result.artworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
               2 * 60 * 1000, // 2 minutes stale time
               5 * 60 * 1000  // 5 minutes cache time
             );
@@ -208,7 +210,7 @@ const HomeFeed: React.FC = () => {
           // Store in cache
           cache.set(
             cacheKey,
-            { artworks: result.artworks, hasMore: result.hasMore },
+            { artworks: result.artworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
             2 * 60 * 1000, // 2 minutes stale time
             5 * 60 * 1000  // 5 minutes cache time
           );
@@ -246,7 +248,7 @@ const HomeFeed: React.FC = () => {
         : cacheKeys.homeFeedPaginated();
       cache.set(
         cacheKey,
-        { artworks: updatedArtworks, hasMore: result.hasMore },
+        { artworks: updatedArtworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
         2 * 60 * 1000, // 2 minutes stale time
         5 * 60 * 1000  // 5 minutes cache time
       );

@@ -51,6 +51,17 @@ const Layout: React.FC<LayoutProps> = ({
   const [headerHeight, setHeaderHeight] = useState(56);
   const [installBannerVisible, setInstallBannerVisible] = useState(false);
 
+  // Save/restore scroll position for the inner feed containers.
+  // This prevents back-navigation from jumping to the top.
+  const homeFeedScrollRef = useRef<HTMLDivElement | null>(null);
+  const discoverScrollRef = useRef<HTMLDivElement | null>(null);
+  const favouritesScrollRef = useRef<HTMLDivElement | null>(null);
+  const SCROLL_KEYS = {
+    home: 'kalarang_scrollTop_home',
+    discover: 'kalarang_scrollTop_discover',
+    favourites: 'kalarang_scrollTop_favourites',
+  } as const;
+
   useEffect(() => {
     const el = headerRef.current;
     if (!el) return;
@@ -103,6 +114,51 @@ const Layout: React.FC<LayoutProps> = ({
   
   // Show persistent pages for /home, /discover, /favourites, and when viewing artwork detail or other user portfolio
   const showPersistentPages = isPersistentMode && (isHomeFeedActive || isDiscoverActive || isFavouritesActive || isArtworkDetail || isOtherUserPortfolio);
+
+  // Persist scrollTop before route changes unmount the current layout.
+  useEffect(() => {
+    return () => {
+      try {
+        if (isHomeFeedActive && homeFeedScrollRef.current) {
+          sessionStorage.setItem(SCROLL_KEYS.home, String(homeFeedScrollRef.current.scrollTop));
+        }
+        if (isDiscoverActive && discoverScrollRef.current) {
+          sessionStorage.setItem(SCROLL_KEYS.discover, String(discoverScrollRef.current.scrollTop));
+        }
+        if (isFavouritesActive && favouritesScrollRef.current) {
+          sessionStorage.setItem(SCROLL_KEYS.favourites, String(favouritesScrollRef.current.scrollTop));
+        }
+      } catch {
+        // sessionStorage might be unavailable in some environments
+      }
+    };
+  }, [location.pathname, isHomeFeedActive, isDiscoverActive, isFavouritesActive]);
+
+  // Restore scrollTop when returning back to a feed route.
+  useEffect(() => {
+    const restore = () => {
+      try {
+        if (isHomeFeedActive && homeFeedScrollRef.current) {
+          const v = sessionStorage.getItem(SCROLL_KEYS.home);
+          if (v !== null) homeFeedScrollRef.current.scrollTop = Number(v);
+        } else if (isDiscoverActive && discoverScrollRef.current) {
+          const v = sessionStorage.getItem(SCROLL_KEYS.discover);
+          if (v !== null) discoverScrollRef.current.scrollTop = Number(v);
+        } else if (isFavouritesActive && favouritesScrollRef.current) {
+          const v = sessionStorage.getItem(SCROLL_KEYS.favourites);
+          if (v !== null) favouritesScrollRef.current.scrollTop = Number(v);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    // Wait for layout to mount + header height to settle.
+    const id = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(restore);
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [location.pathname]);
 
   // Determine page title based on route
   const getPageTitle = () => {
@@ -216,6 +272,7 @@ const Layout: React.FC<LayoutProps> = ({
               {/* HomeFeed - Independent scroll container */}
               <div
                 className={!hideAppNav ? 'layout-inner-scroll--with-bottom-nav' : undefined}
+                ref={homeFeedScrollRef}
                 style={{...(isHomeFeedActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden), paddingTop: `${headerHeight}px`}}
               >
                 {homeFeedComponent}
@@ -224,6 +281,7 @@ const Layout: React.FC<LayoutProps> = ({
               {/* Discover - Independent scroll container */}
               <div
                 className={!hideAppNav ? 'layout-inner-scroll--with-bottom-nav' : undefined}
+                ref={discoverScrollRef}
                 style={{...(isDiscoverActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden), paddingTop: `${headerHeight}px`}}
               >
                 {discoverComponent}
@@ -232,6 +290,7 @@ const Layout: React.FC<LayoutProps> = ({
               {/* Favourites - Independent scroll container */}
               <div
                 className={!hideAppNav ? 'layout-inner-scroll--with-bottom-nav' : undefined}
+                ref={favouritesScrollRef}
                 style={{...(isFavouritesActive && !isArtworkDetail && !isOtherUserPortfolio ? styles.feedScrollContainer : styles.feedScrollContainerHidden), paddingTop: `${headerHeight}px`}}
               >
                 {favouritesComponent}

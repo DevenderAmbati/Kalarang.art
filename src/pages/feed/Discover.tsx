@@ -165,7 +165,7 @@ const Discover: React.FC = () => {
       setHasMore(result.hasMore);
       cache.set(
         cacheKeys.discoverPaginated(),
-        { artworks: result.artworks, hasMore: result.hasMore },
+        { artworks: result.artworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
         2 * 60 * 1000,
         5 * 60 * 1000
       );
@@ -210,35 +210,58 @@ const Discover: React.FC = () => {
       const cached = cache.get<{
         artworks: ArtworkType[];
         hasMore: boolean;
+        lastVisible: QueryDocumentSnapshot<DocumentData> | null;
       }>(cacheKeys.discoverPaginated());
 
       if (cached.exists && cached.data) {
+        const cachedArtworks = cached.data.artworks;
+        const cachedHasMore = cached.data.hasMore;
+        const cachedLastVisible = cached.data.lastVisible ?? null;
+
         // Load from cache immediately
-        setArtworks(cached.data.artworks);
-        setHasMore(cached.data.hasMore);
+        setArtworks(cachedArtworks);
+        setHasMore(cachedHasMore);
+        setLastVisible(cachedLastVisible);
         setLoading(false);
 
-        // Always fetch first page in background to get lastVisible so "Load more" works.
-        // Cache doesn't store the Firestore cursor, so without this only 20 items would ever load.
-        const ensureCursor = async () => {
-          try {
-            const result = await getPublishedArtworksPaginated(20);
-            setLastVisible(result.lastVisible);
-            if (cached.isStale) {
+        // If cache is stale, refresh in background.
+        if (cached.isStale) {
+          (async () => {
+            try {
+              const result = await getPublishedArtworksPaginated(20);
               setArtworks(result.artworks);
+              setLastVisible(result.lastVisible);
               setHasMore(result.hasMore);
               cache.set(
                 cacheKeys.discoverPaginated(),
-                { artworks: result.artworks, hasMore: result.hasMore },
+                { artworks: result.artworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
                 2 * 60 * 1000,
                 5 * 60 * 1000
               );
+            } catch {
+              setHasMore(false);
             }
-          } catch {
-            setHasMore(false);
-          }
-        };
-        ensureCursor();
+          })();
+        } else if (!cachedLastVisible) {
+          // If the cached cursor is missing (older cache entries), fetch once to restore pagination.
+          // Otherwise, skip network calls on back-navigation.
+          (async () => {
+            try {
+              const result = await getPublishedArtworksPaginated(20);
+              setLastVisible(result.lastVisible);
+              setHasMore(result.hasMore);
+              cache.set(
+                cacheKeys.discoverPaginated(),
+                { artworks: cachedArtworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
+                2 * 60 * 1000,
+                5 * 60 * 1000
+              );
+            } catch {
+              setHasMore(false);
+            }
+          })();
+        }
+
         return;
       }
 
@@ -253,7 +276,7 @@ const Discover: React.FC = () => {
         // Store in cache
         cache.set(
           cacheKeys.discoverPaginated(),
-          { artworks: result.artworks, hasMore: result.hasMore },
+          { artworks: result.artworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
           2 * 60 * 1000, // 2 minutes stale time
           5 * 60 * 1000  // 5 minutes cache time
         );
@@ -283,7 +306,7 @@ const Discover: React.FC = () => {
 
       cache.set(
         cacheKeys.discoverPaginated(),
-        { artworks: updatedArtworks, hasMore: result.hasMore },
+        { artworks: updatedArtworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
         2 * 60 * 1000,
         5 * 60 * 1000
       );

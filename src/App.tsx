@@ -1,5 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useEffect, useState } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -39,7 +38,11 @@ import BuyerLanding from "./pages/landing/BuyerLanding";
 import { ScrollToTop } from "./components/Common/ScrollToTop";
 import PwaUpdatePrompt from "./components/PwaUpdatePrompt";
 
-// Persistent Feed Container Component
+/**
+ * Single shell for Home / Discover / Favourites + artwork detail.
+ * Uses <Outlet /> so navigating /home ↔ /card/:id does NOT unmount feeds (scroll + state preserved).
+ * When `children` is passed (e.g. OtherUserPortfolio), Outlet is not used.
+ */
 const PersistentFeedContainer: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const handleLogout = async () => {
     await logout();
@@ -52,10 +55,25 @@ const PersistentFeedContainer: React.FC<{ children?: React.ReactNode }> = ({ chi
       discoverComponent={<Discover />}
       favouritesComponent={<Favourites />}
     >
-      {children}
+      {children ?? <Outlet />}
     </Layout>
   );
 };
+
+/** Username gate for feed tabs only (must be inside ProtectedRoute). */
+const FeedTabGuard: React.FC = () => {
+  const { appUser } = useAuth();
+  if (appUser?.role === "artist" && !appUser?.username) {
+    return <Navigate to="/create-username" replace />;
+  }
+  return null;
+};
+
+const FeedTabProtected: React.FC = () => (
+  <ProtectedRoute>
+    <FeedTabGuard />
+  </ProtectedRoute>
+);
 
 // Main App Layout for static menu navigation
 const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -343,31 +361,16 @@ function App() {
                 }
               />
 
-              <Route
-                path="/home"
-                element={
-                  <ProtectedRoute>
-                    {needsUsernameCreation() ? (
-                      <Navigate to="/create-username" replace />
-                    ) : (
-                      <PersistentFeedContainer />
-                    )}
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/discover"
-                element={
-                  <ProtectedRoute>
-                    {needsUsernameCreation() ? (
-                      <Navigate to="/create-username" replace />
-                    ) : (
-                      <PersistentFeedContainer />
-                    )}
-                  </ProtectedRoute>
-                }
-              />
+              {/*
+                One persistent shell for feed tabs + artwork detail so /home|discover|favourites
+                and /card/:id share the same Layout instance (scroll + data stay put).
+              */}
+              <Route element={<PersistentFeedContainer />}>
+                <Route path="home" element={<FeedTabProtected />} />
+                <Route path="discover" element={<FeedTabProtected />} />
+                <Route path="favourites" element={<FeedTabProtected />} />
+                <Route path="card/:id" element={<CardDetail />} />
+              </Route>
 
               <Route
                 path="/post"
@@ -383,19 +386,6 @@ function App() {
                         <Upload />
                       )}
                     </PermissionGuard>
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/favourites"
-                element={
-                  <ProtectedRoute>
-                    {needsUsernameCreation() ? (
-                      <Navigate to="/create-username" replace />
-                    ) : (
-                      <PersistentFeedContainer />
-                    )}
                   </ProtectedRoute>
                 }
               />
@@ -440,15 +430,6 @@ function App() {
                       </div>
                     </Layout>
                   </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/card/:id"
-                element={
-                <PersistentFeedContainer>
-                  <CardDetail />
-                </PersistentFeedContainer>
                 }
               />
 
