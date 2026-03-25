@@ -5,7 +5,12 @@ import FilterPanel, { FilterState } from '../../components/Filters/FilterPanel';
 import LoadingState from '../../components/State/LoadingState';
 import EmptyState from '../../components/State/EmptyState';
 import { Artwork as ArtworkType } from '../../types/artwork';
-import { getPublishedArtworksPaginated } from '../../services/artworkService';
+import {
+  getPublishedArtworksPaginated,
+  getPublishedArtworksFilteredPaginated,
+  ArtworkFeedSortOption,
+  FeedPaginationOrderMode,
+} from '../../services/artworkService';
 import { searchUsers } from '../../services/userService';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import laptopAnimation from '../../animations/Laptop-Drawing 1.json';
@@ -14,21 +19,9 @@ import { toast } from 'react-toastify';
 import { cache } from '../../utils/cache';
 import './Explore.css';
 
-const SIZE_CATEGORIES = [
-  { label: 'Small', minWidth: 0, maxWidth: 8, minHeight: 0, maxHeight: 8 },
-  { label: 'Medium', minWidth: 8, maxWidth: 18, minHeight: 8, maxHeight: 18 },
-  { label: 'Large', minWidth: 18, maxWidth: 500, minHeight: 18, maxHeight: 500 },
-];
-
 const CATEGORIES = ['All', 'Abstract', 'Landscape', 'Portrait', 'Modern', 'Craft', 'Digital', 'Sculpture'];
 
-const EXPLORE_CACHE_KEY = 'explore_artworks';
-
-const parseInches = (value?: string): number | null => {
-  if (!value) return null;
-  const parsed = parseFloat(value);
-  return isNaN(parsed) ? null : parsed;
-};
+const exploreCacheKey = (sort: ArtworkFeedSortOption) => `explore_artworks_${sort}`;
 
 const Explore: React.FC = () => {
   const navigate = useNavigate();
@@ -68,7 +61,7 @@ const Explore: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
-  const [sortOption, setSortOption] = useState<'price-low' | 'price-high' | 'newest'>('newest');
+  const [sortOption, setSortOption] = useState<ArtworkFeedSortOption>('featured');
   const [filters, setFilters] = useState<FilterState>({ mediums: [], priceRange: { min: 100, max: 10000000 }, sizes: [] });
 
   const [artworks, setArtworks] = useState<ArtworkType[]>([]);
@@ -76,6 +69,49 @@ const Explore: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMore, setHasMore] = useState(true);
+
+  /** Search / category / panel filters — drives filtered Firestore scans. */
+  const hasActiveFilters = useMemo(() => {
+    return (
+      debouncedSearchQuery.trim().length > 0 ||
+      activeCategory !== 'All' ||
+      filters.mediums.length > 0 ||
+      filters.sizes.length > 0 ||
+      filters.priceRange.min !== 100 ||
+      filters.priceRange.max !== 10000000
+    );
+  }, [debouncedSearchQuery, activeCategory, filters]);
+
+  /** Price sorts always use filtered query; otherwise use simple pagination when unfiltered. */
+  const needsFilteredQuery = useMemo(() => {
+    return (
+      hasActiveFilters ||
+      sortOption === 'price-low' ||
+      sortOption === 'price-high'
+    );
+  }, [hasActiveFilters, sortOption]);
+
+  const hasActivePanelFilters = useMemo(() => {
+    return (
+      filters.mediums.length > 0 ||
+      filters.sizes.length > 0 ||
+      filters.priceRange.min !== 100 ||
+      filters.priceRange.max !== 10000000
+    );
+  }, [filters]);
+
+  const queryOptions = useMemo(() => ({
+    query: debouncedSearchQuery.trim(),
+    artistIds: matchedUsers.map((u) => u.uid),
+    category: activeCategory,
+    mediums: filters.mediums,
+    priceRange: filters.priceRange,
+    sizes: filters.sizes,
+    sortOption,
+  }), [debouncedSearchQuery, matchedUsers, activeCategory, filters, sortOption]);
+
+  const paginationOrderMode: FeedPaginationOrderMode =
+    sortOption === 'newest' ? 'newest' : 'featured';
 
   const savedArtworks = useMemo(() => new Set<string>(), []);
 
@@ -111,57 +147,81 @@ const Explore: React.FC = () => {
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Initial fetch with cache
+  // Fetch with cache (default) or server query (search/filter/sort)
   useEffect(() => {
+    let cancelled = false;
     const fetchArtworks = async () => {
-      const cached = cache.get<{ artworks: ArtworkType[]; hasMore: boolean }>(EXPLORE_CACHE_KEY);
+      setLoading(true);
+      if (needsFilteredQuery) {
+        try {
+          const result = await getPublishedArtworksFilteredPaginated(queryOptions, 20);
+          if (cancelled) return;
+          setArtworks(result.artworks);
+          setLastVisible(result.lastVisible);
+          setHasMore(result.hasMore);
+        } catch {
+          if (!cancelled) toast.error('Failed to load artworks');
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+        return;
+      }
+
+      const cacheKey = exploreCacheKey(sortOption);
+      const cached = cache.get<{ artworks: ArtworkType[]; hasMore: boolean }>(cacheKey);
       if (cached.exists && cached.data) {
         setArtworks(cached.data.artworks);
         setHasMore(cached.data.hasMore);
-        setLoading(false);
+        if (!cancelled) setLoading(false);
         if (cached.isStale) {
           try {
-            const result = await getPublishedArtworksPaginated(20);
+            const result = await getPublishedArtworksPaginated(20, undefined, paginationOrderMode);
+            if (cancelled) return;
             setArtworks(result.artworks);
             setLastVisible(result.lastVisible);
             setHasMore(result.hasMore);
-            cache.set(EXPLORE_CACHE_KEY, { artworks: result.artworks, hasMore: result.hasMore }, 2 * 60 * 1000, 5 * 60 * 1000);
+            cache.set(cacheKey, { artworks: result.artworks, hasMore: result.hasMore }, 2 * 60 * 1000, 5 * 60 * 1000);
           } catch {}
         }
         return;
       }
-      setLoading(true);
       try {
-        const result = await getPublishedArtworksPaginated(20);
+        const result = await getPublishedArtworksPaginated(20, undefined, paginationOrderMode);
+        if (cancelled) return;
         setArtworks(result.artworks);
         setLastVisible(result.lastVisible);
         setHasMore(result.hasMore);
-        cache.set(EXPLORE_CACHE_KEY, { artworks: result.artworks, hasMore: result.hasMore }, 2 * 60 * 1000, 5 * 60 * 1000);
+        cache.set(cacheKey, { artworks: result.artworks, hasMore: result.hasMore }, 2 * 60 * 1000, 5 * 60 * 1000);
       } catch (error) {
-        toast.error('Failed to load artworks');
+        if (!cancelled) toast.error('Failed to load artworks');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     fetchArtworks();
-  }, []);
+    return () => { cancelled = true; };
+  }, [needsFilteredQuery, queryOptions, sortOption, paginationOrderMode]);
 
   const loadMoreArtworks = useCallback(async () => {
     if (!hasMore || loadingMore || !lastVisible) return;
     setLoadingMore(true);
     try {
-      const result = await getPublishedArtworksPaginated(20, lastVisible);
+      const result = needsFilteredQuery
+        ? await getPublishedArtworksFilteredPaginated(queryOptions, 20, lastVisible)
+        : await getPublishedArtworksPaginated(20, lastVisible, paginationOrderMode);
       const updated = [...artworks, ...result.artworks];
       setArtworks(updated);
       setLastVisible(result.lastVisible);
       setHasMore(result.hasMore);
-      cache.set(EXPLORE_CACHE_KEY, { artworks: updated, hasMore: result.hasMore }, 2 * 60 * 1000, 5 * 60 * 1000);
+      if (!needsFilteredQuery) {
+        cache.set(exploreCacheKey(sortOption), { artworks: updated, hasMore: result.hasMore }, 2 * 60 * 1000, 5 * 60 * 1000);
+      }
     } catch {
       toast.error('Failed to load more artworks');
     } finally {
       setLoadingMore(false);
     }
-  }, [hasMore, loadingMore, lastVisible, artworks]);
+  }, [hasMore, loadingMore, lastVisible, artworks, needsFilteredQuery, queryOptions, paginationOrderMode, sortOption]);
 
   // Infinite scroll on the local container
   useEffect(() => {
@@ -241,45 +301,7 @@ const Explore: React.FC = () => {
     searchInputRef.current?.focus();
   };
 
-  const filteredArtworks = useMemo(() => {
-    return artworks.filter(a => {
-      if (debouncedSearchQuery.trim()) {
-        const q = debouncedSearchQuery.toLowerCase();
-        if (q.includes(' - @')) {
-          const [namePart, userPart] = q.split(' - @');
-          const artist = matchedUsers.find(u => u.username?.toLowerCase() === userPart);
-          if (artist && a.artistId === artist.uid) return true;
-          return [namePart, userPart].some(t => a.title?.toLowerCase().includes(t) || a.description?.toLowerCase().includes(t) || a.category?.toLowerCase().includes(t) || a.medium?.toLowerCase().includes(t));
-        }
-        if (q.startsWith('@')) {
-          const un = q.slice(1);
-          const artist = matchedUsers.find(u => u.username?.toLowerCase() === un);
-          if (artist && a.artistId === artist.uid) return true;
-          return a.title?.toLowerCase().includes(un) || a.artistName?.toLowerCase().includes(un) || a.category?.toLowerCase().includes(un) || a.medium?.toLowerCase().includes(un);
-        }
-        if (!(a.title?.toLowerCase().includes(q) || a.description?.toLowerCase().includes(q) || a.artistName?.toLowerCase().includes(q) || a.category?.toLowerCase().includes(q) || a.medium?.toLowerCase().includes(q))) return false;
-      }
-      if (activeCategory !== 'All' && a.category?.toLowerCase() !== activeCategory.toLowerCase()) return false;
-      if (filters.mediums.length > 0 && !filters.mediums.some(m => a.medium?.toLowerCase() === m.toLowerCase())) return false;
-      if (a.price < filters.priceRange.min || a.price > filters.priceRange.max) return false;
-      if (filters.sizes.length > 0) {
-        const w = parseInches(a.width), h = parseInches(a.height);
-        if (w === null || h === null) return false;
-        if (!filters.sizes.some(sz => { const sc = SIZE_CATEGORIES.find(s => s.label === sz); return sc && w >= sc.minWidth && w <= sc.maxWidth && h >= sc.minHeight && h <= sc.maxHeight; })) return false;
-      }
-      return true;
-    });
-  }, [artworks, debouncedSearchQuery, activeCategory, filters, matchedUsers]);
-
-  const sortedArtworks = useMemo(() => {
-    return [...filteredArtworks].sort((a, b) => {
-      if (sortOption === 'price-low') return a.price - b.price;
-      if (sortOption === 'price-high') return b.price - a.price;
-      const da = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
-      const db = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
-      return db.getTime() - da.getTime();
-    });
-  }, [filteredArtworks, sortOption]);
+  const displayedArtworks = artworks;
 
   return (
     <div className="explore-page">
@@ -368,9 +390,15 @@ const Explore: React.FC = () => {
                 </button>
                 {isSortDropdownOpen && (
                   <div className="discover-sort-dropdown" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
-                    {(['price-low', 'price-high', 'newest'] as const).map(opt => (
+                    {(['featured', 'newest', 'price-low', 'price-high'] as const).map(opt => (
                       <button key={opt} className="discover-sort-option" onClick={() => { setSortOption(opt); setIsSortDropdownOpen(false); }}>
-                        {opt === 'price-low' ? 'Price: Low to High' : opt === 'price-high' ? 'Price: High to Low' : 'Latest First'}
+                        {opt === 'featured'
+                          ? 'Featured'
+                          : opt === 'price-low'
+                            ? 'Price: Low to High'
+                            : opt === 'price-high'
+                              ? 'Price: High to Low'
+                              : 'Latest First'}
                       </button>
                     ))}
                   </div>
@@ -378,8 +406,23 @@ const Explore: React.FC = () => {
                 <span className="discover-tooltip">Sort</span>
               </div>
               <div className="discover-btn-wrapper">
-                <button className="discover-filter-btn" onClick={() => setIsFilterPanelOpen(v => !v)} aria-label="Filter">
+                <button className="discover-filter-btn" onClick={() => setIsFilterPanelOpen(v => !v)} aria-label="Filter" style={{ position: 'relative' }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>
+                  {hasActivePanelFilters && (
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 4,
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--color-primary)',
+                        boxShadow: '0 0 0 2px var(--bg-primary)',
+                      }}
+                    />
+                  )}
                 </button>
                 <span className="discover-tooltip">Filter</span>
               </div>
@@ -430,13 +473,13 @@ const Explore: React.FC = () => {
                   </div>
                 )}
 
-                {sortedArtworks.length === 0 && matchedUsers.length === 0 ? (
+                {displayedArtworks.length === 0 && matchedUsers.length === 0 ? (
                   <EmptyState animation={noContentAnimation} title="No Artworks Found" description="Check back later for amazing artworks from talented artists." actionLabel="Go to Home" actionPath="/" />
-                ) : sortedArtworks.length > 0 ? (
+                ) : displayedArtworks.length > 0 ? (
                   <>
                     {debouncedSearchQuery.trim() && <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: 'var(--color-royal)', paddingLeft: '1rem' }}>Artworks</h3>}
                     <ArtworkGrid
-                      artworks={sortedArtworks.map(a => ({ id: a.id, title: a.title, artworkImage: a.images[0], artistName: a.artistName, artistAvatar: a.artistAvatar || '/artist.png', artistId: a.artistId, price: a.price, sold: a.sold }))}
+                      artworks={displayedArtworks.map(a => ({ id: a.id, title: a.title, artworkImage: a.images[0], artistName: a.artistName, artistAvatar: a.artistAvatar || '/artist.png', artistId: a.artistId, price: a.price, sold: a.sold }))}
                       viewType="discover"
                       onArtworkClick={goToLogin}
                       onArtistClick={goToLogin}

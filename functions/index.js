@@ -17,7 +17,8 @@
  */
 
 const {onCall} = require("firebase-functions/v2/https");
-const {onDocumentCreated} = require("firebase-functions/v2/firestore");
+const {onDocumentCreated, onDocumentWritten} = require("firebase-functions/v2/firestore");
+const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {setGlobalOptions} = require("firebase-functions/v2");
 const logger = require("firebase-functions/logger");
 const {defineSecret, defineString} = require("firebase-functions/params");
@@ -632,5 +633,174 @@ exports.onChatMessageCreated = onDocumentCreated(
       {type: "chat", chatId, url: "/home"},
       `chat_${chatId}`
     );
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Artwork Ranking Score
+// ---------------------------------------------------------------------------
+
+/**
+ * Calculate ranking score for an artwork.
+ * Mirrors the client-side logic in src/utils/score.ts.
+ */
+function calculateScore(artwork, artistTotalArtworks) {
+  const createdAt = artwork.createdAt;
+  let millis = Date.now();
+  if (createdAt && typeof createdAt.toMillis === "function") {
+    millis = createdAt.toMillis();
+  } else if (createdAt && typeof createdAt.toDate === "function") {
+    millis = createdAt.toDate().getTime();
+  } else if (createdAt instanceof Date) {
+    millis = createdAt.getTime();
+  } else if (typeof createdAt === "number") {
+    millis = createdAt;
+  }
+
+  const hours = (Date.now() - millis) / (1000 * 60 * 60);
+  const recencyScore = Math.exp(-hours / 24);
+
+  const rawEngagement =
+    1 * (artwork.views || 0) +
+    5 * (artwork.favorites || 0) +
+    10 * (artwork.reachOutClicks || 0);
+  const engagementScore = Math.min(Math.log(1 + rawEngagement), 3);
+
+  const newArtistBoost =
+    artistTotalArtworks != null && artistTotalArtworks < 5 ? 1 : 0;
+  const randomBoost = Math.random();
+
+  const score =
+    0.4 * recencyScore +
+    0.2 * engagementScore +
+    0.1 * newArtistBoost +
+    0.1 * randomBoost;
+
+  return parseFloat(score.toFixed(6));
+}
+
+/**
+ * Trigger: artwork document written (create or update).
+ * Re-computes the ranking score whenever views, favorites, reachOutClicks,
+ * or published status changes.
+ */
+exports.onArtworkWritten = onDocumentWritten(
+  {
+    document: "artworks/{artworkId}",
+    region: "us-central1",
+    memory: "256MiB",
+    maxInstances: 20,
+  },
+  async (event) => {
+    const after = event.data?.after;
+    if (!after || !after.exists) return; // deleted
+
+    const data = after.data();
+    const before = event.data?.before;
+    const beforeData = before?.exists ? before.data() : null;
+
+    // Skip if only the score field changed (avoid infinite loop)
+    if (beforeData) {
+      const fieldsToWatch = [
+        "views", "favorites", "reachOutClicks", "published", "createdAt",
+      ];
+      const changed = fieldsToWatch.some(
+        (f) => JSON.stringify(beforeData[f]) !== JSON.stringify(data[f])
+      );
+      // If it's an update and none of the watched fields changed, skip
+      if (!changed && beforeData.score !== undefined) return;
+    }
+
+    try {
+      const artistId = data.artistId;
+      let artistTotalArtworks = 0;
+
+      if (artistId) {
+        const countSnap = await db
+          .collection("artworks")
+          .where("artistId", "==", artistId)
+          .where("published", "==", true)
+          .count()
+          .get();
+        artistTotalArtworks = countSnap.data().count || 0;
+      }
+
+      const score = calculateScore(data, artistTotalArtworks);
+      await after.ref.update({score});
+
+      logger.info("Artwork score updated", {
+        artworkId: event.params.artworkId,
+        score,
+      });
+    } catch (err) {
+      logger.error("Failed to update artwork score", {
+        artworkId: event.params.artworkId,
+        error: err.message,
+      });
+    }
+  }
+);
+
+/**
+ * Scheduled function: recompute scores every 6 hours to account for
+ * recency decay on artworks that haven't had engagement changes.
+ */
+exports.recomputeArtworkScores = onSchedule(
+  {
+    schedule: "every 6 hours",
+    region: "us-central1",
+    memory: "512MiB",
+    timeoutSeconds: 300,
+    maxInstances: 1,
+  },
+  async () => {
+    const batchSize = 500;
+    let lastDoc = null;
+    let totalUpdated = 0;
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      let q = db
+        .collection("artworks")
+        .where("published", "==", true)
+        .orderBy("createdAt", "desc")
+        .limit(batchSize);
+
+      if (lastDoc) {
+        q = q.startAfter(lastDoc);
+      }
+
+      const snapshot = await q.get();
+      if (snapshot.empty) break;
+
+      const artistCountCache = {};
+
+      const writeBatch = db.batch();
+      for (const docSnap of snapshot.docs) {
+        const data = docSnap.data();
+        const artistId = data.artistId;
+
+        if (!(artistId in artistCountCache)) {
+          const countSnap = await db
+            .collection("artworks")
+            .where("artistId", "==", artistId)
+            .where("published", "==", true)
+            .count()
+            .get();
+          artistCountCache[artistId] = countSnap.data().count || 0;
+        }
+
+        const score = calculateScore(data, artistCountCache[artistId]);
+        writeBatch.update(docSnap.ref, {score});
+        totalUpdated++;
+      }
+
+      await writeBatch.commit();
+      lastDoc = snapshot.docs[snapshot.docs.length - 1];
+
+      if (snapshot.docs.length < batchSize) break;
+    }
+
+    logger.info("Batch score recompute complete", {totalUpdated});
   }
 );

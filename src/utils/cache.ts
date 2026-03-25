@@ -172,7 +172,8 @@ export const cache = new Cache();
  */
 export const cacheKeys = {
   artworks: (limit?: number) => `artworks${limit ? `-${limit}` : ''}`,
-  discoverPaginated: () => `discover-paginated`,
+  /** Cache key for Discover default feed; include sort so Featured vs Newest don't mix. */
+  discoverPaginated: (sort: string = "featured") => `discover-paginated-${sort}`,
   homeFeedPaginated: (userId?: string) => userId ? `homefeed-paginated-${userId}` : `homefeed-paginated`,
   stories: (userId?: string) => userId ? `stories-${userId}` : `stories`,
   artwork: (id: string) => `artwork-${id}`,

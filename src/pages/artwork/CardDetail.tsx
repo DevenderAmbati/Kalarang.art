@@ -4,7 +4,7 @@ import ArtworkDetail, { Artwork as ArtworkDetailType, Artist } from '../../compo
 import LoadingState from '../../components/State/LoadingState';
 import ChatDrawer, { ChatContact } from '../../components/Chat/ChatDrawer';
 import { useAuth } from '../../context/AuthContext';
-import { getArtwork, incrementArtworkViews } from '../../services/artworkService';
+import { getArtwork, incrementArtworkViews, incrementArtworkReachOutClicks } from '../../services/artworkService';
 import { useFavorites } from '../../hooks/useCachedData';
 import { cache, cacheKeys } from '../../utils/cache';
 import { 
@@ -197,6 +197,11 @@ const CardDetail: React.FC = () => {
 
     // eslint-disable-next-line no-console
     console.log('CardDetail - Opening chat with artworkId:', id, 'title:', artwork.title);
+
+    // Track reach-out intent click without blocking chat open
+    if (id) {
+      incrementArtworkReachOutClicks(id).catch(() => {});
+    }
     
     // Don't set a predefined message, let the user type their own
     setChatDrawerOpen(true);

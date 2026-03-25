@@ -8,7 +8,12 @@ import EmptyState from '../../components/State/EmptyState';
 import { useFavorites } from '../../hooks/useCachedData';
 import { saveArtworkToFavorites, removeArtworkFromFavorites } from '../../services/interactionService';
 import { Artwork as ArtworkType } from '../../types/artwork';
-import { getPublishedArtworksPaginated } from '../../services/artworkService';
+import {
+  getPublishedArtworksPaginated,
+  getPublishedArtworksFilteredPaginated,
+  ArtworkFeedSortOption,
+  FeedPaginationOrderMode,
+} from '../../services/artworkService';
 import { searchUsers } from '../../services/userService';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import laptopAnimation from '../../animations/Laptop-Drawing 1.json';
@@ -18,13 +23,6 @@ import { cache, cacheKeys } from '../../utils/cache';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import PullToRefreshIndicator from '../../components/Common/PullToRefreshIndicator';
 import './Discover.css';
-
-// Size categories with dimensions in inches
-const SIZE_CATEGORIES = [
-  { label: 'Small', minWidth: 0, maxWidth: 8, minHeight: 0, maxHeight: 8 },
-  { label: 'Medium', minWidth: 8, maxWidth: 18, minHeight: 8, maxHeight: 18 },
-  { label: 'Large', minWidth: 18, maxWidth: 500, minHeight: 18, maxHeight: 500 },
-];
 
 const CATEGORIES = [
   'All',
@@ -36,12 +34,6 @@ const CATEGORIES = [
   'Digital',
   'Sculpture',
 ];
-
-const parseInches = (value?: string): number | null => {
-  if (!value) return null;
-  const parsed = parseFloat(value);
-  return isNaN(parsed) ? null : parsed;
-};
 
 const Discover: React.FC = () => {
   const navigate = useNavigate();
@@ -77,7 +69,7 @@ const Discover: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
-  const [sortOption, setSortOption] = useState<'price-low' | 'price-high' | 'newest'>('newest');
+  const [sortOption, setSortOption] = useState<ArtworkFeedSortOption>('featured');
   const [filters, setFilters] = useState<FilterState>({
     mediums: [],
     priceRange: { min: 100, max: 10000000 },
@@ -156,23 +148,91 @@ const Discover: React.FC = () => {
     };
   }, []);
 
-  // Pull-to-refresh handler
-  const handleRefresh = useCallback(async () => {
-    try {
-      const result = await getPublishedArtworksPaginated(20);
+  const hasActiveFilters = useMemo(() => {
+    return (
+      debouncedSearchQuery.trim().length > 0 ||
+      activeCategory !== 'All' ||
+      filters.mediums.length > 0 ||
+      filters.sizes.length > 0 ||
+      filters.priceRange.min !== 100 ||
+      filters.priceRange.max !== 10000000
+    );
+  }, [debouncedSearchQuery, activeCategory, filters]);
+
+  const needsFilteredQuery = useMemo(() => {
+    return (
+      hasActiveFilters ||
+      sortOption === 'price-low' ||
+      sortOption === 'price-high'
+    );
+  }, [hasActiveFilters, sortOption]);
+
+  const hasActivePanelFilters = useMemo(() => {
+    return (
+      filters.mediums.length > 0 ||
+      filters.sizes.length > 0 ||
+      filters.priceRange.min !== 100 ||
+      filters.priceRange.max !== 10000000
+    );
+  }, [filters]);
+
+  const queryOptions = useMemo(() => ({
+    query: debouncedSearchQuery.trim(),
+    artistIds: matchedUsers.map((u) => u.uid),
+    category: activeCategory,
+    mediums: filters.mediums,
+    priceRange: filters.priceRange,
+    sizes: filters.sizes,
+    sortOption,
+  }), [debouncedSearchQuery, matchedUsers, activeCategory, filters, sortOption]);
+
+  const paginationOrderMode: FeedPaginationOrderMode =
+    sortOption === 'newest' ? 'newest' : 'featured';
+
+  const fetchFirstPage = useCallback(async (useFilteredQuery: boolean) => {
+    if (!useFilteredQuery) {
+      const cacheKey = cacheKeys.discoverPaginated(sortOption);
+      const cached = cache.get<{
+        artworks: ArtworkType[];
+        hasMore: boolean;
+        lastVisible: QueryDocumentSnapshot<DocumentData> | null;
+      }>(cacheKey);
+
+      if (cached.exists && cached.data) {
+        setArtworks(cached.data.artworks);
+        setHasMore(cached.data.hasMore);
+        setLastVisible(cached.data.lastVisible ?? null);
+        setLoading(false);
+        return;
+      }
+
+      const result = await getPublishedArtworksPaginated(20, undefined, paginationOrderMode);
       setArtworks(result.artworks);
       setLastVisible(result.lastVisible);
       setHasMore(result.hasMore);
       cache.set(
-        cacheKeys.discoverPaginated(),
+        cacheKey,
         { artworks: result.artworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
         2 * 60 * 1000,
         5 * 60 * 1000
       );
+      return;
+    }
+
+    const result = await getPublishedArtworksFilteredPaginated(queryOptions, 20);
+    setArtworks(result.artworks);
+    setLastVisible(result.lastVisible);
+    setHasMore(result.hasMore);
+  }, [queryOptions, sortOption, paginationOrderMode]);
+
+  // Pull-to-refresh handler
+  const handleRefresh = useCallback(async () => {
+    try {
+      await fetchFirstPage(needsFilteredQuery);
     } catch (error) {
       throw error;
     }
-  }, []);
+  }, [fetchFirstPage, needsFilteredQuery]);
 
   // Initialize pull-to-refresh
   const pullToRefreshState = usePullToRefresh(containerRef, {
@@ -203,92 +263,22 @@ const Discover: React.FC = () => {
     }
   }, [appUser?.uid, favoriteIds, refetchFavorites]);
 
-  // Initial data fetch with cache
+  // Initial data fetch and refetch when query/filter/sort changes
   useEffect(() => {
-    const fetchInitialArtworks = async () => {
-      // Try to get from cache first
-      const cached = cache.get<{
-        artworks: ArtworkType[];
-        hasMore: boolean;
-        lastVisible: QueryDocumentSnapshot<DocumentData> | null;
-      }>(cacheKeys.discoverPaginated());
-
-      if (cached.exists && cached.data) {
-        const cachedArtworks = cached.data.artworks;
-        const cachedHasMore = cached.data.hasMore;
-        const cachedLastVisible = cached.data.lastVisible ?? null;
-
-        // Load from cache immediately
-        setArtworks(cachedArtworks);
-        setHasMore(cachedHasMore);
-        setLastVisible(cachedLastVisible);
-        setLoading(false);
-
-        // If cache is stale, refresh in background.
-        if (cached.isStale) {
-          (async () => {
-            try {
-              const result = await getPublishedArtworksPaginated(20);
-              setArtworks(result.artworks);
-              setLastVisible(result.lastVisible);
-              setHasMore(result.hasMore);
-              cache.set(
-                cacheKeys.discoverPaginated(),
-                { artworks: result.artworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
-                2 * 60 * 1000,
-                5 * 60 * 1000
-              );
-            } catch {
-              setHasMore(false);
-            }
-          })();
-        } else if (!cachedLastVisible) {
-          // If the cached cursor is missing (older cache entries), fetch once to restore pagination.
-          // Otherwise, skip network calls on back-navigation.
-          (async () => {
-            try {
-              const result = await getPublishedArtworksPaginated(20);
-              setLastVisible(result.lastVisible);
-              setHasMore(result.hasMore);
-              cache.set(
-                cacheKeys.discoverPaginated(),
-                { artworks: cachedArtworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
-                2 * 60 * 1000,
-                5 * 60 * 1000
-              );
-            } catch {
-              setHasMore(false);
-            }
-          })();
-        }
-
-        return;
-      }
-
-      // No cache, fetch fresh data
+    let cancelled = false;
+    const run = async () => {
       setLoading(true);
       try {
-        const result = await getPublishedArtworksPaginated(20);
-        setArtworks(result.artworks);
-        setLastVisible(result.lastVisible);
-        setHasMore(result.hasMore);
-        
-        // Store in cache
-        cache.set(
-          cacheKeys.discoverPaginated(),
-          { artworks: result.artworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
-          2 * 60 * 1000, // 2 minutes stale time
-          5 * 60 * 1000  // 5 minutes cache time
-        );
+        await fetchFirstPage(needsFilteredQuery);
       } catch {
-        toast.error('Failed to load artworks');
+        if (!cancelled) toast.error('Failed to load artworks');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-
-    fetchInitialArtworks();
-  }, []);
+    run();
+    return () => { cancelled = true; };
+  }, [fetchFirstPage, needsFilteredQuery]);
 
   // Load more artworks
   const loadMoreArtworks = useCallback(async () => {
@@ -296,7 +286,9 @@ const Discover: React.FC = () => {
 
     setLoadingMore(true);
     try {
-      const result = await getPublishedArtworksPaginated(20, lastVisible);
+      const result = needsFilteredQuery
+        ? await getPublishedArtworksFilteredPaginated(queryOptions, 20, lastVisible)
+        : await getPublishedArtworksPaginated(20, lastVisible, paginationOrderMode);
       const existingIds = new Set(artworks.map((a) => a.id));
       const newArtworks = result.artworks.filter((a) => !existingIds.has(a.id));
       const updatedArtworks = [...artworks, ...newArtworks];
@@ -304,18 +296,20 @@ const Discover: React.FC = () => {
       setLastVisible(result.lastVisible);
       setHasMore(result.hasMore);
 
-      cache.set(
-        cacheKeys.discoverPaginated(),
-        { artworks: updatedArtworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
-        2 * 60 * 1000,
-        5 * 60 * 1000
-      );
+      if (!needsFilteredQuery) {
+        cache.set(
+          cacheKeys.discoverPaginated(sortOption),
+          { artworks: updatedArtworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
+          2 * 60 * 1000,
+          5 * 60 * 1000
+        );
+      }
     } catch {
       toast.error('Failed to load more artworks');
     } finally {
       setLoadingMore(false);
     }
-  }, [hasMore, loadingMore, lastVisible, artworks]);
+  }, [hasMore, loadingMore, lastVisible, artworks, needsFilteredQuery, queryOptions, paginationOrderMode, sortOption]);
 
   // Infinite scroll detection — use the actual scroll container (parent of discover), not layout-main-content
   useEffect(() => {
@@ -468,7 +462,7 @@ const Discover: React.FC = () => {
     setIsFilterPanelOpen(false);
   };
 
-  const handleSortSelect = (option: 'price-low' | 'price-high' | 'newest') => {
+  const handleSortSelect = (option: ArtworkFeedSortOption) => {
     setSortOption(option);
     setIsSortDropdownOpen(false);
   };
@@ -531,141 +525,7 @@ const Discover: React.FC = () => {
     return Array.from(suggestions).slice(0, 8);
   }, [searchQuery, artworks, matchedUsers]);
 
-  // Filter artworks based on active category and filters (memoized)
-  const filteredArtworks = useMemo(() => {
-    return (artworks || []).filter(artwork => {
-      // Search query filter - search in title, description, artist name, category, and medium
-      if (debouncedSearchQuery.trim()) {
-        const query = debouncedSearchQuery.toLowerCase();
-        
-        // Check if searching by artist with "Name - @username" format
-        if (query.includes(' - @')) {
-          const parts = query.split(' - @');
-          const username = parts[1]; // username without @
-          
-          // Find the artist by username
-          const artist = matchedUsers.find(u => u.username?.toLowerCase() === username.toLowerCase());
-          
-          if (artist) {
-            // Match by artist ID primarily
-            if (artwork.artistId === artist.uid) {
-              return true;
-            }
-          }
-          
-          // Fallback: also search in other fields
-          const searchTerms = [parts[0], username]; // name and username
-          return searchTerms.some(term => 
-            artwork.title?.toLowerCase().includes(term) ||
-            artwork.description?.toLowerCase().includes(term) ||
-            artwork.category?.toLowerCase().includes(term) ||
-            artwork.medium?.toLowerCase().includes(term)
-          );
-        } else if (query.startsWith('@')) {
-          // Searching by @username only
-          const username = query.substring(1);
-          
-          // Find the artist by username
-          const artist = matchedUsers.find(u => u.username?.toLowerCase() === username.toLowerCase());
-          
-          if (artist) {
-            // Match by artist ID primarily
-            if (artwork.artistId === artist.uid) {
-              return true;
-            }
-          }
-          
-          // Fallback: search in other fields
-          return (
-            artwork.title?.toLowerCase().includes(username) ||
-            artwork.description?.toLowerCase().includes(username) ||
-            artwork.artistName?.toLowerCase().includes(username) ||
-            artwork.category?.toLowerCase().includes(username) ||
-            artwork.medium?.toLowerCase().includes(username)
-          );
-        } else {
-          // Regular search in all fields
-          const matchesSearch = 
-            artwork.title?.toLowerCase().includes(query) ||
-            artwork.description?.toLowerCase().includes(query) ||
-            artwork.artistName?.toLowerCase().includes(query) ||
-            artwork.category?.toLowerCase().includes(query) ||
-            artwork.medium?.toLowerCase().includes(query);
-          
-          if (!matchesSearch) return false;
-        }
-      }
-
-    // Category filter
-    if (activeCategory !== 'All') {
-      if (artwork.category?.toLowerCase() !== activeCategory.toLowerCase()) {
-        return false;
-      }
-    }
-
-    // Medium filter
-    if (filters.mediums.length > 0) {
-      if (!filters.mediums.some(medium => 
-        artwork.medium?.toLowerCase() === medium.toLowerCase()
-      )) {
-        return false;
-      }
-    }
-
-    // Price filter
-    if (artwork.price < filters.priceRange.min || artwork.price > filters.priceRange.max) {
-      return false;
-    }
-
-    // Size filter (if you have width/height fields)
-    if (filters.sizes.length > 0) {
-      const width = parseInches(artwork.width);
-      const height = parseInches(artwork.height);
-
-      // If artwork doesn't have dimensions, exclude it from size-filtered results
-      if (width === null || height === null) {
-        return false;
-      }
-
-      // Check if artwork matches any of the selected size categories
-      const matchesSize = filters.sizes.some(selectedSize => {
-        const sizeCategory = SIZE_CATEGORIES.find(s => s.label === selectedSize);
-        if (!sizeCategory) return false;
-
-        return (
-          width >= sizeCategory.minWidth &&
-          width <= sizeCategory.maxWidth &&
-          height >= sizeCategory.minHeight &&
-          height <= sizeCategory.maxHeight
-        );
-      });
-
-      if (!matchesSize) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-  }, [artworks, debouncedSearchQuery, activeCategory, filters, matchedUsers]);
-
-  // Sort filtered artworks
-  const sortedArtworks = React.useMemo(() => {
-    return [...filteredArtworks].sort((a, b) => {
-      switch (sortOption) {
-        case 'price-low':
-          return a.price - b.price;
-        case 'price-high':
-          return b.price - a.price;
-        case 'newest':
-          const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
-          const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
-          return dateB.getTime() - dateA.getTime();
-        default:
-          return 0;
-      }
-    });
-  }, [filteredArtworks, sortOption]);
+  const displayedArtworks = artworks || [];
 
   return (
     <>
@@ -783,6 +643,24 @@ const Discover: React.FC = () => {
                     className="discover-sort-option"
                     onClick={(e) => {
                       e.stopPropagation();
+                      handleSortSelect('featured');
+                    }}
+                  >
+                    Featured
+                  </button>
+                  <button
+                    className="discover-sort-option"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSortSelect('newest');
+                    }}
+                  >
+                    Latest First
+                  </button>
+                  <button
+                    className="discover-sort-option"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       handleSortSelect('price-low');
                     }}
                   >
@@ -797,15 +675,6 @@ const Discover: React.FC = () => {
                   >
                     Price: High to Low
                   </button>
-                  <button
-                    className="discover-sort-option"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSortSelect('newest');
-                    }}
-                  >
-                    Latest First
-                  </button>
                 </div>
               )}
               <span className="discover-tooltip">Sort</span>
@@ -815,10 +684,26 @@ const Discover: React.FC = () => {
                 className="discover-filter-btn"
                 onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
                 aria-label="Open filters"
+                style={{ position: 'relative' }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                 </svg>
+                {hasActivePanelFilters && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      right: 4,
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--color-primary)',
+                      boxShadow: '0 0 0 2px var(--bg-primary)',
+                    }}
+                  />
+                )}
               </button>
               <span className="discover-tooltip">Filter</span>
             </div>
@@ -949,7 +834,7 @@ const Discover: React.FC = () => {
               )}
 
               {/* Artworks Section */}
-              {sortedArtworks.length === 0 && matchedUsers.length === 0 ? (
+              {displayedArtworks.length === 0 && matchedUsers.length === 0 ? (
                 <EmptyState
                   animation={noContentAnimation}
                   title="No Artworks Found"
@@ -957,7 +842,7 @@ const Discover: React.FC = () => {
                   actionLabel="Go to Home"
                   actionPath="/home"
                 />
-              ) : sortedArtworks.length > 0 ? (
+              ) : displayedArtworks.length > 0 ? (
                 <>
                   {debouncedSearchQuery.trim() && (
                     <h3 style={{
@@ -971,7 +856,7 @@ const Discover: React.FC = () => {
                     </h3>
                   )}
                   <ArtworkGrid 
-                    artworks={sortedArtworks.map(artwork => ({
+                    artworks={displayedArtworks.map(artwork => ({
                       id: artwork.id,
                       title: artwork.title,
                       artworkImage: artwork.images[0],

@@ -74,6 +74,12 @@ export async function saveArtworkToFavorites(
     createdAt: serverTimestamp(),
   });
 
+  // Increment favorites count on artwork
+  const artworkRef = doc(db, "artworks", artworkId);
+  await updateDoc(artworkRef, {
+    favorites: increment(1),
+  });
+
   // Get artwork details to create notification
   if (userName) {
     try {
@@ -112,6 +118,12 @@ export async function removeArtworkFromFavorites(
 ): Promise<void> {
   const favoriteRef = doc(db, "favorites", `${userId}_${artworkId}`);
   await deleteDoc(favoriteRef);
+
+  // Decrement favorites count on artwork
+  const artworkRef = doc(db, "artworks", artworkId);
+  await updateDoc(artworkRef, {
+    favorites: increment(-1),
+  });
 }
 
 /**

@@ -19,6 +19,9 @@ export interface Artwork {
   updatedAt: Date;
   views?: number;
   likes?: number;
+  favorites?: number;
+  reachOutClicks?: number;
+  score?: number;
 }
 
 export interface ArtworkUpload {
