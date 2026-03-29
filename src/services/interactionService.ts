@@ -17,7 +17,12 @@ import { createNotification } from "./notificationService";
 /**
  * Like an artwork
  */
-export async function likeArtwork(userId: string, artworkId: string): Promise<void> {
+export async function likeArtwork(
+  userId: string,
+  artworkId: string,
+  userName?: string,
+  userAvatar?: string,
+): Promise<void> {
   const likeRef = doc(db, "likes", `${userId}_${artworkId}`);
   await setDoc(likeRef, {
     userId,
@@ -30,6 +35,30 @@ export async function likeArtwork(userId: string, artworkId: string): Promise<vo
   await updateDoc(artworkRef, {
     likes: increment(1),
   });
+
+  if (userName) {
+    try {
+      const artworkSnap = await getDoc(artworkRef);
+      if (artworkSnap.exists()) {
+        const artworkData = artworkSnap.data();
+        const artistId = artworkData.artistId as string | undefined;
+        if (artistId && artistId !== userId) {
+          await createNotification(
+            artistId,
+            "like",
+            userId,
+            userName,
+            userAvatar,
+            artworkId,
+            artworkData.title,
+            artworkData.images?.[0],
+          );
+        }
+      }
+    } catch {
+      // notification is best-effort
+    }
+  }
 }
 
 /**

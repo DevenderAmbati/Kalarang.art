@@ -11,9 +11,11 @@ import {
   updateDoc,
   doc,
   deleteDoc,
+  getDoc,
   Unsubscribe,
   Timestamp,
 } from "firebase/firestore";
+import { createNotification } from "./notificationService";
 
 export interface ArtworkComment {
   id: string;
@@ -28,6 +30,15 @@ export interface ArtworkComment {
 }
 
 const MAX_COMMENT_LENGTH = 2000;
+/** Max chars for comment and reply text in in-app / push notification previews */
+const NOTIF_SNIPPET_MAX = 60;
+
+function truncateForNotification(text: string, max: number): string {
+  const t = text.trim();
+  if (!t) return "";
+  if (t.length <= max) return t;
+  return `${t.slice(0, max)}…`;
+}
 
 export function subscribeToArtworkComments(
   artworkId: string,
@@ -103,6 +114,56 @@ export async function addArtworkComment(
   await updateDoc(doc(db, "artworks", artworkId), {
     comments: increment(1),
   });
+
+  try {
+    const artworkSnap = await getDoc(doc(db, "artworks", artworkId));
+    if (!artworkSnap.exists()) return;
+    const artworkData = artworkSnap.data();
+    const artistId = artworkData.artistId as string | undefined;
+    const artTitle = typeof artworkData.title === "string" ? artworkData.title : "";
+    const artImage = Array.isArray(artworkData.images) ? artworkData.images[0] : undefined;
+    if (parentCommentId) {
+      const parentSnap = await getDoc(doc(db, "comments", parentCommentId));
+      if (!parentSnap.exists()) return;
+      const parentData = parentSnap.data();
+      const parentAuthorId = parentData.userId as string | undefined;
+      if (!parentAuthorId || parentAuthorId === userId) return;
+      await createNotification(
+        parentAuthorId,
+        "comment_reply",
+        userId,
+        userName,
+        userAvatar,
+        artworkId,
+        artTitle,
+        artImage,
+        undefined,
+        undefined,
+        undefined,
+        truncateForNotification(trimmed, NOTIF_SNIPPET_MAX),
+      );
+      return;
+    }
+
+    if (artistId && userId !== artistId) {
+      await createNotification(
+        artistId,
+        "comment",
+        userId,
+        userName,
+        userAvatar,
+        artworkId,
+        artTitle,
+        artImage,
+        undefined,
+        undefined,
+        undefined,
+        truncateForNotification(trimmed, NOTIF_SNIPPET_MAX),
+      );
+    }
+  } catch {
+    // best-effort notifications
+  }
 }
 
 export async function deleteArtworkComment(

@@ -157,26 +157,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.notification-icon.follow {
   color: var(--color-primary);
 }
 
-.notification-icon.reachout.chat {
-  color: var(--color-primary);
-}
-
-.notification-icon.favourite {
-  color: #E91E63;
-}
-
-.notification-icon.commission {
-  color: #FF9800;
-}
-
-.notification-icon.commission-success {
-  color: #4CAF50;
+.notification-inline-snippet {
+  font-style: italic;
+  color: var(--color-text-secondary-light);
+  word-break: break-word;
 }
 
 .notification-content {
@@ -187,8 +174,9 @@
 .notification-text {
   margin: 0 0 0.2rem 0;
   font-size: 0.85rem;
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--color-text-primary-light);
+  word-break: break-word;
 }
 
 .notification-text strong {

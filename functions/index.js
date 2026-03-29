@@ -839,6 +839,8 @@ exports.onNotificationCreated = onDocumentCreated(
     let body = "You have a new notification";
 
     const commissionTitle = notif.commissionTitle || "";
+    const artworkId = notif.artworkId || "";
+    const commentSnippet = typeof notif.commentSnippet === "string" ? notif.commentSnippet.trim() : "";
 
     switch (type) {
     case "follow":
@@ -850,6 +852,32 @@ exports.onNotificationCreated = onDocumentCreated(
       body = artworkTitle
         ? `${actorName || "Someone"} favourited "${artworkTitle}"`
         : `${actorName || "Someone"} favourited your artwork`;
+      break;
+    case "like":
+      title = "New Like";
+      body = artworkTitle
+        ? `${actorName || "Someone"} liked "${artworkTitle}"`
+        : `${actorName || "Someone"} liked your artwork`;
+      break;
+    case "comment":
+      title = "New Comment";
+      body = artworkTitle
+        ? `${actorName || "Someone"} commented on "${artworkTitle}"`
+        : `${actorName || "Someone"} commented on your artwork`;
+      if (commentSnippet) {
+        const short = commentSnippet.length > 100 ? commentSnippet.slice(0, 100) + "…" : commentSnippet;
+        body = `${body}: ${short}`;
+      }
+      break;
+    case "comment_reply":
+      title = "Reply to your comment";
+      body = artworkTitle
+        ? `${actorName || "Someone"} replied on "${artworkTitle}"`
+        : `${actorName || "Someone"} replied to your comment`;
+      if (commentSnippet) {
+        const short = commentSnippet.length > 100 ? commentSnippet.slice(0, 100) + "…" : commentSnippet;
+        body = `${body}: ${short}`;
+      }
       break;
     case "reachout":
       title = "New Reach Out";
@@ -886,10 +914,17 @@ exports.onNotificationCreated = onDocumentCreated(
     }
 
     const isCommissionType = ["commission_application", "commission_offer", "commission_offer_accepted", "commission_completed"].includes(type);
+    const artworkDeepLinkTypes = ["like", "comment", "comment_reply", "favourite", "reachout"];
+    let pushUrl = "/home";
+    if (isCommissionType) {
+      pushUrl = "/commissions";
+    } else if (artworkId && artworkDeepLinkTypes.includes(type)) {
+      pushUrl = `/card/${artworkId}`;
+    }
     await sendPushToUser(
       recipientId,
       {title, body},
-      {type: type || "notification", url: isCommissionType ? "/commissions" : "/home"}
+      {type: type || "notification", url: pushUrl}
     );
   }
 );

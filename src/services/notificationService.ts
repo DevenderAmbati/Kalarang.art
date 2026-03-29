@@ -20,6 +20,9 @@ export type NotificationType =
   | 'follow'
   | 'reachout'
   | 'favourite'
+  | 'like' // Artist: someone liked their artwork
+  | 'comment' // Artist: someone commented on their artwork
+  | 'comment_reply' // User (e.g. buyer): someone replied to their comment
   | 'commission_application'   // Buyer: an artist applied to their commission
   | 'commission_offer'         // Buyer: an artist sent an offer
   | 'commission_offer_accepted' // Artist: buyer accepted their offer
@@ -38,6 +41,10 @@ export interface Notification {
   contactMethod?: 'whatsapp' | 'email';
   commissionId?: string;
   commissionTitle?: string;
+  /** New comment or reply text (truncated) */
+  commentSnippet?: string;
+  /** Original comment text when type is comment_reply (truncated) */
+  parentCommentSnippet?: string;
   timestamp: Date;
   isRead: boolean;
 }
@@ -57,6 +64,8 @@ export async function createNotification(
   contactMethod?: 'whatsapp' | 'email',
   commissionId?: string,
   commissionTitle?: string,
+  commentSnippet?: string,
+  parentCommentSnippet?: string,
 ): Promise<void> {
   const notificationRef = doc(collection(db, "notifications"));
   await setDoc(notificationRef, {
@@ -71,6 +80,8 @@ export async function createNotification(
     contactMethod: contactMethod || null,
     commissionId: commissionId || null,
     commissionTitle: commissionTitle || null,
+    commentSnippet: commentSnippet || null,
+    parentCommentSnippet: parentCommentSnippet || null,
     timestamp: serverTimestamp(),
     isRead: false,
   });
@@ -107,6 +118,8 @@ export async function getUserNotifications(
       contactMethod: data.contactMethod,
       commissionId: data.commissionId,
       commissionTitle: data.commissionTitle,
+      commentSnippet: data.commentSnippet,
+      parentCommentSnippet: data.parentCommentSnippet,
       timestamp: (data.timestamp as Timestamp)?.toDate() || new Date(),
       isRead: data.isRead,
     } as Notification;
@@ -191,6 +204,8 @@ export function subscribeToNotifications(
         contactMethod: data.contactMethod,
         commissionId: data.commissionId,
         commissionTitle: data.commissionTitle,
+        commentSnippet: data.commentSnippet,
+        parentCommentSnippet: data.parentCommentSnippet,
         timestamp: (data.timestamp as Timestamp)?.toDate() || new Date(),
         isRead: data.isRead,
       } as Notification;

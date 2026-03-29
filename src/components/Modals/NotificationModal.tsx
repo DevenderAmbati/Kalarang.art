@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaUserPlus, FaHeart, FaHandshake, FaCheckCircle } from 'react-icons/fa';
+import { FaUserPlus, FaHeart, FaHandshake, FaCheckCircle, FaCommentDots, FaReply, FaThumbsUp } from 'react-icons/fa';
 import { IoIosChatbubbles } from 'react-icons/io';
 import { MdClose, MdWork, MdLocalOffer } from 'react-icons/md';
 import { useAuth } from '../../context/AuthContext';
@@ -73,6 +73,12 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
         return IoIosChatbubbles({ size: 20, className: 'notification-icon reachout chat' });
       case 'favourite':
         return FaHeart({ size: 20, className: 'notification-icon favourite' });
+      case 'like':
+        return FaThumbsUp({ size: 20, className: 'notification-icon artwork-like' });
+      case 'comment':
+        return FaCommentDots({ size: 20, className: 'notification-icon comment' });
+      case 'comment_reply':
+        return FaReply({ size: 20, className: 'notification-icon comment-reply' });
       case 'commission_application':
         return MdWork({ size: 20, className: 'notification-icon commission' });
       case 'commission_offer':
@@ -105,6 +111,43 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
         return (
           <>
             <strong>{notification.actorName}</strong> added <strong>{notification.artworkTitle}</strong> to favourites
+          </>
+        );
+      case 'like':
+        return (
+          <>
+            <strong>{notification.actorName}</strong> liked{' '}
+            {notification.artworkTitle && <strong>{notification.artworkTitle}</strong>}
+          </>
+        );
+      case 'comment':
+        return (
+          <>
+            <strong>{notification.actorName}</strong> commented on{' '}
+            {notification.artworkTitle && <strong>{notification.artworkTitle}</strong>}
+            {notification.commentSnippet && (
+              <>
+                {': '}
+                <span className="notification-inline-snippet">“{notification.commentSnippet}”</span>
+              </>
+            )}
+          </>
+        );
+      case 'comment_reply':
+        return (
+          <>
+            <strong>{notification.actorName}</strong> replied to your comment
+            {notification.artworkTitle && (
+              <>
+                {' on '}<strong>{notification.artworkTitle}</strong>
+              </>
+            )}
+            {notification.commentSnippet && (
+              <>
+                {' — '}
+                <span className="notification-inline-snippet">“{notification.commentSnippet}”</span>
+              </>
+            )}
           </>
         );
       case 'commission_application':

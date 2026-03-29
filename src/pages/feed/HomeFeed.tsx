@@ -1132,7 +1132,7 @@ const HomeFeed: React.FC = () => {
       if (isLiked) {
         await unlikeArtwork(appUser.uid, artworkId);
       } else {
-        await likeArtwork(appUser.uid, artworkId);
+        await likeArtwork(appUser.uid, artworkId, appUser.name, appUser.avatar);
       }
       cache.invalidate(cacheKeys.likes(appUser.uid));
       window.dispatchEvent(new CustomEvent('likes-changed', { detail: { userId: appUser.uid } }));
