@@ -1,17 +1,23 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import ArtworkCard from '../../components/Artwork/ArtworkCard';
 import EmptyState from '../../components/State/EmptyState';
 import LoadingState from '../../components/State/LoadingState';
-import { useFavorites } from '../../hooks/useCachedData';
+import { useFavorites, useLikes } from '../../hooks/useCachedData';
 import { 
   saveArtworkToFavorites, 
-  removeArtworkFromFavorites
+  removeArtworkFromFavorites,
+  likeArtwork,
+  unlikeArtwork,
+  followArtist,
+  unfollowArtist,
 } from '../../services/interactionService';
 import { Artwork } from '../../types/artwork';
-import { getPublishedArtworksPaginated, getPublishedArtworksFromFollowingPaginated } from '../../services/artworkService';
+import {
+  getArtistArtworks,
+} from '../../services/artworkService';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { toast } from 'react-toastify';
 import artAnimation from '../../animations/no content.json';
@@ -19,9 +25,15 @@ import africanArtAnimation from '../../animations/African American Art.json';
 import { cache, cacheKeys } from '../../utils/cache';
 import { getActiveStories, getActiveStoriesFromFollowing, Story as StoryType, groupStoriesByUser, GroupedStory, getViewedStories, markStoriesAsViewed, deleteStory, subscribeToActiveStories, subscribeToFollowingStories } from '../../services/storyService';
 import { getFollowingArtistIds } from '../../services/userService';
+import { getInitialHomeFeedSnapshot, getNextDiscoverPage } from '../../services/homeFeedService';
+import { markPostSeen, seedSeenPostIds } from '../../services/postViewService';
+import { usePostSeen } from '../../hooks/usePostSeen';
 import ConfirmModal from '../../components/Modals/ConfirmModal';
+import ArtworkCommentModal from '../../components/Artwork/ArtworkCommentModal';
 import ChatDrawer, { ChatContact, ReachOutMetadata } from '../../components/Chat/ChatDrawer';
+import { useScrollDirection } from '../../hooks/useScrollDirection';
 import './homeFeed.css';
+import '../user/Commissions.css';
 
 interface Story {
   id: string;
@@ -33,6 +45,89 @@ interface Story {
   artworkTitle: string;
   artistId: string;
 }
+
+interface VirtualizedCardItem {
+  key: string;
+  artwork: Artwork;
+  showDiscoverFollow: boolean;
+}
+
+const VIRTUAL_BATCH_SIZE = 20;
+
+interface SeenAwareArtworkCardProps {
+  artwork: Artwork;
+  appUserId?: string;
+  saved: Set<string>;
+  liked: Set<string>;
+  onSeen: (postId: string, immediate?: boolean) => void | Promise<void>;
+  onOpen: (artworkId: string) => void;
+  onShare: (artworkId: string) => void;
+  onSave: (artworkId: string) => void;
+  onLike: (artworkId: string) => void;
+  onComment: (artwork: Artwork) => void;
+  isSeen: boolean;
+  showFollowButton?: boolean;
+  isFollowingArtist?: boolean;
+  onFollowClick?: (artistId: string) => void | Promise<void>;
+}
+
+const SeenAwareArtworkCard: React.FC<SeenAwareArtworkCardProps> = ({
+  artwork,
+  appUserId,
+  saved,
+  liked,
+  onSeen,
+  onOpen,
+  onShare,
+  onSave,
+  onLike,
+  onComment,
+  isSeen,
+  showFollowButton = false,
+  isFollowingArtist = false,
+  onFollowClick,
+}) => {
+  const { containerRef, markSeenFromInteraction } = usePostSeen({
+    postId: artwork.id,
+    onSeen: (postId) => onSeen(postId, false),
+    isAlreadySeen: isSeen,
+  });
+
+  const markAndRun = (fn: () => void) => {
+    markSeenFromInteraction();
+    onSeen(artwork.id, true);
+    fn();
+  };
+
+  return (
+    <div ref={containerRef}>
+      <ArtworkCard
+        id={parseInt(artwork.id, 10) || 0}
+        artworkImage={artwork.images[0]}
+        artworkImages={artwork.images}
+        artistAvatar={artwork.artistAvatar || '/artist.png'}
+        artistName={artwork.artistName}
+        artistId={artwork.artistId}
+        currentUserId={appUserId}
+        title={artwork.title}
+        description={artwork.description}
+        onCardClick={() => markAndRun(() => onOpen(artwork.id))}
+        onShare={() => onShare(artwork.id)}
+        onSave={() => markAndRun(() => onSave(artwork.id))}
+        isSaved={saved.has(artwork.id)}
+        onLike={() => markAndRun(() => onLike(artwork.id))}
+        isLiked={liked.has(artwork.id)}
+        onComment={() => markAndRun(() => onComment(artwork))}
+        onArtistClick={() => {
+          void onSeen(artwork.id, true);
+        }}
+        showFollowButton={showFollowButton}
+        isFollowingArtist={isFollowingArtist}
+        onFollowClick={onFollowClick}
+      />
+    </div>
+  );
+};
 
 const HomeFeed: React.FC = () => {
   const navigate = useNavigate();
@@ -60,17 +155,35 @@ const HomeFeed: React.FC = () => {
   const [reachOutContact, setReachOutContact] = useState<ChatContact | null>(null);
   const [reachOutMessage, setReachOutMessage] = useState('');
   const [reachOutMetadata, setReachOutMetadata] = useState<ReachOutMetadata | null>(null);
+  const [commentArtwork, setCommentArtwork] = useState<Artwork | null>(null);
 
   // Infinite scroll state
-  const [artworks, setArtworks] = useState<Artwork[]>([]);
+  const [topUnseenArtworks, setTopUnseenArtworks] = useState<Artwork[]>([]);
+  const [remainingUnseenArtworks, setRemainingUnseenArtworks] = useState<Artwork[]>([]);
+  const [discoverArtworks, setDiscoverArtworks] = useState<Artwork[]>([]);
+  const [seenFollowedArtworks, setSeenFollowedArtworks] = useState<Artwork[]>([]);
+  const [seenPostIds, setSeenPostIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [followingArtistIds, setFollowingArtistIds] = useState<string[] | null>(null);
+  /** Artists followed via discover cards in this session — show "Following" toggle for these only. */
+  const [sessionFollowedArtistIds, setSessionFollowedArtistIds] = useState<Set<string>>(new Set());
+  const [feedRefreshKey, setFeedRefreshKey] = useState(0);
+
+  /** Artists only: Following feed vs own published works. */
+  const [feedTab, setFeedTab] = useState<'following' | 'my-art'>('following');
+  const [myArtworks, setMyArtworks] = useState<Artwork[]>([]);
+  const [loadingMyArt, setLoadingMyArt] = useState(false);
+  const [virtualSliceEnd, setVirtualSliceEnd] = useState(VIRTUAL_BATCH_SIZE);
+
+  const isArtist = appUser?.role === 'artist';
+  const { hidden: tabsHidden, anchorRef: tabsAnchorRef } = useScrollDirection();
 
   // Use cached data hooks
   const { data: favoriteIds, updateCache: updateFavoritesCache, refetch: refetchFavorites } = useFavorites(appUser?.uid);
+  const { data: likeIds, updateCache: updateLikesCache, refetch: refetchLikes } = useLikes(appUser?.uid);
 
   // Fetch following artist IDs on mount
   useEffect(() => {
@@ -93,33 +206,52 @@ const HomeFeed: React.FC = () => {
   // Listen for follow/unfollow changes from other components
   useEffect(() => {
     const handleFollowChanged = ((e: CustomEvent) => {
-      if (e.detail.userId === appUser?.uid) {
-        // Invalidate caches
+      const detail = e.detail as {
+        userId?: string;
+        skipHomeFeedReset?: boolean;
+      };
+      if (detail.userId !== appUser?.uid) return;
+
+      // Follow/unfollow from a discover card: list is already updated locally — do not wipe the feed.
+      if (detail.skipHomeFeedReset) {
         if (appUser?.uid) {
-          cache.invalidate(cacheKeys.homeFeedPaginated(appUser.uid));
           cache.invalidate(cacheKeys.stories(appUser.uid));
         }
-        cache.invalidate(cacheKeys.homeFeedPaginated());
         cache.invalidate(cacheKeys.stories());
-        
-        // Refetch following list
-        const refetchFollowing = async () => {
-          if (appUser?.uid) {
-            try {
-              const artistIds = await getFollowingArtistIds(appUser.uid);
-              setFollowingArtistIds(artistIds);
-              
-              // Reset artworks state to trigger refetch
-              setArtworks([]);
-              setLastVisible(null);
-              setHasMore(true);
-            } catch (error) {
-            }
-          }
-        };
-        
-        refetchFollowing();
+        if (appUser?.uid) {
+          getFollowingArtistIds(appUser.uid)
+            .then((ids) => setFollowingArtistIds(ids))
+            .catch(() => {});
+        }
+        return;
       }
+
+      if (appUser?.uid) {
+        cache.invalidate(cacheKeys.homeFeedPaginated(appUser.uid));
+        cache.invalidate(cacheKeys.stories(appUser.uid));
+      }
+      cache.invalidate(cacheKeys.homeFeedPaginated());
+      cache.invalidate(cacheKeys.stories());
+
+      const refetchFollowing = async () => {
+        if (appUser?.uid) {
+          try {
+            const artistIds = await getFollowingArtistIds(appUser.uid);
+            setFollowingArtistIds(artistIds);
+
+            setTopUnseenArtworks([]);
+            setRemainingUnseenArtworks([]);
+            setDiscoverArtworks([]);
+            setLastVisible(null);
+            setHasMore(true);
+            setSessionFollowedArtistIds(new Set());
+            setFeedRefreshKey((prev) => prev + 1);
+          } catch (error) {
+          }
+        }
+      };
+
+      refetchFollowing();
     }) as EventListener;
     
     window.addEventListener('follow-changed', handleFollowChanged);
@@ -138,6 +270,17 @@ const HomeFeed: React.FC = () => {
     return () => window.removeEventListener('favorites-changed', handleFavoritesChanged);
   }, [appUser?.uid, refetchFavorites]);
 
+  useEffect(() => {
+    const handleLikesChanged = ((e: CustomEvent) => {
+      if (e.detail.userId === appUser?.uid) {
+        refetchLikes();
+      }
+    }) as EventListener;
+
+    window.addEventListener('likes-changed', handleLikesChanged);
+    return () => window.removeEventListener('likes-changed', handleLikesChanged);
+  }, [appUser?.uid, refetchLikes]);
+
   // Ensure favorites are loaded
   useEffect(() => {
     if (appUser?.uid && !favoriteIds) {
@@ -145,124 +288,78 @@ const HomeFeed: React.FC = () => {
     }
   }, [appUser?.uid, favoriteIds, refetchFavorites]);
 
-  // Initial data fetch with cache
   useEffect(() => {
-    const fetchInitialArtworks = async () => {
-      // Wait for followingArtistIds to be loaded
-      if (followingArtistIds === null) return;
+    if (appUser?.uid && !likeIds) {
+      refetchLikes();
+    }
+  }, [appUser?.uid, likeIds, refetchLikes]);
 
-      // Try to get from cache first
-      const cacheKey = appUser?.uid 
-        ? cacheKeys.homeFeedPaginated(appUser.uid) 
-        : cacheKeys.homeFeedPaginated();
-      const cached = cache.get<{
-        artworks: Artwork[];
-        hasMore: boolean;
-        lastVisible: QueryDocumentSnapshot<DocumentData> | null;
-      }>(cacheKey);
+  useEffect(() => {
+    let cancelled = false;
 
-      if (cached.exists && cached.data) {
-        // Load from cache immediately
-        setArtworks(cached.data.artworks);
-        setHasMore(cached.data.hasMore);
-        setLastVisible(cached.data.lastVisible ?? null);
-        setLoading(false);
-
-        // If cache is stale, fetch fresh data in background
-        if (cached.isStale) {
-          try {
-            const result = appUser?.uid && followingArtistIds.length > 0
-              ? await getPublishedArtworksFromFollowingPaginated(followingArtistIds, 20)
-              : await getPublishedArtworksPaginated(20);
-            setArtworks(result.artworks);
-            setLastVisible(result.lastVisible);
-            setHasMore(result.hasMore);
-            
-            // Update cache
-            cache.set(
-              cacheKey,
-              { artworks: result.artworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
-              2 * 60 * 1000, // 2 minutes stale time
-              5 * 60 * 1000  // 5 minutes cache time
-            );
-          } catch (error) {
-          }
-        }
-        return;
-      }
-
-      // No cache, fetch fresh data
+    const fetchInitialFeed = async () => {
       setLoading(true);
       try {
-        // Only fetch if user is following artists
-        if (appUser?.uid && followingArtistIds.length === 0) {
-          // Not following anyone, show empty state
-          setArtworks([]);
-          setHasMore(false);
-        } else {
-          const result = appUser?.uid && followingArtistIds.length > 0
-            ? await getPublishedArtworksFromFollowingPaginated(followingArtistIds, 20)
-            : await getPublishedArtworksPaginated(20);
-          setArtworks(result.artworks);
-          setLastVisible(result.lastVisible);
-          setHasMore(result.hasMore);
-          
-          // Store in cache
-          cache.set(
-            cacheKey,
-            { artworks: result.artworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
-            2 * 60 * 1000, // 2 minutes stale time
-            5 * 60 * 1000  // 5 minutes cache time
-          );
+        const snapshot = await getInitialHomeFeedSnapshot(appUser?.uid, {
+          unseenLimit: 12,
+          discoverLimit: 24,
+          followedCandidateCap: 140,
+        });
+        if (cancelled) return;
+
+        setTopUnseenArtworks(snapshot.topUnseen);
+        setRemainingUnseenArtworks(snapshot.remainingUnseen);
+        setDiscoverArtworks(snapshot.discover);
+        setSeenFollowedArtworks(snapshot.seenFollowed);
+        setSeenPostIds(snapshot.seenPostIds);
+        setLastVisible(snapshot.discoverLastVisible);
+        setHasMore(snapshot.hasMoreDiscover);
+        if (appUser?.uid) {
+          seedSeenPostIds(appUser.uid, snapshot.seenPostIds);
         }
       } catch (error) {
-        toast.error('Failed to load artworks');
+        if (!cancelled) {
+          toast.error('Failed to load home feed');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchInitialArtworks();
-  }, [appUser?.uid, followingArtistIds]);
+    fetchInitialFeed();
+    return () => {
+      cancelled = true;
+    };
+  }, [appUser?.uid, feedRefreshKey]);
 
-  // Load more artworks
   const loadMoreArtworks = useCallback(async () => {
-    if (!hasMore || loadingMore || !lastVisible || followingArtistIds === null) return;
-    
-    // Don't load more if not following anyone
-    if (appUser?.uid && followingArtistIds.length === 0) return;
+    if (!hasMore || loadingMore || !lastVisible) return;
 
     setLoadingMore(true);
     try {
-      const result = appUser?.uid && followingArtistIds.length > 0
-        ? await getPublishedArtworksFromFollowingPaginated(followingArtistIds, 20, lastVisible)
-        : await getPublishedArtworksPaginated(20, lastVisible);
-      const updatedArtworks = [...artworks, ...result.artworks];
-      setArtworks(updatedArtworks);
-      setLastVisible(result.lastVisible);
-      setHasMore(result.hasMore);
-      
-      // Update cache with accumulated artworks
-      const cacheKey = appUser?.uid 
-        ? cacheKeys.homeFeedPaginated(appUser.uid) 
-        : cacheKeys.homeFeedPaginated();
-      cache.set(
-        cacheKey,
-        { artworks: updatedArtworks, hasMore: result.hasMore, lastVisible: result.lastVisible },
-        2 * 60 * 1000, // 2 minutes stale time
-        5 * 60 * 1000  // 5 minutes cache time
-      );
+      const excluded = new Set<string>([
+        ...topUnseenArtworks.map((a) => a.id),
+        ...remainingUnseenArtworks.map((a) => a.id),
+        ...discoverArtworks.map((a) => a.id),
+      ]);
+      const next = await getNextDiscoverPage(appUser?.uid, lastVisible, excluded, 20, followingArtistIds ?? []);
+      setDiscoverArtworks((prev) => [...prev, ...next.discover]);
+      setLastVisible(next.lastVisible);
+      setHasMore(next.hasMore);
     } catch (error) {
       toast.error('Failed to load more artworks');
     } finally {
       setLoadingMore(false);
     }
-  }, [hasMore, loadingMore, lastVisible, artworks, appUser?.uid, followingArtistIds]);
+  }, [hasMore, loadingMore, lastVisible, topUnseenArtworks, remainingUnseenArtworks, discoverArtworks, appUser?.uid, followingArtistIds]);
 
   // Infinite scroll detection
   useEffect(() => {
     const handleScroll = () => {
       if (!hasMore || loadingMore) return;
+      if (isArtist && feedTab === 'my-art') return;
 
       // Get the main content container
       const mainContent = document.querySelector('.layout-main-content');
@@ -282,7 +379,29 @@ const HomeFeed: React.FC = () => {
       mainContent.addEventListener('scroll', handleScroll);
       return () => mainContent.removeEventListener('scroll', handleScroll);
     }
-  }, [hasMore, loadingMore, loadMoreArtworks]);
+  }, [hasMore, loadingMore, loadMoreArtworks, isArtist, feedTab]);
+
+  // Artist "My Art" tab: published pieces with engagement counts
+  useEffect(() => {
+    if (!isArtist || !appUser?.uid || feedTab !== 'my-art') return;
+
+    let cancelled = false;
+    setLoadingMyArt(true);
+    getArtistArtworks(appUser.uid, true)
+      .then((list) => {
+        if (!cancelled) setMyArtworks(list);
+      })
+      .catch(() => {
+        if (!cancelled) toast.error('Failed to load your artworks');
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingMyArt(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isArtist, appUser?.uid, feedTab]);
 
   // Auto-advance timer for stories (5 seconds per story)
   useEffect(() => {
@@ -439,6 +558,172 @@ const HomeFeed: React.FC = () => {
   const savedArtworks = useMemo(() => {
     return new Set(favoriteIds || []);
   }, [favoriteIds]);
+
+  const likedArtworks = useMemo(() => new Set(likeIds || []), [likeIds]);
+
+  const hasFollowingArtists = (followingArtistIds?.length || 0) > 0;
+  const seenPostIdsRef = useRef<Set<string>>(new Set());
+  const followingArtistIdsRef = useRef(followingArtistIds);
+  const sessionFollowedRef = useRef(sessionFollowedArtistIds);
+
+  useEffect(() => {
+    seenPostIdsRef.current = seenPostIds;
+  }, [seenPostIds]);
+  useEffect(() => { followingArtistIdsRef.current = followingArtistIds; }, [followingArtistIds]);
+  useEffect(() => { sessionFollowedRef.current = sessionFollowedArtistIds; }, [sessionFollowedArtistIds]);
+
+  /** Discover-sourced rows get the Follow button; injected unseen-from-following rows do not. */
+  const mixedDiscoverRows = useMemo(() => {
+    if (!discoverArtworks.length) return [];
+    if (!remainingUnseenArtworks.length) {
+      return discoverArtworks.map((artwork) => ({
+        artwork,
+        showDiscoverFollow: true,
+      }));
+    }
+
+    const mixed: { artwork: Artwork; showDiscoverFollow: boolean }[] = [];
+    let unseenIndex = 0;
+    let sinceInject = 0;
+    const gapPattern = [3, 4];
+    let gapCursor = 0;
+
+    discoverArtworks.forEach((artwork) => {
+      mixed.push({ artwork, showDiscoverFollow: true });
+      sinceInject += 1;
+
+      const targetGap = gapPattern[gapCursor % gapPattern.length];
+      if (unseenIndex < remainingUnseenArtworks.length && sinceInject >= targetGap) {
+        mixed.push({
+          artwork: remainingUnseenArtworks[unseenIndex],
+          showDiscoverFollow: false,
+        });
+        unseenIndex += 1;
+        sinceInject = 0;
+        gapCursor += 1;
+      }
+    });
+
+    return mixed;
+  }, [discoverArtworks, remainingUnseenArtworks]);
+
+  const homeFeedCards = useMemo<VirtualizedCardItem[]>(() => {
+    const list: VirtualizedCardItem[] = [];
+    const usedIds = new Set<string>();
+
+    if (hasFollowingArtists) {
+      topUnseenArtworks.forEach((artwork, index) => {
+        list.push({
+          key: `${artwork.id}-top-${index}`,
+          artwork,
+          showDiscoverFollow: false,
+        });
+        usedIds.add(artwork.id);
+      });
+    }
+
+    mixedDiscoverRows.forEach(({ artwork, showDiscoverFollow }, index) => {
+      list.push({
+        key: `${artwork.id}-mixed-${index}`,
+        artwork,
+        showDiscoverFollow,
+      });
+      usedIds.add(artwork.id);
+    });
+
+    if (!hasMore && seenFollowedArtworks.length > 0) {
+      seenFollowedArtworks.forEach((artwork, index) => {
+        if (usedIds.has(artwork.id)) return;
+        list.push({
+          key: `${artwork.id}-seen-${index}`,
+          artwork,
+          showDiscoverFollow: false,
+        });
+      });
+    }
+
+    return list;
+  }, [hasFollowingArtists, topUnseenArtworks, mixedDiscoverRows, hasMore, seenFollowedArtworks]);
+
+  const visibleHomeFeedCards = useMemo(
+    () => homeFeedCards.slice(0, virtualSliceEnd),
+    [homeFeedCards, virtualSliceEnd]
+  );
+
+  useEffect(() => {
+    setVirtualSliceEnd(VIRTUAL_BATCH_SIZE);
+  }, [feedRefreshKey]);
+
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || typeof IntersectionObserver === 'undefined') return;
+
+    const scrollRoot =
+      (document.querySelector('.layout-main-content') as HTMLElement) || null;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVirtualSliceEnd((prev) => {
+            const next = prev + VIRTUAL_BATCH_SIZE;
+            return Math.min(next, homeFeedCards.length);
+          });
+        }
+      },
+      { root: scrollRoot, rootMargin: '600px' }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [homeFeedCards.length]);
+
+  const markSeen = useCallback(async (postId: string, immediate: boolean = false) => {
+    if (!appUser?.uid) return;
+    const normalizedId = String(postId);
+    if (seenPostIdsRef.current.has(normalizedId)) return;
+
+    setSeenPostIds((prev) => {
+      if (prev.has(normalizedId)) return prev;
+      const next = new Set(prev);
+      next.add(normalizedId);
+      return next;
+    });
+    seenPostIdsRef.current.add(normalizedId);
+
+    try {
+      await markPostSeen(appUser.uid, normalizedId, { immediate });
+    } catch {
+      // Keep optimistic local seen state even if network write fails.
+    }
+  }, [appUser?.uid]);
+
+  const handleDiscoverFollow = useCallback(
+    async (artistId: string) => {
+      if (!appUser) {
+        navigate('/signup');
+        return;
+      }
+
+      const isCurrentlyFollowing = followingArtistIdsRef.current?.includes(artistId) ?? false;
+
+      try {
+        if (isCurrentlyFollowing) {
+          await unfollowArtist(appUser.uid, artistId);
+          setFollowingArtistIds((prev) => prev ? prev.filter((id) => id !== artistId) : []);
+          setSessionFollowedArtistIds((prev) => { const n = new Set(prev); n.delete(artistId); return n; });
+        } else {
+          await followArtist(appUser.uid, artistId, appUser.name, appUser.avatar);
+          setFollowingArtistIds((prev) => { const n = [...(prev ?? [])]; if (!n.includes(artistId)) n.push(artistId); return n; });
+          setSessionFollowedArtistIds((prev) => new Set(prev).add(artistId));
+        }
+      } catch {
+        toast.error('Failed to update follow');
+      }
+    },
+    [appUser, navigate]
+  );
 
   // Sort grouped stories Instagram-style: unviewed first, viewed last, current user always first
   const sortedGroupedStories = useMemo(() => {
@@ -746,8 +1031,25 @@ const HomeFeed: React.FC = () => {
     navigate(`/card/${id}`);
   };
 
+  const updateFeedArtwork = useCallback(
+    (artworkId: string, updater: (artwork: Artwork) => Artwork) => {
+      const applyUpdate = (list: Artwork[]) =>
+        list.map((artwork) =>
+          artwork.id === artworkId ? updater(artwork) : artwork
+        );
+
+      setTopUnseenArtworks((prev) => applyUpdate(prev));
+      setRemainingUnseenArtworks((prev) => applyUpdate(prev));
+      setDiscoverArtworks((prev) => applyUpdate(prev));
+    },
+    []
+  );
+
   const handleShare = (id: number | string) => {
-    const artwork = artworks?.find(a => a.id === id.toString());
+    const sourceList = isArtist && feedTab === 'my-art'
+      ? myArtworks
+      : [...topUnseenArtworks, ...remainingUnseenArtworks, ...discoverArtworks];
+    const artwork = sourceList?.find((a) => a.id === id.toString());
     if (artwork && navigator.share) {
       navigator.share({
         title: artwork.title,
@@ -768,6 +1070,7 @@ const HomeFeed: React.FC = () => {
 
     const artworkId = id.toString();
     const isSaved = savedArtworks.has(artworkId);
+    await markSeen(artworkId, true);
 
     // Optimistic update - update UI immediately
     const previousFavorites = favoriteIds || [];
@@ -801,23 +1104,126 @@ const HomeFeed: React.FC = () => {
     }
   };
 
-  // Random titles for artworks
-  const artworkTitles = [
-    'Dreamscape',
-    'Urban Rhythm',
-    'Monsoon Muse',
-    'Identity Layers',
-    'City Lines',
-    'Fusion Forms',
-    'Vivid Faces',
-    'Silent Horizon',
-  ];
+  const handleLike = async (id: number | string) => {
+    if (!appUser) {
+      navigate('/signup');
+      return;
+    }
+
+    const artworkId = id.toString();
+    const isLiked = likedArtworks.has(artworkId);
+    const previousLikes = likeIds || [];
+    await markSeen(artworkId, true);
+
+    updateLikesCache((old) => {
+      const list = old || [];
+      if (isLiked) {
+        return list.filter((lid) => lid !== artworkId);
+      }
+      return [...list, artworkId];
+    });
+
+    updateFeedArtwork(artworkId, (a) => ({
+      ...a,
+      likes: Math.max(0, (a.likes ?? 0) + (isLiked ? -1 : 1)),
+    }));
+
+    try {
+      if (isLiked) {
+        await unlikeArtwork(appUser.uid, artworkId);
+      } else {
+        await likeArtwork(appUser.uid, artworkId);
+      }
+      cache.invalidate(cacheKeys.likes(appUser.uid));
+      window.dispatchEvent(new CustomEvent('likes-changed', { detail: { userId: appUser.uid } }));
+    } catch {
+      updateLikesCache(() => previousLikes);
+      updateFeedArtwork(artworkId, (a) => ({
+        ...a,
+        likes: Math.max(0, (a.likes ?? 0) + (isLiked ? 1 : -1)),
+      }));
+      toast.error('Failed to update like');
+    }
+  };
+
+  const renderHomeFeedCard = useCallback(
+    (item: VirtualizedCardItem) => {
+      const { artwork, showDiscoverFollow } = item;
+      const isFollowingArtist =
+        followingArtistIds?.includes(artwork.artistId) ?? false;
+      const wasFollowedThisSession = sessionFollowedArtistIds.has(artwork.artistId);
+
+      const shouldShowFollow = showDiscoverFollow && (!isFollowingArtist || wasFollowedThisSession);
+
+      return (
+        <SeenAwareArtworkCard
+          key={item.key}
+          artwork={artwork}
+          appUserId={appUser?.uid}
+          saved={savedArtworks}
+          liked={likedArtworks}
+          isSeen={seenPostIds.has(artwork.id)}
+          onSeen={markSeen}
+          onOpen={(artworkId) => handleArtworkClick(artworkId)}
+          onShare={(artworkId) => handleShare(artworkId)}
+          onSave={(artworkId) => {
+            void handleSave(artworkId);
+          }}
+          onLike={(artworkId) => {
+            void handleLike(artworkId);
+          }}
+          onComment={(entry) => setCommentArtwork(entry)}
+          showFollowButton={shouldShowFollow}
+          isFollowingArtist={isFollowingArtist}
+          onFollowClick={handleDiscoverFollow}
+        />
+      );
+    },
+    [
+      followingArtistIds,
+      sessionFollowedArtistIds,
+      appUser?.uid,
+      savedArtworks,
+      likedArtworks,
+      seenPostIds,
+      markSeen,
+      handleDiscoverFollow,
+      handleArtworkClick,
+      handleShare,
+      handleSave,
+      handleLike,
+    ]
+  );
 
   return (
     <>
-      <div style={styles.container}>
+      <div style={styles.container} className="home-feed">
+        {isArtist && (
+          <>
+            <div ref={tabsAnchorRef} className={`commission-main-tabs-fixed${tabsHidden ? ' pill-tabs-hidden' : ''}`}>
+              <div className="commission-main-tabs">
+                <button
+                  type="button"
+                  className={`commission-tab ${feedTab === 'following' ? 'active' : ''}`}
+                  onClick={() => setFeedTab('following')}
+                >
+                  Following
+                </button>
+                <button
+                  type="button"
+                  className={`commission-tab ${feedTab === 'my-art' ? 'active' : ''}`}
+                  onClick={() => setFeedTab('my-art')}
+                >
+                  Creations
+                </button>
+              </div>
+            </div>
+            <div className="commission-main-tabs-spacer" />
+          </>
+        )}
+
         {/* Stories Section */}
-        {!loadingStories && (
+        {(!isArtist || feedTab !== 'my-art') && !loadingStories && (
           <div className="stories-section">
             <div className="stories-container">
               {groupedStories.length === 0 ? (
@@ -882,28 +1288,28 @@ const HomeFeed: React.FC = () => {
           </div>
         )}
 
-        {/* Artwork Cards Grid */}
-        {loading ? (
-          <LoadingState 
-            animation={africanArtAnimation}
-            message="Discovering amazing artworks..." 
-            fullHeight 
-          />
-        ) : (!artworks || artworks.length === 0) ? (
-          <EmptyState
-            animation={artAnimation}
-            title="No Artworks Yet"
-            description="Follow artists to view their works in your feed and stay updated with their latest creations."
-            actionLabel="Discover Artists"
-            actionPath="/discover"
-          />
-        ) : (
-          <>
+        {/* Following feed (everyone) or My Art (artists) */}
+        {isArtist && feedTab === 'my-art' ? (
+          loadingMyArt ? (
+            <LoadingState
+              animation={africanArtAnimation}
+              message="Loading your artworks..."
+              fullHeight
+            />
+          ) : myArtworks.length === 0 ? (
+            <EmptyState
+              animation={artAnimation}
+              title="No published art yet"
+              description="Upload your artwork to see it here with likes, comments, and saves."
+              actionLabel="Upload artwork"
+              actionPath="/upload"
+            />
+          ) : (
             <div className="homefeed-artwork-grid">
-              {artworks.map((artwork) => (
+              {myArtworks.map((artwork) => (
                 <ArtworkCard
                   key={artwork.id}
-                  id={parseInt(artwork.id) || 0}
+                  id={parseInt(artwork.id, 10) || 0}
                   artworkImage={artwork.images[0]}
                   artworkImages={artwork.images}
                   artistAvatar={artwork.artistAvatar || '/artist.png'}
@@ -914,35 +1320,69 @@ const HomeFeed: React.FC = () => {
                   description={artwork.description}
                   onCardClick={() => handleArtworkClick(artwork.id)}
                   onShare={() => handleShare(artwork.id)}
-                  onSave={() => handleSave(artwork.id)}
-                  isSaved={savedArtworks.has(artwork.id)}
+                  onComment={() => setCommentArtwork(artwork)}
+                  engagementStats={{
+                    likes: artwork.likes ?? 0,
+                    comments: artwork.comments ?? 0,
+                    favorites: artwork.favorites ?? 0,
+                  }}
                 />
               ))}
             </div>
+          )
+        ) : loading ? (
+          <LoadingState
+            animation={africanArtAnimation}
+            message="Discovering amazing artworks..."
+            fullHeight
+          />
+        ) : (
+          <>
+            {homeFeedCards.length > 0 && (
+              <>
+                <div className="homefeed-artwork-grid">
+                  {visibleHomeFeedCards.map((item) => (
+                    <div key={item.key}>{renderHomeFeedCard(item)}</div>
+                  ))}
+                </div>
+                {virtualSliceEnd < homeFeedCards.length && (
+                  <div
+                    ref={sentinelRef}
+                    style={{ height: '1px', width: '100%' }}
+                  />
+                )}
+              </>
+            )}
             {loadingMore && (
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                padding: '20px',
-                width: '100%'
-              }}>
-                <div style={{
-                  border: '3px solid var(--primary-alpha-20)',
-                  borderTop: '3px solid var(--primary)',
-                  borderRadius: '50%',
-                  width: '40px',
-                  height: '40px',
-                  animation: 'spin 1s linear infinite'
-                }}></div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  padding: '20px',
+                  width: '100%',
+                }}
+              >
+                <div
+                  style={{
+                    border: '3px solid var(--primary-alpha-20)',
+                    borderTop: '3px solid var(--primary)',
+                    borderRadius: '50%',
+                    width: '40px',
+                    height: '40px',
+                    animation: 'spin 1s linear infinite',
+                  }}
+                />
               </div>
             )}
-            {!hasMore && artworks.length > 0 && (
-              <div style={{
-                textAlign: 'center',
-                padding: '5px',
-                color: 'var(--color-royal)',
-                fontSize: '14px'
-              }}>
+            {!hasMore && homeFeedCards.length > 0 && virtualSliceEnd >= homeFeedCards.length && (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '5px',
+                  color: 'var(--color-royal)',
+                  fontSize: '14px',
+                }}
+              >
                 You've reached the end.
               </div>
             )}
@@ -1065,6 +1505,13 @@ const HomeFeed: React.FC = () => {
         message="This will permanently delete this story. This action cannot be undone."
         confirmText="Delete"
         cancelText="Cancel"
+      />
+
+      <ArtworkCommentModal
+        isOpen={commentArtwork !== null}
+        onClose={() => setCommentArtwork(null)}
+        artwork={commentArtwork}
+        appUser={appUser}
       />
 
       {chatDrawerOpen && reachOutContact && appUser && (

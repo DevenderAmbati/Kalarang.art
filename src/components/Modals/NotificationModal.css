@@ -171,6 +171,14 @@
   color: #E91E63;
 }
 
+.notification-icon.commission {
+  color: #FF9800;
+}
+
+.notification-icon.commission-success {
+  color: #4CAF50;
+}
+
 .notification-content {
   flex: 1;
   min-width: 0;

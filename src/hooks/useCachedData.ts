@@ -236,6 +236,25 @@ export function useFavorites(userId: string | undefined, enabled = true) {
 }
 
 /**
+ * Hook for fetching liked artwork IDs with caching
+ */
+export function useLikes(userId: string | undefined, enabled = true) {
+  const fetchFn = useCallback(async () => {
+    if (!userId) return [];
+    const { getUserLikedArtworkIds } = await import('../services/interactionService');
+    return getUserLikedArtworkIds(userId);
+  }, [userId]);
+
+  return useCachedData({
+    cacheKey: userId ? cacheKeys.likes(userId) : 'likes-none',
+    fetchFn,
+    enabled: enabled && !!userId,
+    staleTime: cacheTimes.favorites.staleTime,
+    cacheTime: cacheTimes.favorites.cacheTime,
+  });
+}
+
+/**
  * Hook for fetching favorite artworks with full data
  */
 export function useFavoriteArtworks(userId: string | undefined, enabled = true) {

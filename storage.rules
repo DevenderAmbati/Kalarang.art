@@ -19,6 +19,12 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // Chat message images — uploader-only writes; any signed-in user can read (URL is shared via Firestore to participants)
+    match /chat_images/{userId}/{scope}/{chatId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
     
     // Default deny all other paths
     match /{allPaths=**} {

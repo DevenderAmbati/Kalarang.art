@@ -29,6 +29,50 @@
   padding: 16px;
 }
 
+.artwork-card-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.artwork-card-follow-btn {
+  flex-shrink: 0;
+  align-self: center;
+  min-width: 72px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: 9999px;
+  border: 1.5px solid var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, filter 0.15s ease;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.artwork-card-follow-btn-label {
+  display: inline-block;
+  pointer-events: none;
+}
+
+.artwork-card-follow-btn:hover {
+  filter: brightness(0.92);
+  color: #fff;
+}
+
+.artwork-card-follow-btn.is-following {
+  background: rgba(47, 164, 169, 0.88);
+  border-color: rgba(47, 164, 169, 0.95);
+  color: #fff;
+}
+
+.artwork-card-follow-btn.is-following:hover {
+  filter: brightness(0.95);
+  color: #fff;
+}
+
 .artist-avatar {
   width: 40px;
   height: 40px;
@@ -130,6 +174,7 @@
   color: var(--color-text-dark);
   line-height: 1.5;
   margin-bottom: -3px;
+  height: calc(1.5em * 2);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -144,6 +189,88 @@
   justify-content: space-around;
   padding: 4px 16px 6px;
   border-top: 1px solid var(--primary-alpha-20);
+}
+
+.artwork-actions-feed {
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.artwork-actions-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.artwork-actions-right {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Creations tab: same left/right split as Following; stats + share on left, saves on right */
+.artwork-actions-engagement {
+  flex-wrap: nowrap;
+}
+
+.artwork-actions-left--stats {
+  align-items: center;
+}
+
+.artwork-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 4px;
+  user-select: none;
+}
+
+.artwork-stat--clickable {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  border-radius: 8px;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.artwork-stat--clickable:hover {
+  color: var(--color-primary);
+  background-color: var(--primary-alpha-10);
+}
+
+.artwork-stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  color: var(--color-text-muted);
+}
+
+.artwork-stat--clickable:hover .artwork-stat-icon {
+  color: var(--color-primary);
+}
+
+.artwork-stat-num {
+  min-width: 1ch;
+  font-variant-numeric: tabular-nums;
+}
+
+.action-like {
+  gap: 2px;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.action-like-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
 }
 
 .action-icon {
@@ -212,6 +339,14 @@
 
 .action-icon.animating svg {
   animation: heartBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.action-like.animating .action-like-icon svg {
+  animation: heartBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.action-like.active .action-like-icon svg {
+  animation: heartPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 /* Image Navigation Buttons */

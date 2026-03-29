@@ -178,6 +178,7 @@ export const cacheKeys = {
   stories: (userId?: string) => userId ? `stories-${userId}` : `stories`,
   artwork: (id: string) => `artwork-${id}`,
   favorites: (userId: string) => `favorites-${userId}`,
+  likes: (userId: string) => `likes-${userId}`,
   favoriteArtworks: (userId: string) => `favorite-artworks-${userId}`,
   userProfile: (userId: string) => `user-${userId}`,
   artistWorks: (userId: string) => `artist-works-${userId}`,
@@ -185,6 +186,11 @@ export const cacheKeys = {
   galleryWorks: (userId: string) => `gallery-works-${userId}`,
   /** Full page state for other user portfolio (profile + artworks) so back from card doesn't reload */
   otherUserPortfolio: (userId: string) => `other-portfolio-${userId}`,
+  /** Open/browse commission list (shared across users). */
+  commissionsBrowse: () => `commissions-browse`,
+  commissionsBuyer: (userId: string) => `commissions-buyer-${userId}`,
+  commissionsArtistApps: (artistId: string) => `commissions-artist-apps-${artistId}`,
+  commissionsArtistHired: (artistId: string) => `commissions-artist-hired-${artistId}`,
 };
 
 /**
@@ -220,5 +226,10 @@ export const cacheTimes = {
   otherUserPortfolio: {
     staleTime: 3 * 60 * 1000, // 3 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
+  },
+  // Commission board lists — switching bottom-nav tabs should not refetch every time
+  commissionsBoard: {
+    staleTime: 10 * 60 * 1000, // 10 minutes “fresh”
+    cacheTime: 30 * 60 * 1000, // 30 minutes retained
   },
 };

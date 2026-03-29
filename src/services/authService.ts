@@ -11,7 +11,7 @@ import {
   reauthenticateWithCredential,
   reauthenticateWithPopup,
 } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp, query, collection, where, getDocs, deleteDoc, writeBatch } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp, query, collection, where, getDocs, deleteDoc, writeBatch, increment } from "firebase/firestore";
 import { getStorage, ref, deleteObject, listAll } from "firebase/storage";
 import { UserRole } from "../types/user";
 import { cache } from "../utils/cache";
@@ -178,6 +178,40 @@ export async function deleteAccount(userId: string, password?: string, forceDele
     favoritesSnapshot.docs.forEach((doc) => {
       batch.delete(doc.ref);
     });
+
+    const ownArtworkIds = new Set(artworksSnapshot.docs.map((d) => d.id));
+    const commentsQuery = query(
+      collection(db, "comments"),
+      where("userId", "==", userId)
+    );
+    const commentsSnapshot = await getDocs(commentsQuery);
+    const countsByArtwork = new Map<string, number>();
+    commentsSnapshot.docs.forEach((d) => {
+      const aid = d.data().artworkId as string | undefined;
+      if (aid) {
+        countsByArtwork.set(aid, (countsByArtwork.get(aid) || 0) + 1);
+      }
+    });
+
+    const commentDocs = commentsSnapshot.docs;
+    const COMMENT_CHUNK = 400;
+    for (let i = 0; i < commentDocs.length; i += COMMENT_CHUNK) {
+      const commentBatch = writeBatch(db);
+      commentDocs.slice(i, i + COMMENT_CHUNK).forEach((docSnap) => {
+        commentBatch.delete(docSnap.ref);
+      });
+      await commentBatch.commit();
+    }
+
+    if (countsByArtwork.size > 0) {
+      const decBatch = writeBatch(db);
+      countsByArtwork.forEach((count, aid) => {
+        if (!ownArtworkIds.has(aid)) {
+          decBatch.update(doc(db, "artworks", aid), { comments: increment(-count) });
+        }
+      });
+      await decBatch.commit();
+    }
 
     // Delete follows where user is following others
     const followingQuery = query(

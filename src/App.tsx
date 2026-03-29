@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './toastStyles.css';
@@ -20,6 +20,8 @@ import Favourites from "./pages/user/Favourites";
 import Portfolio from "./pages/user/Portfolio";
 import OtherUserPortfolio from "./pages/user/OtherUserPortfolio";
 import Profile from "./pages/user/Profile";
+import Commissions from "./pages/user/Commissions";
+import AccountHub from "./pages/user/AccountHub";
 import CardDetail from "./pages/artwork/CardDetail";
 import CreateUsername from "./pages/auth/CreateUsername";
 import Explore from "./pages/feed/Explore";
@@ -39,14 +41,30 @@ import { ScrollToTop } from "./components/Common/ScrollToTop";
 import PwaUpdatePrompt from "./components/PwaUpdatePrompt";
 
 /**
- * Single shell for Home / Discover / Favourites + artwork detail.
- * Uses <Outlet /> so navigating /home ↔ /card/:id does NOT unmount feeds (scroll + state preserved).
- * When `children` is passed (e.g. OtherUserPortfolio), Outlet is not used.
+ * Single shell for all 5 bottom-nav tabs + artwork detail.
+ * Each tab component is passed as a named prop so Layout keeps it mounted
+ * in its own scroll container — switching tabs just toggles visibility,
+ * scroll position is preserved natively.
  */
 const PersistentFeedContainer: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+  const { appUser } = useAuth();
   const handleLogout = async () => {
     await logout();
   };
+
+  const postContent = useMemo(() => {
+    if (!appUser) return null;
+    if (appUser.role === 'artist') {
+      if (!appUser.username) return null;
+      return <Upload embedded />;
+    }
+    return <Commissions mode="form" />;
+  }, [appUser]);
+
+  const commissionsContent = useMemo(() => {
+    if (!appUser) return null;
+    return <Commissions mode="list" />;
+  }, [appUser]);
 
   return (
     <Layout 
@@ -54,6 +72,8 @@ const PersistentFeedContainer: React.FC<{ children?: React.ReactNode }> = ({ chi
       homeFeedComponent={<HomeFeed />}
       discoverComponent={<Discover />}
       favouritesComponent={<Favourites />}
+      commissionsComponent={commissionsContent}
+      postComponent={postContent}
     >
       {children ?? <Outlet />}
     </Layout>
@@ -370,20 +390,26 @@ function App() {
                 <Route path="discover" element={<FeedTabProtected />} />
                 <Route path="favourites" element={<FeedTabProtected />} />
                 <Route path="card/:id" element={<CardDetail />} />
+                {/* Post and Commissions are mounted persistently via Layout props.
+                   These route entries just ensure the URL matches and auth guards run. */}
+                <Route path="post" element={<FeedTabProtected />} />
+                <Route path="commissions" element={<FeedTabProtected />} />
               </Route>
 
               <Route
-                path="/post"
+                path="/account"
                 element={
                   <ProtectedRoute>
-                    <PermissionGuard 
-                      permission={Permission.CREATE_ARTWORK}
+                    <PermissionGuard
+                      permission={Permission.VIEW_ARTIST_PROFILE}
                       redirectTo="/home"
                     >
                       {needsUsernameCreation() ? (
                         <Navigate to="/create-username" replace />
                       ) : (
-                        <Upload />
+                        <MainAppLayout>
+                          <AccountHub />
+                        </MainAppLayout>
                       )}
                     </PermissionGuard>
                   </ProtectedRoute>

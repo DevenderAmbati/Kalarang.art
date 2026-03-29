@@ -59,6 +59,16 @@ export async function hasLikedArtwork(
 }
 
 /**
+ * Get artwork IDs the user has liked
+ */
+export async function getUserLikedArtworkIds(userId: string): Promise<string[]> {
+  const likesRef = collection(db, "likes");
+  const q = query(likesRef, where("userId", "==", userId));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map((d) => d.data().artworkId as string);
+}
+
+/**
  * Save artwork to favorites
  */
 export async function saveArtworkToFavorites(

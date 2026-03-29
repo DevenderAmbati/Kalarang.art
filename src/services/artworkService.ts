@@ -232,6 +232,7 @@ export async function createArtwork(
     views: 0,
     likes: 0,
     favorites: 0,
+    comments: 0,
     reachOutClicks: 0,
   };
 
@@ -274,6 +275,7 @@ export async function createArtworkWithUrls(
     views: 0,
     likes: 0,
     favorites: 0,
+    comments: 0,
     reachOutClicks: 0,
   };
 

@@ -15,7 +15,9 @@
   top: 0;
   left: 0;
   right: 0;
+  width: 100%;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .layout-header .header-right > div:hover {
@@ -46,7 +48,7 @@
    ============================================ */
 
 .layout-main-content {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
   overscroll-behavior-y: contain; /* Prevent native pull-to-refresh */
 }
@@ -82,15 +84,17 @@
   /* Adjust header for mobile */
   .layout-header {
     position: fixed;
+    left: 0;
+    right: 0;
     width: 100%;
   }
 
   .layout-header .header-row {
-    padding: 0.75rem 1rem !important;
+    padding: 0.45rem 0.85rem !important;
   }
 
   .layout-header h1 {
-    font-size: 1.25rem !important;
+    font-size: 1.1rem !important;
   }
 
   /* Hide profile icon on mobile */
@@ -103,7 +107,7 @@
 @media (min-width: 640px) {
   .layout-main-content {
     padding-bottom: 0;
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
   }
 }
 
@@ -134,10 +138,10 @@
   
   .header-logo-mobile {
     display: block !important;
-    height: 32px !important;
+    height: 28px !important;
     width: auto !important;
     margin-left: -0.5rem !important;
-    margin-top: 0.25rem !important;
+    margin-top: 0.1rem !important;
   }
 }
 

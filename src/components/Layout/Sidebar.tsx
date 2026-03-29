@@ -1,9 +1,8 @@
 import React, { CSSProperties } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AiFillHome } from 'react-icons/ai';
-import { MdExplore, MdFavorite, MdChevronLeft, MdChevronRight } from 'react-icons/md';
+import { MdExplore, MdFavorite, MdChevronLeft, MdChevronRight, MdAssignment } from 'react-icons/md';
 import { BiUpload } from 'react-icons/bi';
-import { BsBriefcaseFill, BsPersonCircle } from 'react-icons/bs';
 import { IconType } from 'react-icons';
 import { useSidebar } from '../../context/SidebarContext';
 import { useAuth } from '../../context/AuthContext';
@@ -59,11 +58,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   // All menu items
   const allMenuItems: Array<{ path: string; label: string; Icon: IconType }> = [
     { path: '/home', label: 'Home', Icon: AiFillHome },
-    { path: '/discover', label: 'Discover', Icon: MdExplore },
-    { path: '/post', label: 'Post', Icon: BiUpload },
+    { path: '/discover', label: 'Explore', Icon: MdExplore },
+    { path: '/post', label: 'Upload', Icon: BiUpload },
     { path: '/favourites', label: 'Favourites', Icon: MdFavorite },
-    { path: '/portfolio', label: 'Portfolio', Icon: BsBriefcaseFill },
-    { path: '/profile', label: 'Profile', Icon: BsPersonCircle },
+    { path: '/commissions', label: 'Commissions', Icon: MdAssignment },
   ];
 
   // Filter menu items based on permissions

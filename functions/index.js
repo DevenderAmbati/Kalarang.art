@@ -16,7 +16,7 @@
  * @see https://firebase.google.com/docs/functions/get-started
  */
 
-const {onCall} = require("firebase-functions/v2/https");
+const {onCall, onRequest, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentCreated, onDocumentWritten} = require("firebase-functions/v2/firestore");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {setGlobalOptions} = require("firebase-functions/v2");
@@ -30,6 +30,155 @@ const {getMessaging} = require("firebase-admin/messaging");
 const admin = initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
+const {FieldValue} = require("firebase-admin/firestore");
+
+/** Buyer accepts artist offer from commission chat — mirrors hire flow + updates offer message. */
+exports.acceptCommissionOffer = onCall(
+  {
+    invoker: "public",
+    cors: true,
+    memory: "256MiB",
+    timeoutSeconds: 60,
+  },
+  async (request) => {
+    if (!request.auth || !request.auth.uid) {
+      throw new HttpsError("unauthenticated", "Sign in to accept this offer.");
+    }
+    const buyerId = request.auth.uid;
+    const chatId = String((request.data && request.data.chatId) || "").trim();
+    const messageId = String((request.data && request.data.messageId) || "").trim();
+    if (!chatId || !messageId) {
+      throw new HttpsError("invalid-argument", "chatId and messageId are required.");
+    }
+
+    const chatRef = db.collection("commissionChats").doc(chatId);
+    const msgRef = chatRef.collection("messages").doc(messageId);
+
+    const chatSnap = await chatRef.get();
+    const msgSnap = await msgRef.get();
+    if (!chatSnap.exists || !msgSnap.exists) {
+      throw new HttpsError("not-found", "Chat or message not found.");
+    }
+
+    const chat = chatSnap.data();
+    const msg = msgSnap.data();
+
+    const participants = chat.participants || [];
+    if (!participants.includes(buyerId)) {
+      throw new HttpsError("permission-denied", "Not a participant in this chat.");
+    }
+    if (msg.senderId === buyerId) {
+      throw new HttpsError("permission-denied", "Only the buyer can accept this offer.");
+    }
+    if (msg.messageType !== "commission_offer" || msg.offerStatus !== "pending") {
+      throw new HttpsError("failed-precondition", "This offer cannot be accepted.");
+    }
+
+    const artistId = msg.senderId;
+    const commissionId = msg.commissionId;
+    if (!commissionId || chat.commissionId !== commissionId) {
+      throw new HttpsError("failed-precondition", "Invalid commission for this chat.");
+    }
+
+    const commRef = db.collection("commissions").doc(commissionId);
+    const commSnap = await commRef.get();
+    if (!commSnap.exists) {
+      throw new HttpsError("not-found", "Commission not found.");
+    }
+    const comm = commSnap.data();
+    if (comm.buyerId !== buyerId) {
+      throw new HttpsError("permission-denied", "Not allowed.");
+    }
+    const st = String(comm.status || "").trim().toLowerCase().replace(/\s+/g, "");
+    if (st !== "open") {
+      throw new HttpsError("failed-precondition", "This commission is no longer open.");
+    }
+
+    const finalPrice = String(msg.offerFinalPrice || "").trim();
+    const advanceAmount = String(msg.offerAdvanceAmount || "").trim();
+    const deliveryDate = String(msg.offerDeliveryDate || "").trim();
+
+    await db.runTransaction(async (t) => {
+      const freshComm = await t.get(commRef);
+      const freshMsg = await t.get(msgRef);
+      if (!freshComm.exists || !freshMsg.exists) {
+        throw new HttpsError("not-found", "Commission or message was removed.");
+      }
+      const c = freshComm.data();
+      const m = freshMsg.data();
+      const cst = String(c.status || "").trim().toLowerCase().replace(/\s+/g, "");
+      if (cst !== "open" || c.buyerId !== buyerId) {
+        throw new HttpsError("failed-precondition", "Commission is no longer open.");
+      }
+      if (m.offerStatus !== "pending" || m.messageType !== "commission_offer") {
+        throw new HttpsError("failed-precondition", "This offer is no longer pending.");
+      }
+
+      t.update(commRef, {
+        status: "inprogress",
+        hiredArtistId: artistId,
+        agreedFinalPrice: finalPrice,
+        agreedAdvanceAmount: advanceAmount,
+        agreedDeliveryDate: deliveryDate,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      t.update(msgRef, {
+        offerStatus: "accepted",
+        acceptedAt: FieldValue.serverTimestamp(),
+      });
+    });
+
+    await chatRef.collection("messages").add({
+      senderId: buyerId,
+      text: "Offer accepted.",
+      seenBy: [buyerId],
+      commissionId,
+      commissionTitle: msg.commissionTitle || "",
+      commissionImage: msg.commissionImage || "",
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    const otherUnreadPatch = {};
+    otherUnreadPatch[`unreadFor.${artistId}`] = FieldValue.increment(1);
+    otherUnreadPatch[`unreadFor.${buyerId}`] = 0;
+    await chatRef.update({
+      lastMessage: "Offer accepted.",
+      updatedAt: FieldValue.serverTimestamp(),
+      ...otherUnreadPatch,
+    });
+
+    const hiredElsewhereText = "Another artist was hired for this commission";
+    const otherChats = await db.collection("commissionChats")
+      .where("participants", "array-contains", buyerId)
+      .get();
+
+    const batch = db.batch();
+    let closeCount = 0;
+    for (const docSnap of otherChats.docs) {
+      if (docSnap.id === chatId) continue;
+      const d = docSnap.data();
+      if (d.commissionId !== commissionId) continue;
+      if (d.closed) continue;
+      const parts = d.participants || [];
+      const otherUid = parts.find((u) => u !== buyerId);
+      if (!otherUid || otherUid === artistId) continue;
+      batch.update(docSnap.ref, {
+        closed: true,
+        closedReason: "other_hired",
+        lastMessage: hiredElsewhereText,
+        updatedAt: FieldValue.serverTimestamp(),
+        [`unreadFor.${buyerId}`]: 0,
+        [`unreadFor.${otherUid}`]: FieldValue.increment(1),
+      });
+      closeCount++;
+    }
+    if (closeCount > 0) {
+      await batch.commit();
+    }
+
+    return {success: true};
+  },
+);
 
 // Define environment parameters using Gen 2 params API
 // These values can be set via .env file locally or Firebase secrets in production
@@ -49,6 +198,149 @@ setGlobalOptions({
   memory: "256MiB", // Optimize memory allocation
   timeoutSeconds: 60, // Set reasonable timeout
 });
+
+/**
+ * POST /post/view
+ * Body: { userId, postId }
+ * Upserts a unique post view record into "post_views".
+ */
+exports.postView = onRequest(
+  {
+    cors: true,
+    memory: "256MiB",
+    timeoutSeconds: 30,
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method Not Allowed"});
+      return;
+    }
+
+    const userId = String((req.body && req.body.userId) || "").trim();
+    const postId = String((req.body && req.body.postId) || "").trim();
+    if (!userId || !postId) {
+      res.status(400).json({error: "userId and postId are required"});
+      return;
+    }
+
+    try {
+      const docId = `${userId.replace(/\//g, "_")}__${postId.replace(/\//g, "_")}`;
+      await db.collection("post_views").doc(docId).set(
+        {
+          userId,
+          postId,
+          seenAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true}
+      );
+      res.status(200).json({success: true});
+    } catch (err) {
+      logger.error("postView failed", {
+        userId,
+        postId,
+        error: err && err.message ? err.message : String(err),
+      });
+      res.status(500).json({error: "Failed to store post view"});
+    }
+  }
+);
+
+/**
+ * All commissions (any status) for server-side search; optional text filter in the handler.
+ */
+async function fetchAllCommissionDocs() {
+  const snap = await db.collection("commissions").get();
+  return snap.docs;
+}
+
+function serializeCommissionDoc(docSnap) {
+  const d = docSnap.data();
+  const ts = (t) => {
+    if (!t) return null;
+    if (typeof t.toMillis === "function") {
+      return {seconds: t.seconds, nanoseconds: t.nanoseconds || 0};
+    }
+    if (t.seconds != null) {
+      return {seconds: t.seconds, nanoseconds: t.nanoseconds || 0};
+    }
+    return null;
+  };
+  return {
+    id: docSnap.id,
+    buyerId: d.buyerId || "",
+    buyerName: d.buyerName || "",
+    buyerAvatar: d.buyerAvatar || "",
+    title: d.title || "",
+    description: d.description || "",
+    referenceImages: Array.isArray(d.referenceImages) ? d.referenceImages : [],
+    budget: d.budget || "",
+    deadline: d.deadline || "",
+    type: d.type || "",
+    style: Array.isArray(d.style) ? d.style : [],
+    subject: Array.isArray(d.subject) ? d.subject : [],
+    deliveryType: d.deliveryType || "",
+    cityOrPincode: d.cityOrPincode || "",
+    status: d.status || "open",
+    hiredArtistId: d.hiredArtistId || "",
+    agreedFinalPrice: d.agreedFinalPrice || "",
+    agreedAdvanceAmount: d.agreedAdvanceAmount || "",
+    agreedDeliveryDate: d.agreedDeliveryDate || "",
+    createdAt: ts(d.createdAt),
+    updatedAt: ts(d.updatedAt),
+  };
+}
+
+function commissionMatchesSearch(item, searchQuery) {
+  const q = searchQuery.trim().toLowerCase();
+  if (!q) return true;
+  const words = q.split(/\s+/).filter(Boolean);
+  const haystack = [
+    item.title,
+    item.description,
+    item.buyerName,
+    item.type,
+    item.budget,
+    item.deadline,
+    item.cityOrPincode,
+    item.deliveryType,
+    ...item.style,
+    ...item.subject,
+  ]
+    .join(" ")
+    .toLowerCase();
+  return words.every((w) => haystack.includes(w));
+}
+
+exports.searchOpenCommissions = onCall(
+  {
+    invoker: "public",
+    cors: true,
+    memory: "512MiB",
+    timeoutSeconds: 60,
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Sign in to search commissions.");
+    }
+    const raw = (request.data && request.data.query) || "";
+    const searchQuery = String(raw).trim();
+
+    let docs;
+    try {
+      docs = await fetchAllCommissionDocs();
+    } catch (e) {
+      logger.error("searchOpenCommissions fetch failed", e);
+      throw new HttpsError("internal", "Failed to load commissions.");
+    }
+
+    let serialized = docs.map(serializeCommissionDoc);
+    if (searchQuery) {
+      serialized = serialized.filter((row) => commissionMatchesSearch(row, searchQuery));
+    }
+
+    return {commissions: serialized};
+  },
+);
 
 /**
  * Cloud Function (Gen 2) - Send Support Email
@@ -546,6 +838,8 @@ exports.onNotificationCreated = onDocumentCreated(
     let title = "Kalarang";
     let body = "You have a new notification";
 
+    const commissionTitle = notif.commissionTitle || "";
+
     switch (type) {
     case "follow":
       title = "New Follower";
@@ -563,14 +857,39 @@ exports.onNotificationCreated = onDocumentCreated(
         ? `${actorName || "Someone"} reached out about "${artworkTitle}"`
         : `${actorName || "Someone"} reached out to you`;
       break;
+    case "commission_application":
+      title = "New Application";
+      body = commissionTitle
+        ? `${actorName || "An artist"} applied to your commission "${commissionTitle}"`
+        : `${actorName || "An artist"} applied to your commission`;
+      break;
+    case "commission_offer":
+      title = "New Commission Offer";
+      body = commissionTitle
+        ? `${actorName || "An artist"} sent you an offer for "${commissionTitle}"`
+        : `${actorName || "An artist"} sent you a commission offer`;
+      break;
+    case "commission_offer_accepted":
+      title = "Offer Accepted!";
+      body = commissionTitle
+        ? `${actorName || "The buyer"} accepted your offer for "${commissionTitle}" — you can start the work!`
+        : `${actorName || "The buyer"} accepted your offer — you can start the work!`;
+      break;
+    case "commission_completed":
+      title = "Commission Completed";
+      body = commissionTitle
+        ? `Your commission "${commissionTitle}" has been marked as completed`
+        : "Your commission has been marked as completed";
+      break;
     default:
       body = `${actorName || "Someone"} interacted with your profile`;
     }
 
+    const isCommissionType = ["commission_application", "commission_offer", "commission_offer_accepted", "commission_completed"].includes(type);
     await sendPushToUser(
       recipientId,
       {title, body},
-      {type: type || "notification", url: "/home"}
+      {type: type || "notification", url: isCommissionType ? "/commissions" : "/home"}
     );
   }
 );
@@ -593,9 +912,11 @@ exports.onChatMessageCreated = onDocumentCreated(
     const messageData = snap.data();
     const {senderId, text} = messageData;
     const chatId = event.params.chatId;
+    const rawText = typeof text === "string" ? text.trim() : "";
+    const hasImage = Boolean(messageData.imageUrl);
 
-    if (!senderId || !text) {
-      logger.warn("Message missing senderId or text", {chatId});
+    if (!senderId || (!rawText && !hasImage)) {
+      logger.warn("Message missing senderId and has no text or image", {chatId});
       return;
     }
 
@@ -624,8 +945,73 @@ exports.onChatMessageCreated = onDocumentCreated(
       logger.warn("Could not fetch sender name", {senderId});
     }
 
+    const bodyText = rawText || (hasImage ? "📷 Photo" : "New message");
     const truncatedText =
-      text.length > 100 ? text.substring(0, 100) + "..." : text;
+      bodyText.length > 100 ? bodyText.substring(0, 100) + "..." : bodyText;
+
+    await sendPushToUser(
+      recipientId,
+      {title: senderName, body: truncatedText},
+      {type: "chat", chatId, url: "/home"},
+      `chat_${chatId}`
+    );
+  }
+);
+
+/**
+ * Trigger: new message in "commissionChats/{chatId}/messages/{messageId}".
+ * Same FCM behavior as pair chats (title = sender name, body = message preview).
+ */
+exports.onCommissionChatMessageCreated = onDocumentCreated(
+  {
+    document: "commissionChats/{chatId}/messages/{messageId}",
+    region: "us-central1",
+    memory: "256MiB",
+    maxInstances: 20,
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const messageData = snap.data();
+    const {senderId, text} = messageData;
+    const chatId = event.params.chatId;
+    const rawText = typeof text === "string" ? text.trim() : "";
+    const hasImage = Boolean(messageData.imageUrl);
+
+    if (!senderId || (!rawText && !hasImage)) {
+      logger.warn("Commission message missing senderId and has no text or image", {chatId});
+      return;
+    }
+
+    const chatDoc = await db.collection("commissionChats").doc(chatId).get();
+    if (!chatDoc.exists) {
+      logger.warn("Commission chat document not found", {chatId});
+      return;
+    }
+
+    const chatData = chatDoc.data();
+    const participants = chatData.participants || [];
+    const recipientId = participants.find((p) => p !== senderId);
+
+    if (!recipientId) {
+      logger.warn("Could not determine commission message recipient", {chatId, senderId});
+      return;
+    }
+
+    let senderName = "Someone";
+    try {
+      const senderDoc = await db.collection("users").doc(senderId).get();
+      if (senderDoc.exists) {
+        senderName = senderDoc.data().name || "Someone";
+      }
+    } catch (err) {
+      logger.warn("Could not fetch sender name", {senderId});
+    }
+
+    const bodyText = rawText || (hasImage ? "📷 Photo" : "New message");
+    const truncatedText =
+      bodyText.length > 100 ? bodyText.substring(0, 100) + "..." : bodyText;
 
     await sendPushToUser(
       recipientId,
@@ -663,6 +1049,8 @@ function calculateScore(artwork, artistTotalArtworks) {
   const rawEngagement =
     1 * (artwork.views || 0) +
     5 * (artwork.favorites || 0) +
+    3 * (artwork.likes || 0) +
+    6 * (artwork.comments || 0) +
     10 * (artwork.reachOutClicks || 0);
   const engagementScore = Math.min(Math.log(1 + rawEngagement), 3);
 
@@ -681,8 +1069,7 @@ function calculateScore(artwork, artistTotalArtworks) {
 
 /**
  * Trigger: artwork document written (create or update).
- * Re-computes the ranking score whenever views, favorites, reachOutClicks,
- * or published status changes.
+ * Re-computes the ranking score whenever engagement or publish metadata changes.
  */
 exports.onArtworkWritten = onDocumentWritten(
   {
@@ -702,7 +1089,7 @@ exports.onArtworkWritten = onDocumentWritten(
     // Skip if only the score field changed (avoid infinite loop)
     if (beforeData) {
       const fieldsToWatch = [
-        "views", "favorites", "reachOutClicks", "published", "createdAt",
+        "views", "favorites", "likes", "comments", "reachOutClicks", "published", "createdAt",
       ];
       const changed = fieldsToWatch.some(
         (f) => JSON.stringify(beforeData[f]) !== JSON.stringify(data[f])

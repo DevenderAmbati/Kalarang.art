@@ -63,6 +63,19 @@ export async function compressImages(
 }
 
 /**
+ * Chat attachments: high max dimension and size so downloads stay sharp;
+ * JPEG output for broad compatibility (browser-image-compression).
+ */
+export async function compressChatImage(file: File): Promise<File> {
+  return compressImage(file, {
+    maxSizeMB: 8,
+    maxWidthOrHeight: 4096,
+    useWebWorker: true,
+    fileType: 'image/jpeg',
+  });
+}
+
+/**
  * Get compressed file size info for logging/debugging
  */
 export function getCompressionStats(original: File, compressed: File): {

@@ -10,6 +10,8 @@ export interface ScoreableArtwork {
   createdAt: { toMillis?: () => number } | Date | number;
   views?: number;
   favorites?: number;
+  likes?: number;
+  comments?: number;
   reachOutClicks?: number;
   artistTotalArtworks?: number;
 }
@@ -34,6 +36,8 @@ export function calculateScore(artwork: ScoreableArtwork): number {
   const rawEngagement =
     1 * (artwork.views || 0) +
     5 * (artwork.favorites || 0) +
+    3 * (artwork.likes || 0) +
+    6 * (artwork.comments || 0) +
     10 * (artwork.reachOutClicks || 0);
 
   const engagementScore = Math.min(Math.log(1 + rawEngagement), 3);

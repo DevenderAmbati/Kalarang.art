@@ -4,7 +4,11 @@ import CreateArtwork from '../../components/Forms/CreateArtwork';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../../services/authService';
 
-const Upload: React.FC = () => {
+interface UploadProps {
+  embedded?: boolean;
+}
+
+const Upload: React.FC<UploadProps> = ({ embedded = false }) => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -18,6 +22,10 @@ const Upload: React.FC = () => {
       // Logout failed; ignore
     }
   };
+
+  if (embedded) {
+    return <CreateArtwork />;
+  }
 
   return (
     <Layout onLogout={handleLogout} pageTitle="Upload">

@@ -31,6 +31,8 @@ export interface ChatMessage {
   artworkTitle?: string;
   artworkImage?: string;
   artworkPrice?: number;
+  /** Firebase Storage download URL (full quality for display + download) */
+  imageUrl?: string;
 }
 
 export interface Chat {
@@ -39,6 +41,10 @@ export interface Chat {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   lastMessage: string;
+  contextType?: 'commission' | 'artwork';
+  contextId?: string;
+  contextTitle?: string;
+  contextImage?: string;
   /** Unread count per participant uid (e.g. unreadFor['uid'] === 3). */
   unreadFor?: Record<string, number>;
 }
@@ -60,7 +66,13 @@ export function getChatId(uid1: string, uid2: string): string {
  */
 export async function createOrGetChat(
   buyerId: string,
-  artistId: string
+  artistId: string,
+  context?: {
+    type?: 'commission' | 'artwork';
+    id?: string;
+    title?: string;
+    image?: string;
+  }
 ): Promise<string> {
   const chatId = getChatId(buyerId, artistId);
   const chatRef = doc(db, 'chats', chatId);
@@ -78,6 +90,19 @@ export async function createOrGetChat(
         lastMessage: '',
         unreadFor: {},
       });
+    } else if (context?.type === 'commission' && context.id) {
+      // Preserve existing pair-chat behavior but attach commission context
+      // so commission pages can discover relevant threads.
+      await setDoc(
+        chatRef,
+        {
+          contextType: 'commission',
+          contextId: context.id,
+          contextTitle: context.title || '',
+          contextImage: context.image || '',
+        },
+        { merge: true }
+      );
     }
   } catch (error) {
     throw error;
@@ -95,16 +120,25 @@ export async function sendMessage(
   senderId: string,
   text: string,
   otherUserId?: string,
-  artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number }
+  artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number },
+  imageUrl?: string,
 ): Promise<void> {
   const messagesRef = collection(db, 'chats', chatId, 'messages');
+  const trimmed = text.trim();
+  if (!trimmed && !imageUrl) {
+    throw new Error('Message must include text or an image.');
+  }
 
   try {
     const messageData: any = {
       senderId,
-      text,
+      text: trimmed,
       createdAt: serverTimestamp(),
     };
+
+    if (imageUrl) {
+      messageData.imageUrl = imageUrl;
+    }
     
     if (artworkMetadata?.artworkId) {
       messageData.artworkId = artworkMetadata.artworkId;
@@ -182,6 +216,7 @@ export async function getMessages(
     artworkTitle: d.data().artworkTitle,
     artworkImage: d.data().artworkImage,
     artworkPrice: d.data().artworkPrice,
+    imageUrl: d.data().imageUrl,
     createdAt: d.data().createdAt,
   }));
 
@@ -271,6 +306,10 @@ export function subscribeToUserChats(
         createdAt: data.createdAt,
         updatedAt: data.updatedAt,
         lastMessage: data.lastMessage ?? '',
+        contextType: data.contextType,
+        contextId: data.contextId,
+        contextTitle: data.contextTitle,
+        contextImage: data.contextImage,
         unreadFor: data.unreadFor ?? {},
       };
     });

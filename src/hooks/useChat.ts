@@ -16,6 +16,7 @@ import {
   sendMessage as sendChatMessage,
   getMessages,
 } from '../services/chatService';
+import { uploadChatMessageImage } from '../services/chatImageUpload';
 
 const REALTIME_LIMIT = 20;
 const MAX_CACHED_CHATS = 10;
@@ -36,7 +37,11 @@ interface UseChatReturn {
   sending: boolean;
   hasMore: boolean;
   ready: boolean;
-  sendMessage: (text: string, artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number }) => Promise<void>;
+  sendMessage: (
+    text: string,
+    artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number },
+    imageFile?: File,
+  ) => Promise<void>;
   loadMore: () => Promise<void>;
 }
 
@@ -146,6 +151,7 @@ export function useChat(
             artworkTitle: data.artworkTitle,
             artworkImage: data.artworkImage,
             artworkPrice: data.artworkPrice,
+            imageUrl: data.imageUrl,
           };
         });
 
@@ -201,14 +207,26 @@ export function useChat(
   }, [chatId, hasMore]);
 
   const sendMessage = useCallback(
-    async (text: string, artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number }) => {
-      if (!chatId || !currentUserId || !text.trim()) {
+    async (
+      text: string,
+      artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number },
+      imageFile?: File,
+    ) => {
+      if (!chatId || !currentUserId) {
+        throw new Error('Cannot send message: missing required data');
+      }
+      const trimmed = text.trim();
+      if (!trimmed && !imageFile) {
         throw new Error('Cannot send message: missing required data');
       }
 
       setSending(true);
       try {
-        await sendChatMessage(chatId, currentUserId, text.trim(), otherUserId, artworkMetadata);
+        let imageUrl: string | undefined;
+        if (imageFile) {
+          imageUrl = await uploadChatMessageImage(currentUserId, 'chats', chatId, imageFile);
+        }
+        await sendChatMessage(chatId, currentUserId, trimmed, otherUserId, artworkMetadata, imageUrl);
       } catch (error) {
         throw error;
       } finally {

@@ -7,6 +7,11 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if true; // Anyone can read user profiles
       allow write: if request.auth != null && request.auth.uid == userId; // Only owner can update
+
+      // Shortlisted commissions (artist bookmark) — allows reading commission doc after it leaves "open"
+      match /commissionShortlists/{commissionId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
     
     // Artworks collection
@@ -16,7 +21,7 @@ service cloud.firestore {
       allow update: if request.auth != null && (
         resource.data.artistId == request.auth.uid || // Owner can update all fields
         // Engagement counters can be updated by authenticated users
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'favorites', 'reachOutClicks', 'likes']))
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'favorites', 'reachOutClicks', 'likes', 'comments']))
       );
       allow delete: if request.auth != null && resource.data.artistId == request.auth.uid; // Only owner can delete
     }
@@ -40,10 +45,22 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
     
-    // Comments collection (if you have it)
+    // Comments on artworks (optional parentCommentId for artist replies)
     match /comments/{commentId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll(['artworkId', 'userId', 'userName', 'text', 'createdAt'])
+        && (
+          !request.resource.data.keys().hasAny(['parentCommentId'])
+          || (
+            request.resource.data.parentCommentId is string
+            && request.resource.data.parentCommentId.size() > 0
+            && get(/databases/$(database)/documents/artworks/$(request.resource.data.artworkId)).data.artistId == request.auth.uid
+          )
+        );
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow update: if false;
     }
     
     // Stories collection
@@ -52,11 +69,51 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.artistId == request.auth.uid; // Only authenticated users can create their own stories
       allow delete: if request.auth != null && resource.data.artistId == request.auth.uid; // Only owner can delete
     }
+
+    // Commissions collection
+    match /commissions/{commissionId} {
+      allow create: if request.auth != null
+                    && request.resource.data.buyerId == request.auth.uid;
+      // Open listings (anyone). Non-open: any signed-in user can read (browse / fallback when callable fails).
+      allow read: if resource.data.status == "open"
+                  || request.auth != null;
+      allow update, delete: if request.auth != null
+                            && resource.data.buyerId == request.auth.uid;
+
+      // One doc per artist who applied — lets applicants read the parent commission after it leaves "open"
+      match /applications/{artistId} {
+        allow read: if request.auth != null
+                    && (
+                      request.auth.uid == artistId
+                      || request.auth.uid == get(/databases/$(database)/documents/commissions/$(commissionId)).data.buyerId
+                    );
+        allow create: if request.auth != null
+                      && request.auth.uid == artistId
+                      && request.resource.data.artistId == artistId
+                      && get(/databases/$(database)/documents/commissions/$(commissionId)).data.status == "open";
+        // Idempotent apply / merge: updates are same artist only (merge:true after doc exists would otherwise fail).
+        allow update: if request.auth != null
+                      && request.auth.uid == artistId
+                      && resource.data.artistId == artistId
+                      && request.resource.data.artistId == artistId;
+        allow delete: if false;
+      }
+    }
     
     // Story Views collection
     match /storyViews/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId; // Users can only read their own views
       allow write: if request.auth != null && request.auth.uid == userId; // Users can only write their own views
+    }
+
+    // Post Views collection (seen tracking)
+    // Document ID convention: {userId}__{postId} to keep userId+postId unique.
+    match /post_views/{viewId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create, update: if request.auth != null
+                            && request.resource.data.userId == request.auth.uid
+                            && request.resource.data.postId is string;
+      allow delete: if false;
     }
     
     // Notifications collection
@@ -90,6 +147,32 @@ service cloud.firestore {
                       && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
         allow update: if request.auth != null
                       && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+                      && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenBy']));
+      }
+    }
+
+    // Dedicated Commission Chats collection (separate from normal chats)
+    match /commissionChats/{chatId} {
+      // Allow read on missing docs so clients can getDoc before create; existing docs require participant
+      allow read: if request.auth != null
+                  && (
+                    !exists(/databases/$(database)/documents/commissionChats/$(chatId))
+                    || request.auth.uid in resource.data.participants
+                  );
+      allow create: if request.auth != null
+                    && request.auth.uid in request.resource.data.participants;
+      allow update: if request.auth != null
+                    && request.auth.uid in resource.data.participants;
+
+      match /messages/{messageId} {
+        allow read: if request.auth != null
+                    && request.auth.uid in get(/databases/$(database)/documents/commissionChats/$(chatId)).data.participants;
+        allow create: if request.auth != null
+                      && request.resource.data.senderId == request.auth.uid
+                      && exists(/databases/$(database)/documents/commissionChats/$(chatId))
+                      && request.auth.uid in get(/databases/$(database)/documents/commissionChats/$(chatId)).data.participants;
+        allow update: if request.auth != null
+                      && request.auth.uid in get(/databases/$(database)/documents/commissionChats/$(chatId)).data.participants
                       && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenBy']));
       }
     }

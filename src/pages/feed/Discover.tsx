@@ -35,6 +35,12 @@ const CATEGORIES = [
   'Sculpture',
 ];
 
+const getGridColumnCount = (width: number): number => {
+  if (width >= 1440) return 4;
+  if (width >= 1024) return 3;
+  return 2;
+};
+
 const Discover: React.FC = () => {
   const navigate = useNavigate();
   const { appUser } = useAuth();
@@ -82,6 +88,11 @@ const Discover: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const artworkGridShellRef = useRef<HTMLDivElement | null>(null);
+  const [gridWidth, setGridWidth] = useState(0);
+  const [gridOffsetTop, setGridOffsetTop] = useState(0);
+  const [gridScrollTop, setGridScrollTop] = useState(0);
+  const [gridViewportHeight, setGridViewportHeight] = useState(0);
 
   // Use cached data hooks
   const { data: favoriteIds, updateCache: updateFavoritesCache, refetch: refetchFavorites } = useFavorites(appUser?.uid);
@@ -189,21 +200,23 @@ const Discover: React.FC = () => {
   const paginationOrderMode: FeedPaginationOrderMode =
     sortOption === 'newest' ? 'newest' : 'featured';
 
-  const fetchFirstPage = useCallback(async (useFilteredQuery: boolean) => {
+  const fetchFirstPage = useCallback(async (useFilteredQuery: boolean, forceFresh = false) => {
     if (!useFilteredQuery) {
       const cacheKey = cacheKeys.discoverPaginated(sortOption);
-      const cached = cache.get<{
-        artworks: ArtworkType[];
-        hasMore: boolean;
-        lastVisible: QueryDocumentSnapshot<DocumentData> | null;
-      }>(cacheKey);
+      if (!forceFresh) {
+        const cached = cache.get<{
+          artworks: ArtworkType[];
+          hasMore: boolean;
+          lastVisible: QueryDocumentSnapshot<DocumentData> | null;
+        }>(cacheKey);
 
-      if (cached.exists && cached.data) {
-        setArtworks(cached.data.artworks);
-        setHasMore(cached.data.hasMore);
-        setLastVisible(cached.data.lastVisible ?? null);
-        setLoading(false);
-        return;
+        if (cached.exists && cached.data) {
+          setArtworks(cached.data.artworks);
+          setHasMore(cached.data.hasMore);
+          setLastVisible(cached.data.lastVisible ?? null);
+          setLoading(false);
+          return;
+        }
       }
 
       const result = await getPublishedArtworksPaginated(20, undefined, paginationOrderMode);
@@ -228,11 +241,14 @@ const Discover: React.FC = () => {
   // Pull-to-refresh handler
   const handleRefresh = useCallback(async () => {
     try {
-      await fetchFirstPage(needsFilteredQuery);
+      if (!needsFilteredQuery) {
+        cache.invalidate(cacheKeys.discoverPaginated(sortOption));
+      }
+      await fetchFirstPage(needsFilteredQuery, true);
     } catch (error) {
       throw error;
     }
-  }, [fetchFirstPage, needsFilteredQuery]);
+  }, [fetchFirstPage, needsFilteredQuery, sortOption]);
 
   // Initialize pull-to-refresh
   const pullToRefreshState = usePullToRefresh(containerRef, {
@@ -526,6 +542,108 @@ const Discover: React.FC = () => {
   }, [searchQuery, artworks, matchedUsers]);
 
   const displayedArtworks = artworks || [];
+  const shouldVirtualizeGrid = displayedArtworks.length > 30;
+
+  const gridColumnCount = useMemo(() => {
+    return getGridColumnCount(gridWidth || window.innerWidth);
+  }, [gridWidth]);
+
+  const estimatedRowHeight = useMemo(() => {
+    if (!gridWidth) return 360;
+    const horizontalPadding = 12; // 6px left + 6px right from .artwork-grid
+    const gap = gridWidth <= 639 ? 16 : 18;
+    const usableWidth = Math.max(220, gridWidth - horizontalPadding);
+    const cardWidth =
+      (usableWidth - gap * Math.max(0, gridColumnCount - 1)) / gridColumnCount;
+    return Math.max(300, Math.ceil(cardWidth * 1.42));
+  }, [gridWidth, gridColumnCount]);
+
+  const rowCount = useMemo(
+    () => Math.ceil(displayedArtworks.length / gridColumnCount),
+    [displayedArtworks.length, gridColumnCount]
+  );
+
+  const relativeScrollTop = Math.max(0, gridScrollTop - gridOffsetTop);
+  const visibleStartRow = Math.max(
+    0,
+    Math.floor(relativeScrollTop / estimatedRowHeight) - 2
+  );
+  const visibleEndRow = Math.min(
+    Math.max(0, rowCount - 1),
+    Math.ceil(
+      (relativeScrollTop + (gridViewportHeight || 900)) / estimatedRowHeight
+    ) + 2
+  );
+  const startIndex = visibleStartRow * gridColumnCount;
+  const endIndex = Math.min(
+    displayedArtworks.length,
+    (visibleEndRow + 1) * gridColumnCount
+  );
+
+  const virtualizedArtworks = shouldVirtualizeGrid
+    ? displayedArtworks.slice(startIndex, endIndex)
+    : displayedArtworks;
+  const topSpacerHeight = shouldVirtualizeGrid
+    ? visibleStartRow * estimatedRowHeight
+    : 0;
+  const renderedRows = Math.ceil(virtualizedArtworks.length / gridColumnCount);
+  const totalGridHeight = rowCount * estimatedRowHeight;
+  const bottomSpacerHeight = shouldVirtualizeGrid
+    ? Math.max(0, totalGridHeight - topSpacerHeight - renderedRows * estimatedRowHeight)
+    : 0;
+
+  const updateGridMetrics = useCallback(() => {
+    const scrollContainer = containerRef.current;
+    const shell = artworkGridShellRef.current;
+    if (!scrollContainer || !shell) return;
+
+    setGridScrollTop(scrollContainer.scrollTop);
+    setGridViewportHeight(scrollContainer.clientHeight);
+
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const shellRect = shell.getBoundingClientRect();
+    const offsetTop = shellRect.top - containerRect.top + scrollContainer.scrollTop;
+    setGridOffsetTop(offsetTop);
+  }, []);
+
+  useEffect(() => {
+    if (!shouldVirtualizeGrid) return;
+    const shell = artworkGridShellRef.current;
+    if (!shell || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      setGridWidth(Math.floor(entry.contentRect.width));
+    });
+    observer.observe(shell);
+    return () => observer.disconnect();
+  }, [shouldVirtualizeGrid, displayedArtworks.length]);
+
+  useEffect(() => {
+    if (!shouldVirtualizeGrid) return;
+    let rafId = 0;
+    const scrollContainer = containerRef.current;
+    if (!scrollContainer) return;
+
+    const scheduleMeasure = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        updateGridMetrics();
+      });
+    };
+
+    scheduleMeasure();
+    scrollContainer.addEventListener('scroll', scheduleMeasure, { passive: true });
+    window.addEventListener('resize', scheduleMeasure);
+
+    return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      scrollContainer.removeEventListener('scroll', scheduleMeasure);
+      window.removeEventListener('resize', scheduleMeasure);
+    };
+  }, [shouldVirtualizeGrid, updateGridMetrics, displayedArtworks.length]);
 
   return (
     <>
@@ -855,23 +973,31 @@ const Discover: React.FC = () => {
                       Artworks
                     </h3>
                   )}
-                  <ArtworkGrid 
-                    artworks={displayedArtworks.map(artwork => ({
-                      id: artwork.id,
-                      title: artwork.title,
-                      artworkImage: artwork.images[0],
-                      artistName: artwork.artistName,
-                      artistAvatar: artwork.artistAvatar || '/artist.png',
-                      artistId: artwork.artistId,
-                      price: artwork.price,
-                      sold: artwork.sold,
-                    }))}
-                    viewType="discover"
-                    onArtworkClick={handleArtworkClick}
-                    onSave={handleSave}
-                    savedArtworks={savedArtworks}
-                    currentUserId={appUser?.uid}
-                  />
+                  <div ref={artworkGridShellRef}>
+                    {shouldVirtualizeGrid && topSpacerHeight > 0 && (
+                      <div style={{ height: `${topSpacerHeight}px` }} />
+                    )}
+                    <ArtworkGrid
+                      artworks={virtualizedArtworks.map(artwork => ({
+                        id: artwork.id,
+                        title: artwork.title,
+                        artworkImage: artwork.images[0],
+                        artistName: artwork.artistName,
+                        artistAvatar: artwork.artistAvatar || '/artist.png',
+                        artistId: artwork.artistId,
+                        price: artwork.price,
+                        sold: artwork.sold,
+                      }))}
+                      viewType="discover"
+                      onArtworkClick={handleArtworkClick}
+                      onSave={handleSave}
+                      savedArtworks={savedArtworks}
+                      currentUserId={appUser?.uid}
+                    />
+                    {shouldVirtualizeGrid && bottomSpacerHeight > 0 && (
+                      <div style={{ height: `${bottomSpacerHeight}px` }} />
+                    )}
+                  </div>
                   {loadingMore && (
                     <div style={{ 
                       display: 'flex', 

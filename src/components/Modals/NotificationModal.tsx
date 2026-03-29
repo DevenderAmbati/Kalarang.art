@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { FaUserPlus, FaHeart } from 'react-icons/fa';
+import { FaUserPlus, FaHeart, FaHandshake, FaCheckCircle } from 'react-icons/fa';
 import { IoIosChatbubbles } from 'react-icons/io';
-import { MdClose } from 'react-icons/md';
+import { MdClose, MdWork, MdLocalOffer } from 'react-icons/md';
 import { useAuth } from '../../context/AuthContext';
 import { 
   subscribeToNotifications, 
@@ -73,6 +73,14 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
         return IoIosChatbubbles({ size: 20, className: 'notification-icon reachout chat' });
       case 'favourite':
         return FaHeart({ size: 20, className: 'notification-icon favourite' });
+      case 'commission_application':
+        return MdWork({ size: 20, className: 'notification-icon commission' });
+      case 'commission_offer':
+        return MdLocalOffer({ size: 20, className: 'notification-icon commission' });
+      case 'commission_offer_accepted':
+        return FaHandshake({ size: 20, className: 'notification-icon commission-success' });
+      case 'commission_completed':
+        return FaCheckCircle({ size: 20, className: 'notification-icon commission-success' });
       default:
         return null;
     }
@@ -97,6 +105,36 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
         return (
           <>
             <strong>{notification.actorName}</strong> added <strong>{notification.artworkTitle}</strong> to favourites
+          </>
+        );
+      case 'commission_application':
+        return (
+          <>
+            <strong>{notification.actorName}</strong> applied to your commission{' '}
+            {notification.commissionTitle && <strong>"{notification.commissionTitle}"</strong>}
+          </>
+        );
+      case 'commission_offer':
+        return (
+          <>
+            <strong>{notification.actorName}</strong> sent you an offer for{' '}
+            {notification.commissionTitle && <strong>"{notification.commissionTitle}"</strong>}
+          </>
+        );
+      case 'commission_offer_accepted':
+        return (
+          <>
+            <strong>{notification.actorName}</strong> accepted your offer for{' '}
+            {notification.commissionTitle && <strong>"{notification.commissionTitle}"</strong>}
+            {' — you can start the work!'}
+          </>
+        );
+      case 'commission_completed':
+        return (
+          <>
+            Your commission{' '}
+            {notification.commissionTitle && <strong>"{notification.commissionTitle}"</strong>}
+            {' has been marked as completed'}
           </>
         );
       default:

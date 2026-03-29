@@ -1017,7 +1017,13 @@ const CreateArtwork: React.FC = () => {
               disabled={!hasUnsavedChanges || isSaving || isPublishing || images.length === 0 || !formData.title.trim() || images.some(img => img.isUploading)}
               style={!hasUnsavedChanges ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
             >
-              {images.some(img => img.isUploading) ? 'Uploading images...' : (isSaving ? 'Saving...' : (savedArtworkId ? 'Update Artwork' : 'Save to gallery'))}
+              {images.some(img => img.isUploading)
+                ? 'Uploading images...'
+                : isSaving
+                  ? 'Saving...'
+                  : savedArtworkId
+                    ? 'Update Artwork'
+                    : 'Save to gallery'}
             </button>
             
             {!formData.isCommissioned && (

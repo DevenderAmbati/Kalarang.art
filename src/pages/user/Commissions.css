@@ -1,0 +1,2089 @@
+/* Shared elevation — on :root so portaled chat modals inherit (subtle depth) */
+:root {
+  --commission-card-shadow: 0 2px 8px rgba(15, 23, 42, 0.055), 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.commission-page {
+  min-height: 100%;
+  padding: 1rem;
+}
+
+@keyframes commissionLoaderSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Inline spinners for commission list + chat buttons */
+.commission-inline-spinner {
+  display: inline-block;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: commissionLoaderSpin 0.65s linear infinite;
+  vertical-align: -0.12em;
+  flex-shrink: 0;
+}
+
+.commission-inline-spinner--outline {
+  border-color: rgba(47, 164, 169, 0.35);
+  border-top-color: var(--color-accent, #2fa4a9);
+}
+
+.commission-inline-spinner--muted {
+  border-color: rgba(0, 0, 0, 0.12);
+  border-top-color: var(--color-accent, #2fa4a9);
+}
+
+.commission-button-primary-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.commission-chat-send.commission-chat-send--busy {
+  position: relative;
+}
+
+.commission-hire-tooltip-confirm-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.commission-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: block;
+}
+
+.commission-layout.desktop {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.commission-layout.desktop.list-mode {
+  grid-template-columns: 1fr;
+}
+
+.commission-form-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.commission-form-card .section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.commission-subtitle-inline {
+  margin: 0;
+  padding: 0;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+}
+
+.commission-header-block {
+  padding: 0 0.5rem;
+}
+
+.commission-title {
+  margin: 0;
+  color: var(--color-royal);
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.commission-subtitle {
+  margin: 0.35rem 0 0;
+  color: var(--color-text-secondary);
+}
+
+.commission-required {
+  color: var(--color-error, #ef4444);
+}
+
+.commission-upload-row {
+  margin-bottom: 0.5rem;
+}
+
+.commission-dropzone-wrap {
+  min-height: 100%;
+  height: 100%;
+  display: flex;
+}
+
+.commission-upload-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: stretch;
+}
+
+.commission-dropzone-wrap .upload-dropzone {
+  width: 100%;
+  min-height: 100%;
+  flex: 1;
+}
+
+.commission-upload-preview-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-royal);
+  margin: 0 0 0.5rem;
+}
+
+.commission-upload-preview-subtext {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 0.75rem;
+}
+
+.commission-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.commission-preview-item {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--color-border-light);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  background: var(--color-bg-light);
+  aspect-ratio: 1;
+}
+
+.commission-preview-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 2rem;
+  opacity: 0.35;
+}
+
+.commission-preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.commission-remove-btn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.commission-chip-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.commission-chip {
+  border: 2px solid var(--color-border);
+  background: var(--color-bg-white);
+  color: var(--color-text-dark);
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  font-size: 0.9rem;
+}
+
+.commission-chip:hover {
+  border-color: var(--color-primary);
+  background: var(--primary-alpha-10);
+}
+
+.commission-chip.active {
+  border-color: var(--color-primary);
+  background: var(--gradient-primary);
+  color: var(--color-text-primary-dark);
+}
+
+.commission-inline-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.commission-custom-chip {
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+  background: var(--primary-alpha-10);
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+}
+
+.commission-small-input {
+  max-width: 220px;
+}
+
+.commission-form-card .form-input,
+.commission-form-card .form-textarea,
+.commission-form-card .dropdown-value.placeholder {
+  font-style: normal;
+}
+
+.commission-form-card .form-input::placeholder,
+.commission-form-card .form-textarea::placeholder {
+  font-style: normal;
+}
+
+/* Force visible scrollbar for commission dropdown menus */
+.commission-form-card .dropdown-options {
+  max-height: 140px;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) var(--color-bg-light);
+}
+
+.commission-form-card .dropdown-options::-webkit-scrollbar {
+  width: 8px;
+}
+
+.commission-form-card .dropdown-options::-webkit-scrollbar-track {
+  background: var(--color-bg-light);
+  border-radius: 8px;
+}
+
+.commission-form-card .dropdown-options::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 8px;
+}
+
+.commission-form-card .dropdown-options::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+.commission-secondary-btn {
+  border: 2px solid var(--color-border);
+  background: var(--color-bg-white);
+  color: var(--color-text-dark);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+
+.commission-secondary-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.commission-radio-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.commission-form-card .form-label {
+  margin-top: 0.25rem;
+}
+
+.commission-form-card .form-input + .form-label,
+.commission-form-card .form-textarea + .form-label,
+.commission-form-card .custom-dropdown + .form-label,
+.commission-form-card .commission-chip-wrap + .form-label,
+.commission-form-card .commission-inline-row + .form-label,
+.commission-form-card .commission-radio-row + .form-label {
+  margin-top: 0.75rem;
+}
+
+.commission-radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-secondary);
+}
+
+.button.button-primary.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Post commission form — action row (mirrors CreateArtwork .button-group) */
+.commission-form-card .button-group {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  align-items: stretch;
+  width: 100%;
+}
+
+.commission-form-card .button-group .button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  font-family: inherit;
+  border: none;
+  outline: none;
+}
+
+.commission-form-card .button-group .button-outline-green {
+  background: transparent;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+}
+
+.commission-form-card .button-group .button-primary {
+  background: var(--gradient-primary);
+  color: var(--color-text-primary-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.commission-search-loading {
+  width: 100%;
+}
+
+.commission-search-loading .loading-state {
+  min-height: 200px;
+  padding: 1.5rem 1rem 2rem;
+}
+
+.commission-search-loading .loading-state-animation {
+  max-width: 160px;
+}
+
+.commission-applications-empty {
+  width: 100%;
+  padding: 0.25rem 0 1rem;
+}
+
+.commission-applications-empty .empty-state {
+  min-height: 220px;
+}
+
+.commission-empty-state {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.commission-tabs-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+/* Parent tabs — same pill + theme as AccountHub (Portfolio / Profile).
+   Nested under .commission-main-tabs-fixed for specificity + so inner blur
+   isn’t trapped by a transformed ancestor (no transform when visible). */
+.commission-main-tabs-fixed .commission-main-tabs {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.22rem;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(36px) saturate(1.25);
+  -webkit-backdrop-filter: blur(36px) saturate(1.25);
+  border: 1.75px solid rgba(47, 164, 169, 0.38);
+  border-radius: 10px;
+  padding: 0.2rem;
+  width: fit-content;
+  max-width: calc(100% - 2rem);
+  margin: 0 auto;
+  box-sizing: border-box;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 4px 18px rgba(11, 31, 42, 0.07);
+}
+
+.commission-main-tabs-fixed {
+  position: fixed;
+  top: var(--header-height, 56px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  background: transparent;
+  padding: 0.35rem 0.75rem 0.25rem;
+  /* transform only when .pill-tabs-hidden — avoids breaking backdrop-filter on the inner pill */
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.commission-main-tabs-fixed.pill-tabs-hidden {
+  transform: translateY(calc(-100% - var(--header-height, 56px)));
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.commission-main-tabs-spacer {
+  height: 3rem;
+}
+
+.commission-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  min-width: 96px;
+  min-height: 34px;
+  box-sizing: border-box;
+  padding: 0.35rem 0.65rem;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-smooth);
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+}
+
+.commission-tab:not(.active):hover {
+  background: var(--primary-alpha-10);
+  color: var(--color-primary);
+}
+
+.commission-tab.active {
+  background: var(--gradient-primary);
+  color: var(--color-text-primary-dark);
+  box-shadow: var(--shadow-md);
+  border: none;
+}
+
+.commission-tab.active:hover {
+  background: var(--gradient-primary-hover);
+  box-shadow: var(--shadow-lg);
+}
+
+.commission-tab.active:active {
+  box-shadow: var(--shadow-md);
+}
+
+.commission-tab:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (min-width: 1024px) {
+  .commission-main-tabs-fixed .commission-main-tabs {
+    padding: 0.18rem;
+    gap: 0.2rem;
+    border-radius: 9px;
+  }
+
+  .commission-tab {
+    min-height: 32px;
+    min-width: 100px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+  }
+
+  .commission-main-tabs-spacer {
+    height: 2.85rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .commission-main-tabs-fixed .commission-main-tabs {
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 100%;
+  }
+
+  .commission-tab {
+    min-width: calc(50% - 0.15rem);
+    flex: 1 1 calc(50% - 0.15rem);
+  }
+}
+
+/* Commissions tab search — boxed container (card-style) */
+.commission-search-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto 0.65rem;
+  padding: 0 1rem;
+  box-sizing: border-box;
+}
+
+.commission-search-bar {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  min-height: 0;
+  background: var(--color-bg-white);
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  box-shadow: var(--commission-card-shadow);
+  box-sizing: border-box;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.commission-search-bar:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(47, 164, 169, 0.12);
+}
+
+.commission-search-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.commission-search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.commission-search-input {
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem 2.25rem 0.55rem 2.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  outline: none;
+  transition: color var(--transition-base);
+  box-sizing: border-box;
+  /* Avoid duplicate clear UI if type="search" is ever used */
+  appearance: none;
+}
+
+.commission-search-input::-webkit-search-cancel-button,
+.commission-search-input::-webkit-search-decoration {
+  display: none;
+}
+
+.commission-search-input::placeholder {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.commission-search-input:focus {
+  color: var(--color-text-secondary);
+}
+
+.commission-search-clear-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: var(--color-bg-light);
+  color: var(--color-text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-base), color var(--transition-base);
+}
+
+.commission-search-clear-btn:hover {
+  background: var(--primary-alpha-10);
+  color: var(--color-primary);
+}
+
+@media (min-width: 1024px) {
+  .commission-search-container {
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .commission-search-input {
+    padding: 0.48rem 2.1rem 0.48rem 2.1rem;
+    font-size: 0.76rem;
+  }
+}
+
+/* Child tabs: full-width bar with baseline, vertical dividers ( ____|___|____ ), active segment marked */
+.commission-sub-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: stretch;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto 0.65rem;
+  padding: 0;
+  position: static;
+  border-bottom: 1px solid var(--color-border-light);
+  box-sizing: border-box;
+}
+
+.commission-sub-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  padding: 0.55rem 0.35rem;
+  border: none;
+  border-right: 1px solid var(--color-border-light);
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-base), background var(--transition-base), box-shadow var(--transition-base);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.commission-sub-tab-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  max-width: 100%;
+}
+
+.commission-sub-tab-label {
+  min-width: 0;
+}
+
+.commission-sub-tab-unread-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.commission-sub-tab:last-child {
+  border-right: none;
+}
+
+.commission-sub-tab:hover:not(.active) {
+  color: var(--color-text-secondary);
+  background: rgba(47, 164, 169, 0.06);
+}
+
+.commission-sub-tab.active {
+  color: var(--color-primary);
+  font-weight: 700;
+  background: rgba(47, 164, 169, 0.08);
+  box-shadow: inset 0 -2px 0 var(--color-primary);
+}
+
+@media (min-width: 1024px) {
+  .commission-sub-tabs {
+    width: 100%;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .commission-sub-tab {
+    padding: 0.48rem 0.5rem;
+    font-size: 0.76rem;
+  }
+}
+
+.commission-posted-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (max-width: 1023px) {
+  .commission-posted-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.commission-posted-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: 12px;
+  padding: 0.9rem;
+  background: var(--color-bg-white);
+  box-shadow: var(--commission-card-shadow);
+}
+
+.commission-shortlist-dismiss {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  z-index: 2;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg-white);
+  color: var(--color-text-primary);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  transition:
+    background var(--transition-base),
+    color var(--transition-base),
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
+}
+
+.commission-shortlist-dismiss:hover {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgb(220, 38, 38);
+  color: rgb(185, 28, 28);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.18);
+  transform: scale(1.04);
+}
+
+.commission-shortlist-dismiss:active {
+  transform: scale(0.98);
+}
+
+.commission-shortlist-dismiss:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.commission-shortlist-dismiss:disabled {
+  opacity: 0.75;
+  cursor: wait;
+  transform: none;
+}
+
+.commission-posted-main {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.commission-posted-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.commission-posted-thumb-wrap {
+  width: 160px;
+  min-width: 160px;
+  aspect-ratio: 1 / 1;
+  height: 160px;
+  align-self: stretch;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-light);
+}
+
+.commission-posted-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.commission-posted-thumb-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.commission-posted-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.commission-posted-header h4 {
+  margin: 0;
+  color: var(--color-royal);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.commission-posted-status {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: var(--primary-alpha-10);
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+}
+
+.commission-posted-status.commission-status-open {
+  color: #0d6e3b;
+  background: rgba(13, 110, 59, 0.12);
+}
+
+.commission-posted-status.commission-status-inprogress {
+  color: #b45309;
+  background: rgba(180, 83, 9, 0.12);
+}
+
+.commission-buyer-inprogress-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.commission-mark-completed-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: right;
+}
+
+.commission-mark-completed-link-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.commission-mark-completed-link:hover:not(:disabled) {
+  color: var(--color-royal);
+}
+
+.commission-mark-completed-link:disabled {
+  opacity: 0.65;
+  cursor: wait;
+  text-decoration: none;
+}
+
+/* Mark-as-completed confirm (uses shared ConfirmModal.css classes) */
+.confirm-modal-overlay .confirm-modal-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.commission-posted-status.commission-status-completed {
+  color: #1d4ed8;
+  background: rgba(29, 78, 216, 0.1);
+}
+
+.commission-posted-status.commission-status-closed {
+  color: #6b7280;
+  background: rgba(107, 114, 128, 0.14);
+}
+
+.commission-posted-text {
+  margin: 0 0 0.55rem;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.commission-posted-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  margin-bottom: 0.55rem;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.commission-posted-by {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.commission-artist-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.commission-artist-actions .button {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+}
+
+.commission-artist-actions .button:disabled {
+  cursor: wait;
+  opacity: 0.88;
+}
+
+.commission-artist-assigned-notice {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.commission-action-active {
+  background: var(--primary-alpha-10);
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+.commission-chat-list {
+  margin-top: 0.1rem;
+  border-top: 1px solid var(--color-border-light);
+  padding-top: 0.2rem;
+  width: 100%;
+}
+
+.commission-chat-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.commission-chat-item {
+  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-white);
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.6rem;
+  box-shadow: var(--commission-card-shadow);
+  transition:
+    background var(--transition-fast),
+    box-shadow var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.commission-chat-item:hover {
+  background: #f7fbff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07), 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.commission-chat-item-name {
+  font-size: 0.82rem;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.commission-chat-item-preview {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.commission-chat-items-headers {
+  gap: 0;
+}
+
+.commission-chat-header-item:last-child {
+  border-bottom: 0;
+}
+
+.commission-chat-header-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--color-border-light);
+}
+
+.commission-chat-header-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.commission-chat-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.commission-chat-header-row-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.commission-chat-unread {
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  padding: 0 0.3rem;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.commission-chat-header-time {
+  font-size: 0.72rem;
+  color: #8aa1b8;
+  white-space: nowrap;
+}
+
+.commission-chat-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+  backdrop-filter: blur(2px);
+}
+
+.commission-chat-modal {
+  width: min(760px, 100%);
+  max-height: 85vh;
+  background: var(--color-bg-light);
+  border-radius: 12px;
+  border: 1px solid var(--color-border-light);
+  box-shadow:
+    -3px 0 16px rgba(0, 0, 0, 0.1),
+    0 8px 28px rgba(15, 23, 42, 0.07);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.commission-chat-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0.5rem 1rem 0.5rem 1.25rem;
+  background: linear-gradient(90deg, #E8F4F5 0%, #c1f8fdff 100%);
+  border-bottom: 1px solid rgba(47, 164, 169, 0.2);
+  box-shadow: 0 2px 10px rgba(47, 164, 169, 0.1);
+  flex-shrink: 0;
+}
+
+.commission-chat-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  color: var(--color-text-primary-light);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.commission-chat-user-name-link {
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--transition-fast);
+}
+
+.commission-chat-user-name-link:hover {
+  color: var(--color-primary-dark);
+}
+
+.commission-chat-user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-primary);
+  flex-shrink: 0;
+}
+
+.commission-chat-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.commission-chat-close:hover {
+  background: var(--primary-alpha-10);
+}
+
+.commission-chat-context-card {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  margin: 0.6rem 0.8rem 0;
+  padding: 0.45rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-light);
+  box-shadow: var(--commission-card-shadow);
+}
+
+.commission-chat-context-stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.commission-chat-context-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* Flat inside reference card — no second box (card-in-card) */
+.commission-chat-context-agreed {
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+}
+
+.commission-chat-context-agreed-title {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-accent, #2fa4a9);
+  margin: 0 0 0.35rem;
+}
+
+.commission-chat-context-agreed-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.65rem;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--color-text-dark);
+}
+
+.commission-chat-context-card img,
+.commission-chat-msg-card img {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.commission-chat-context-label {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.commission-chat-context-title {
+  margin: 0.1rem 0 0;
+  font-size: 0.84rem;
+  color: var(--color-royal);
+  font-weight: 600;
+}
+
+/* Match commission card action buttons (Apply / Shortlist) */
+.commission-chat-hire-btn.button {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  line-height: 1.25;
+}
+
+/* Hire info: anchored tooltip (portaled), not full-screen modal */
+.commission-hire-tooltip {
+  position: fixed;
+  z-index: 10050;
+  width: min(320px, calc(100vw - 16px));
+  box-sizing: border-box;
+  padding: 0.85rem 1rem;
+  background: var(--color-bg-white);
+  border-radius: 12px;
+  border: 1px solid var(--color-border-light);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  animation: commission-hire-tooltip-in 0.15s ease-out;
+}
+
+@keyframes commission-hire-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.commission-hire-tooltip-arrow {
+  position: absolute;
+  top: -7px;
+  right: 16px;
+  width: 12px;
+  height: 12px;
+  background: var(--color-bg-white);
+  border-left: 1px solid var(--color-border-light);
+  border-top: 1px solid var(--color-border-light);
+  transform: rotate(45deg);
+}
+
+.commission-hire-tooltip-title {
+  position: relative;
+  margin: 0 0 0.5rem;
+  padding-right: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-dark);
+}
+
+.commission-hire-tooltip-text {
+  position: relative;
+  margin: 0 0 0.85rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.commission-hire-tooltip-actions {
+  position: relative;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.commission-hire-tooltip-actions .button {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.82rem;
+}
+
+.commission-chat-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--color-bg-light);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.commission-chat-messages::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.commission-chat-empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  margin: 1rem 0;
+}
+
+.commission-chat-divider {
+  align-self: center;
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  background: rgba(232, 244, 245, 0.9);
+  border: 1px solid var(--color-border-light);
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin: 4px 0;
+}
+
+.commission-chat-bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 80%;
+}
+
+.commission-chat-bubble-wrap.mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.commission-chat-bubble {
+  border-radius: 16px;
+  padding: 9px 13px;
+  word-break: break-word;
+  font-weight: 400;
+  width: fit-content;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.commission-chat-bubble.mine {
+  background: var(--gradient-primary);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.commission-chat-bubble.theirs {
+  background: #E8F4F5;
+  color: var(--color-royal);
+  font-weight: 450;
+  border: 1px solid rgba(47, 164, 169, 0.2);
+  border-bottom-left-radius: 4px;
+}
+
+.commission-chat-bubble p {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: inherit;
+  white-space: pre-wrap;
+}
+
+.commission-chat-bubble-time {
+  display: block;
+  font-size: 0.66rem;
+  margin-top: 3px;
+  opacity: 0.7;
+  text-align: right;
+}
+
+.commission-chat-bubble.theirs .commission-chat-bubble-time {
+  color: var(--color-royal);
+  opacity: 0.85;
+}
+
+.commission-chat-seen {
+  display: block;
+  font-size: 0.62rem;
+  margin-top: 2px;
+  margin-right: 4px;
+  color: var(--color-primary);
+  opacity: 0.8;
+  text-align: right;
+  font-weight: 500;
+}
+
+.commission-chat-msg-card {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.35rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.commission-chat-msg-card span {
+  font-size: 0.78rem;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.commission-chat-input-area {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-bg-white);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.commission-chat-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.commission-chat-input {
+  flex: 1;
+  min-height: 0;
+  max-height: 5.4em;
+  padding: 10px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 22px;
+  font-size: 0.86rem;
+  line-height: 1.35;
+  color: var(--color-text-dark);
+  background: var(--color-bg-light);
+  outline: none;
+  resize: none;
+  overflow-y: auto;
+  transition: border-color var(--transition-fast);
+  font-family: inherit;
+  box-sizing: content-box;
+}
+
+.commission-chat-input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.commission-chat-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-glow);
+}
+
+.commission-chat-send {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--gradient-button);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.commission-chat-send:hover:not(:disabled) {
+  transform: scale(1.08);
+  box-shadow: var(--shadow-md);
+}
+
+.commission-chat-send:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.commission-chat-file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.commission-chat-pending-image {
+  position: relative;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+  max-height: 140px;
+  background: var(--color-bg-light);
+}
+
+.commission-chat-pending-image img {
+  display: block;
+  width: 100%;
+  max-height: 140px;
+  object-fit: contain;
+}
+
+.commission-chat-pending-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.commission-chat-attach {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.commission-chat-attach:hover:not(:disabled) {
+  color: var(--color-primary);
+  background: var(--primary-alpha-10);
+}
+
+.commission-chat-attach:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.commission-chat-attachment {
+  position: relative;
+  margin-bottom: 6px;
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: min(260px, 80vw);
+}
+
+.commission-chat-attachment-img {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  vertical-align: middle;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.commission-chat-attachment-download {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast);
+}
+
+.commission-chat-attachment-download:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.commission-chat-attachment-download:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.commission-preview-card {
+  background: var(--color-bg-white);
+  border-radius: 16px;
+  padding: 1rem;
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--commission-card-shadow);
+  position: sticky;
+  top: 1rem;
+}
+
+.commission-preview-title {
+  margin-top: 0;
+}
+
+.commission-preview-grid-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.commission-preview-label {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  margin: 0.35rem 0 0.2rem;
+}
+
+.commission-preview-value {
+  color: var(--color-royal);
+  margin: 0;
+  font-weight: 600;
+}
+
+.commission-badge {
+  border: none;
+  border-radius: 999px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.commission-badge.type {
+  background: #efe4ff;
+  color: #6a2da8;
+}
+
+.commission-badge.style {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.commission-badge.subject {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* List cards only — one-row badges + smaller chips only at very narrow widths */
+@media (max-width: 420px) {
+  .commission-posted-card .commission-chip-wrap {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.28rem;
+    margin-bottom: 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    padding-bottom: 2px;
+  }
+
+  .commission-posted-card .commission-chip-wrap::-webkit-scrollbar {
+    height: 3px;
+  }
+
+  .commission-posted-card .commission-chip-wrap::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 999px;
+  }
+
+  .commission-posted-card .commission-chip-wrap .commission-badge {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 0.22rem 0.46rem;
+    font-size: 0.66rem;
+    line-height: 1.25;
+  }
+}
+
+@media (max-width: 1023px) {
+  .commission-preview-card {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .commission-page {
+    padding: 0.75rem;
+  }
+
+  .commission-dropzone-wrap {
+    order: 1;
+    min-height: 200px;
+  }
+
+  .commission-dropzone-wrap .upload-dropzone {
+    min-height: 200px;
+    padding: 2rem 1rem;
+  }
+
+  .commission-upload-section > *:last-child {
+    order: 2;
+  }
+
+  .commission-preview-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .commission-upload-section {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .commission-upload-preview-title {
+    font-size: 1rem;
+  }
+
+  .commission-upload-preview-subtext {
+    font-size: 0.85rem;
+  }
+
+  .commission-form-card .button-group {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    justify-content: stretch;
+  }
+
+  .commission-form-card .button-group .button {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    padding: 0.55rem 0.4rem;
+    font-size: 0.78rem;
+    line-height: 1.25;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .commission-posted-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .commission-posted-thumb-wrap {
+    width: 110px;
+    min-width: 110px;
+    aspect-ratio: 1 / 1;
+    height: 110px;
+  }
+
+  .commission-artist-actions {
+    flex-wrap: wrap;
+  }
+
+  .commission-chat-context-main {
+    gap: 0.45rem;
+  }
+
+  .commission-chat-hire-btn.button {
+    max-width: 7.25rem;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.78rem;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 412px) {
+  .commission-sub-tab {
+    font-size: 0.68rem;
+    padding: 0.45rem 0.2rem;
+  }
+
+  .commission-chat-hire-btn.button {
+    max-width: 6.5rem;
+    padding: 0.35rem 0.42rem;
+    font-size: 0.72rem;
+  }
+}
+
+.commission-chat-item-closed {
+  opacity: 0.85;
+}
+
+.commission-chat-closed-pill {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted, #666);
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.12rem 0.4rem;
+  border-radius: 6px;
+  margin-left: 0.35rem;
+}
+
+.commission-chat-closed-banner {
+  margin: 0;
+  padding: 0.65rem 1rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--color-text-muted, #555);
+  background: rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.commission-chat-input-area.commission-chat-input-area-replaced {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 0.9rem;
+  padding-bottom: max(0.7rem, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.commission-chat-hired-elsewhere-notice {
+  margin: 0;
+  max-width: 36rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--color-text-muted, #4a4a4a);
+}
+
+/* Artist offer form (in commission chat) */
+.commission-chat-offer-form {
+  margin: 0 0.8rem 0.5rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-white);
+  box-shadow: var(--commission-card-shadow);
+}
+
+.commission-chat-offer-form-title {
+  margin: 0 0 0.6rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-royal);
+}
+
+.commission-chat-offer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.commission-chat-offer-field span:first-child {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.commission-chat-offer-field input {
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-light);
+  font-size: 0.85rem;
+}
+
+.commission-chat-offer-price-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 0.55rem;
+}
+
+.commission-chat-offer-price-row .commission-chat-offer-field {
+  margin-bottom: 0;
+}
+
+.commission-chat-offer-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.35rem;
+}
+
+.commission-chat-offer-form-actions .button {
+  justify-content: center;
+  text-align: center;
+}
+
+/* Tablet and up: same layout as desktop — must follow base so flex-wrap: nowrap wins over wrap */
+@media (min-width: 640px) {
+  .commission-chat-offer-price-row {
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 0.65rem;
+  }
+
+  .commission-chat-offer-price-row .commission-chat-offer-field {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .commission-chat-offer-form-actions {
+    gap: 0.4rem;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .commission-chat-offer-form-actions .button {
+    flex: 0 0 auto;
+    padding: 0.38rem 0.75rem;
+    font-size: 0.78rem;
+    line-height: 1.25;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+}
+
+.commission-chat-bubble--offer {
+  min-width: min(100%, 220px);
+}
+
+.commission-chat-offer-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.commission-chat-offer-card-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-royal);
+}
+
+.commission-chat-offer-status {
+  align-self: flex-start;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: var(--color-accent, #2fa4a9);
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+}
+
+.commission-chat-offer-details {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.commission-chat-offer-details li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding-bottom: 0.3rem;
+}
+
+.commission-chat-offer-details li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.commission-chat-offer-details span {
+  color: var(--color-text-muted);
+}
+
+.commission-chat-offer-details strong {
+  color: var(--color-text-dark);
+  font-weight: 600;
+}
+
+/* Artist’s own offer card sits on gradient bubble — use light text */
+.commission-chat-bubble.mine .commission-chat-offer-card-title {
+  color: #fff;
+}
+
+.commission-chat-bubble.mine .commission-chat-offer-details li {
+  border-bottom-color: rgba(255, 255, 255, 0.25);
+}
+
+.commission-chat-bubble.mine .commission-chat-offer-details span {
+  color: #fff;
+}
+
+.commission-chat-bubble.mine .commission-chat-offer-details strong {
+  color: #1a1a1a;
+}
+
+.commission-chat-offer-accept {
+  margin-top: 0.25rem;
+  width: 100%;
+  padding: 0.45rem 0.65rem !important;
+  font-size: 0.82rem !important;
+}
+
+/* Infinite scroll loading spinner */
+.commission-loading-more {
+  display: flex;
+  justify-content: center;
+  padding: 1.25rem 0;
+}
+
+.commission-loading-more-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--primary-alpha-20, rgba(47, 164, 169, 0.2));
+  border-top-color: var(--color-primary, #2fa4a9);
+  border-radius: 50%;
+  animation: commissionLoaderSpin 0.8s linear infinite;
+}
+
+.commission-end-of-list {
+  text-align: center;
+  padding: 0.35rem 0 1.5rem;
+  color: var(--color-royal);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.commission-posted-thumb {
+  content-visibility: auto;
+}
+

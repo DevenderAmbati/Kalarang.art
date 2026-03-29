@@ -16,17 +16,28 @@ import {
   Unsubscribe,
 } from "firebase/firestore";
 
+export type NotificationType =
+  | 'follow'
+  | 'reachout'
+  | 'favourite'
+  | 'commission_application'   // Buyer: an artist applied to their commission
+  | 'commission_offer'         // Buyer: an artist sent an offer
+  | 'commission_offer_accepted' // Artist: buyer accepted their offer
+  | 'commission_completed';    // Artist: commission marked completed/closed
+
 export interface Notification {
   id: string;
-  type: 'follow' | 'reachout' | 'favourite';
-  recipientId: string; // Artist who receives the notification
-  actorId: string; // User who performed the action
+  type: NotificationType;
+  recipientId: string;
+  actorId: string;
   actorName: string;
   actorAvatar?: string;
-  artworkId?: string; // For favourite and reachout notifications
+  artworkId?: string;
   artworkTitle?: string;
   artworkImage?: string;
-  contactMethod?: 'whatsapp' | 'email'; // For reachout notifications
+  contactMethod?: 'whatsapp' | 'email';
+  commissionId?: string;
+  commissionTitle?: string;
   timestamp: Date;
   isRead: boolean;
 }
@@ -36,14 +47,16 @@ export interface Notification {
  */
 export async function createNotification(
   recipientId: string,
-  type: 'follow' | 'reachout' | 'favourite',
+  type: NotificationType,
   actorId: string,
   actorName: string,
   actorAvatar?: string,
   artworkId?: string,
   artworkTitle?: string,
   artworkImage?: string,
-  contactMethod?: 'whatsapp' | 'email'
+  contactMethod?: 'whatsapp' | 'email',
+  commissionId?: string,
+  commissionTitle?: string,
 ): Promise<void> {
   const notificationRef = doc(collection(db, "notifications"));
   await setDoc(notificationRef, {
@@ -56,6 +69,8 @@ export async function createNotification(
     artworkTitle: artworkTitle || null,
     artworkImage: artworkImage || null,
     contactMethod: contactMethod || null,
+    commissionId: commissionId || null,
+    commissionTitle: commissionTitle || null,
     timestamp: serverTimestamp(),
     isRead: false,
   });
@@ -90,6 +105,8 @@ export async function getUserNotifications(
       artworkTitle: data.artworkTitle,
       artworkImage: data.artworkImage,
       contactMethod: data.contactMethod,
+      commissionId: data.commissionId,
+      commissionTitle: data.commissionTitle,
       timestamp: (data.timestamp as Timestamp)?.toDate() || new Date(),
       isRead: data.isRead,
     } as Notification;
@@ -172,6 +189,8 @@ export function subscribeToNotifications(
         artworkTitle: data.artworkTitle,
         artworkImage: data.artworkImage,
         contactMethod: data.contactMethod,
+        commissionId: data.commissionId,
+        commissionTitle: data.commissionTitle,
         timestamp: (data.timestamp as Timestamp)?.toDate() || new Date(),
         isRead: data.isRead,
       } as Notification;

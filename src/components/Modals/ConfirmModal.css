@@ -208,4 +208,18 @@
     padding: 12px 20px;
     font-size: 0.9rem;
   }
+
+  /* Keep primary + cancel on one row when needed (e.g. accept offer) */
+  .confirm-modal-actions.confirm-modal-actions--row {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+  }
+
+  .confirm-modal-actions.confirm-modal-actions--row .confirm-modal-btn {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+    padding: 12px 16px;
+  }
 }

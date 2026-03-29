@@ -1,6 +1,46 @@
+/* Home feed: no card lift / image zoom on ArtworkCard hover */
+.home-feed .artwork-card:hover {
+  transform: translateZ(0);
+  box-shadow: 0 2px 8px rgba(11, 31, 42, 0.08);
+}
+
+.home-feed .artwork-card:hover .artwork-image {
+  transform: translateZ(0);
+}
+
+/* Tighter card header (avatar + artist row) on home feed */
+.home-feed .artwork-card-header {
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+/* Following + Creations: icon strokes / default color teal (not muted grey) */
+.home-feed .artwork-actions .action-icon {
+  color: var(--color-primary);
+}
+
+.home-feed .artwork-actions .action-icon.active:hover {
+  color: var(--color-accent);
+}
+
+.home-feed .artwork-stat--clickable,
+.home-feed .artwork-stat--clickable .artwork-stat-icon {
+  color: var(--color-primary);
+}
+
+.home-feed .artwork-stat--clickable:hover .artwork-stat-icon {
+  color: var(--color-primary);
+}
+
+.home-feed .artwork-actions .action-icon:focus-visible,
+.home-feed .artwork-stat--clickable:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* Stories Section */
 .stories-section {
-  margin-bottom: 0rem;
+  margin-bottom: 0.75rem;
   margin-top: 0rem;
 }
 
@@ -8,7 +48,7 @@
   display: flex;
   gap: 1rem;
   overflow-x: auto;
-  padding: 0.75rem 0 0.5rem 1rem;
+  padding: 0.75rem 0 0.75rem 1rem;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
@@ -157,7 +197,7 @@
 
   .stories-container {
     gap: 0.75rem;
-    padding: 0.25rem 0 0.25rem 0.5rem;
+    padding: 0.25rem 0 0.5rem 0.5rem;
   }
 
   .story-square {
@@ -188,7 +228,7 @@
 
   .stories-container {
     gap: 0.75rem;
-    padding: 0.25rem 0 0.25rem 0.5rem;
+    padding: 0.25rem 0 0.5rem 0.5rem;
   }
 
   .story-square {
@@ -214,7 +254,7 @@
 @media (max-width: 480px) {
   .stories-container {
     gap: 0.5rem;
-    padding: 0.25rem 0 0.25rem 0.5rem;
+    padding: 0.25rem 0 0.5rem 0.5rem;
   }
 }
 
@@ -588,20 +628,34 @@
   }
 }
 
+/* Artist feed tabs: reuse commission-main-tabs* from Commissions.css (imported in HomeFeed.tsx) */
+
 /* Artwork Grid Section - HomeFeed Specific */
 .homefeed-artwork-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.5rem;
-  padding: 1.5rem 1rem;
+  column-gap: 1.5rem !important;
+  row-gap: 1.5rem !important;
+  padding: 1.5rem 1rem !important;
   margin-top: -1rem;
+}
+
+/* Following feed: less space between stories strip and first card row (Creations / no-stories layouts unchanged) */
+.home-feed .stories-section:has(+ .homefeed-artwork-grid) {
+  margin-bottom: 1.5rem;
+}
+
+.home-feed .stories-section + .homefeed-artwork-grid {
+  padding-top: 0.4rem !important;
+  margin-top: -1.35rem !important;
 }
 
 /* Tablet */
 @media (min-width: 640px) and (max-width: 1023px) {
   .homefeed-artwork-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
+    column-gap: 1rem;
+    row-gap: 1rem;
     padding: 1rem 0.75rem;
   }
 }
@@ -610,7 +664,7 @@
 @media (max-width: 639px) {
   .homefeed-artwork-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    row-gap: 1.5rem;
   }
 }
 
@@ -618,7 +672,7 @@
 @media (max-width: 480px) {
   .homefeed-artwork-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    row-gap: 1.5rem;
   }
 }
 

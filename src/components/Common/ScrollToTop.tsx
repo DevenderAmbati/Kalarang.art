@@ -16,11 +16,16 @@ export function ScrollToTop() {
     // The app uses independent inner scroll containers for feed + artwork.
     // Don't force window scroll reset when transitioning between those routes,
     // otherwise back-navigation feels like it jumps to the top.
-    const isHomeFeed = (p: string | null) => p === '/home' || p === '/discover' || p === '/favourites';
+    const isShellTab = (p: string | null) =>
+      p === '/home' ||
+      p === '/discover' ||
+      p === '/favourites' ||
+      p === '/commissions' ||
+      p === '/post';
     const isCard = (p: string | null) => !!p && p.startsWith('/card/');
 
     if (!prev) return;
-    if (isCard(pathname) || isCard(prev) || (isHomeFeed(pathname) && isHomeFeed(prev))) {
+    if (isCard(pathname) || isCard(prev) || (isShellTab(pathname) && isShellTab(prev))) {
       return;
     }
 

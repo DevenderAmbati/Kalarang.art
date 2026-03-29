@@ -160,3 +160,26 @@ function getPlatform(): string {
   if (/Linux/.test(ua)) return "linux";
   return "unknown";
 }
+
+/**
+ * Tell service workers the chat thread currently visible so FCM can suppress
+ * duplicate notifications for that thread (pair chats + commission chats).
+ */
+export function notifyServiceWorkerActiveChatId(chatId: string | null): void {
+  if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: "SET_ACTIVE_CHAT",
+      chatId,
+    });
+  }
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => {
+      if (registration.active) {
+        registration.active.postMessage({
+          type: "SET_ACTIVE_CHAT",
+          chatId,
+        });
+      }
+    });
+  });
+}

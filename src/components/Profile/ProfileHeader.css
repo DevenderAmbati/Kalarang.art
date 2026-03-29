@@ -30,10 +30,7 @@
   overflow: hidden;
   margin-top: -8px;
 
-  /* force consistent ratio everywhere */
   aspect-ratio: 4.5 / 1;
-
-  /* remove fixed heights */
   height: auto;
 }
 
@@ -53,7 +50,7 @@
   }
 }
 
-/* Mobile view: max-width: 639px - keep banner height same as original above 400px */
+/* Mobile view: max-width: 639px */
 @media (max-width: 639px) {
   .profile-banner {
     aspect-ratio: 2.5 / 1;
@@ -337,6 +334,64 @@
   box-sizing: border-box;
 }
 
+/* Desktop — shorter banner, tighter header (must follow base rules for cascade) */
+@media (min-width: 1024px) {
+  .profile-header {
+    margin-bottom: 0.5rem;
+    margin-top: 0.1rem;
+  }
+
+  .profile-banner {
+    aspect-ratio: 6.5 / 1;
+  }
+
+  .banner-gradient {
+    height: 52px;
+  }
+
+  .profile-content {
+    padding: 0 1rem 0.65rem;
+  }
+
+  .avatar-section {
+    margin-top: -40px;
+    margin-bottom: 0.5rem;
+  }
+
+  .avatar-container {
+    margin-bottom: 0.4rem;
+  }
+
+  .stats-section {
+    gap: 0.35rem;
+    margin: 0.25rem auto;
+    padding: 0.35rem 0.5rem;
+  }
+
+  .stats-section .stat-number {
+    font-size: 1.2rem;
+  }
+
+  .stats-section .stat-label {
+    font-size: 0.7rem;
+  }
+
+  .stats-section .stat-divider {
+    height: 26px;
+  }
+
+  .action-buttons {
+    gap: 0.45rem;
+    margin: 0.25rem 0;
+  }
+
+  .action-buttons .btn {
+    height: 40px;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.875rem;
+  }
+}
+
 .btn {
   display: flex;
   align-items: center;
@@ -401,7 +456,7 @@
   outline-offset: 2px;
 }
 
-/* Responsive Design - Mobile (compact for portfolio) */
+/* Responsive Design - Mobile */
 @media (max-width: 639px) {
   .profile-header {
     margin-bottom: 0.75rem;

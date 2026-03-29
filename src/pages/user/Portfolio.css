@@ -1,7 +1,22 @@
-/* Reduce gap between profile header and tabs for mobile and tablet */
+/* Tighter gap between profile header and tabs */
 @media (max-width: 1023px) {
   .portfolio-tab-section {
-    margin-top: 0.75rem !important;
+    margin-top: 0.4rem !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .portfolio-tab-section {
+    margin-top: 0.5rem !important;
+  }
+
+  .portfolio-tab-button {
+    padding: 0.65rem 1.25rem !important;
+    font-size: 0.88rem !important;
+  }
+
+  .portfolio-tab-container {
+    margin-bottom: 1rem !important;
   }
 }
 
@@ -24,21 +39,21 @@
 /* Extra small mobile */
 @media (max-width: 480px) {
   .portfolio-tab-button {
-    padding: 0.75rem 1.25rem !important;
+    padding: 0.65rem 1rem !important;
     font-size: 0.85rem !important;
   }
 }
 
-/* Tab switcher - smaller on mobile below 421px; keep gap same as >420px */
+/* Tab switcher - smaller on mobile below 421px */
 @media (max-width: 420px) {
   .portfolio-tab-section {
-    margin-top: 1.5rem !important;
+    margin-top: 0.35rem !important;
   }
 
   .portfolio-tab-container {
     padding-left: 0.5rem !important;
     padding-right: 0.5rem !important;
-    margin-bottom: 2rem !important;
+    margin-bottom: 1.25rem !important;
   }
 
   .portfolio-tab-button {

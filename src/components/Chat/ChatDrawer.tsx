@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
@@ -9,6 +9,8 @@ import { markChatRead, markMessagesAsSeen, getChatId } from '../../services/chat
 import { useChatContext } from '../../context/ChatContext';
 import { getUserProfile } from '../../services/userService';
 import { createNotification } from '../../services/notificationService';
+import { notifyServiceWorkerActiveChatId } from '../../services/fcmService';
+import { downloadImageFromUrl, suggestedChatImageFilename } from '../../utils/downloadImage';
 import './ChatDrawer.css';
 
 export interface ChatContact {
@@ -193,12 +195,25 @@ const ChatView: React.FC<{
   }, [appUser?.uid, contact.uid, lastMsgId]);
 
   const [inputText, setInputText] = useState(initialMessage || '');
+  const [pendingImage, setPendingImage] = useState<File | null>(null);
+  const [imageDownloadBusy, setImageDownloadBusy] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [artworkSent, setArtworkSent] = useState(false);
   const reachOutNotificationSentRef = useRef(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const pendingImagePreview = useMemo(
+    () => (pendingImage ? URL.createObjectURL(pendingImage) : null),
+    [pendingImage],
+  );
+  useEffect(() => {
+    return () => {
+      if (pendingImagePreview) URL.revokeObjectURL(pendingImagePreview);
+    };
+  }, [pendingImagePreview]);
 
   // Close emoji picker when clicking outside it (including on textarea, send button). Do not close when clicking the emoji button (let its toggle handle that).
   useEffect(() => {
@@ -281,9 +296,33 @@ const ChatView: React.FC<{
     loadMore();
   };
 
+  const handlePickImage = () => {
+    imageInputRef.current?.click();
+  };
+
+  const handleImageSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file?.type.startsWith('image/')) return;
+    setPendingImage(file);
+  };
+
+  const clearPendingImage = () => setPendingImage(null);
+
+  const handleDownloadChatImage = async (url: string, messageId: string) => {
+    setImageDownloadBusy(messageId);
+    try {
+      await downloadImageFromUrl(url, suggestedChatImageFilename('kalarang-chat'));
+    } catch {
+      // ignore
+    } finally {
+      setImageDownloadBusy(null);
+    }
+  };
+
   const handleSend = async () => {
     const text = inputText.trim();
-    if (!text) return;
+    if (!text && !pendingImage) return;
     
     // eslint-disable-next-line no-console
     console.log('handleSend called', { text, ready, loading, sending });
@@ -294,7 +333,9 @@ const ChatView: React.FC<{
       return;
     }
     
+    const imageToSend = pendingImage;
     setInputText('');
+    setPendingImage(null);
     try {
       // Pass artwork metadata if it exists and hasn't been sent yet
       // Only include artworkPrice if it's defined to avoid Firestore errors
@@ -312,7 +353,7 @@ const ChatView: React.FC<{
       // eslint-disable-next-line no-console
       console.log('ChatDrawer - metadata to send:', metadata);
       
-      await sendMessage(text, metadata);
+      await sendMessage(text, metadata, imageToSend || undefined);
       
       if (metadata) {
         setArtworkSent(true);
@@ -339,6 +380,7 @@ const ChatView: React.FC<{
       // eslint-disable-next-line no-console
       console.error('Error sending message:', error);
       setInputText(text);
+      if (imageToSend) setPendingImage(imageToSend);
     }
   };
 
@@ -439,7 +481,31 @@ const ChatView: React.FC<{
                           </div>
                         </div>
                       )}
-                      <p className="cd-bubble-text">{renderMessageText(msg.text)}</p>
+                      {msg.imageUrl && (
+                        <div className="cd-chat-attachment">
+                          <img src={msg.imageUrl} alt="" className="cd-chat-attachment-img" loading="lazy" />
+                          <button
+                            type="button"
+                            className="cd-chat-attachment-download"
+                            onClick={() => handleDownloadChatImage(msg.imageUrl!, msg.id)}
+                            disabled={imageDownloadBusy === msg.id}
+                            aria-label="Download full image"
+                          >
+                            {imageDownloadBusy === msg.id ? (
+                              '…'
+                            ) : (
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                      {Boolean(msg.text?.trim()) && (
+                        <p className="cd-bubble-text">{renderMessageText(msg.text)}</p>
+                      )}
                       <span className="cd-bubble-time">{formatMessageTime(msg.createdAt)}</span>
                     </div>
                     {isSeen && <span className="cd-bubble-seen">Seen</span>}
@@ -456,6 +522,23 @@ const ChatView: React.FC<{
       <footer className="cd-chat-input-area">
         <div style={{ display: 'contents' }}>
         {/* Artwork banner for reach-out context */}
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          className="cd-chat-file-input"
+          onChange={handleImageSelected}
+          aria-hidden
+          tabIndex={-1}
+        />
+        {pendingImagePreview && (
+          <div className="cd-pending-image">
+            <img src={pendingImagePreview} alt="" />
+            <button type="button" className="cd-pending-image-remove" onClick={clearPendingImage} aria-label="Remove image">
+              ×
+            </button>
+          </div>
+        )}
         {reachOutMetadata && !artworkSent && (
           <div className="cd-artwork-banner">
             <div className="cd-artwork-banner-image">
@@ -492,6 +575,19 @@ const ChatView: React.FC<{
             aria-label="Message input"
           />
           <button
+            type="button"
+            className="cd-chat-attach-btn"
+            onClick={handlePickImage}
+            disabled={sending || !ready}
+            aria-label="Attach image"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          </button>
+          <button
             ref={emojiButtonRef}
             type="button"
             className="cd-chat-emoji-btn"
@@ -509,7 +605,7 @@ const ChatView: React.FC<{
           <button
             className="cd-chat-send"
             onClick={handleSend}
-            disabled={!inputText.trim() || sending || !ready}
+            disabled={(!inputText.trim() && !pendingImage) || sending || !ready}
             aria-label="Send message"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -530,29 +626,9 @@ const ChatView: React.FC<{
 
 const CLOSE_ANIMATION_MS = 260;
 
-// Send active chat ID to service workers so they can suppress notifications for active chats
-function notifyServiceWorkerActiveChatId(chatId: string | null) {
-  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({
-      type: 'SET_ACTIVE_CHAT',
-      chatId: chatId,
-    });
-  }
-  // Also notify firebase-messaging-sw if it's registered separately
-  navigator.serviceWorker.getRegistrations().then((registrations) => {
-    registrations.forEach((registration) => {
-      if (registration.active) {
-        registration.active.postMessage({
-          type: 'SET_ACTIVE_CHAT',
-          chatId: chatId,
-        });
-      }
-    });
-  });
-}
-
 const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact, initialMessage, reachOutMetadata }) => {
   const { appUser } = useAuth();
+  const navigate = useNavigate();
   const { setActiveChatId, setIsChatDrawerOpen } = useChatContext();
   const [activeContact, setActiveContact] = useState<ChatContact | null>(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -656,6 +732,16 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
     }
   };
 
+  const handleOpenContactProfile = () => {
+    if (!activeContact || !appUser) return;
+    sessionStorage.setItem('artworkSourceRoute', window.location.pathname || '/home');
+    if (activeContact.uid === appUser.uid) {
+      navigate('/portfolio');
+      return;
+    }
+    navigate(`/portfolio/${activeContact.uid}`);
+  };
+
   if (!isOpen) return null;
 
   const showingChat = !!activeContact;
@@ -680,7 +766,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
               </button>
               <div className="cd-drawer-user">
                 <img src={avatarSrc(activeContact.avatar)} alt={activeContact.name} className="cd-drawer-avatar" />
-                <span className="cd-drawer-name">{activeContact.name}</span>
+                <button type="button" className="cd-drawer-name-link" onClick={handleOpenContactProfile}>
+                  {activeContact.name}
+                </button>
               </div>
             </>
           ) : (

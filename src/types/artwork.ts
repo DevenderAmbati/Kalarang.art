@@ -20,6 +20,7 @@ export interface Artwork {
   views?: number;
   likes?: number;
   favorites?: number;
+  comments?: number;
   reachOutClicks?: number;
   score?: number;
 }
