@@ -390,9 +390,12 @@ export async function getMessages(
 
 /**
  * Sets unread count for the given user in the chat to 0 (e.g. when they open the chat).
+ * Silently no-ops if the chat document doesn't exist yet (new conversation).
  */
 export async function markChatRead(chatId: string, userId: string): Promise<void> {
   const chatRef = doc(db, 'chats', chatId);
+  const snap = await getDoc(chatRef);
+  if (!snap.exists()) return;
   await updateDoc(chatRef, { [`unreadFor.${userId}`]: 0 } as any);
 }
 
@@ -479,6 +482,8 @@ export function subscribeToUserChats(
       };
     });
     callback(chats);
+  }, () => {
+    // Silently ignore listener errors — stale auth or transient network issues
   });
 }
 

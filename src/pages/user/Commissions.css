@@ -112,6 +112,13 @@
   color: var(--color-error, #ef4444);
 }
 
+.commission-field-error {
+  display: block;
+  color: var(--color-error, #ef4444);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
 .commission-upload-row {
   margin-bottom: 0.5rem;
 }

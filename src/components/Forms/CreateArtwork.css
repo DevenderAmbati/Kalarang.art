@@ -1,4 +1,11 @@
 /* CreateArtwork Component Styles */
+
+.field-error {
+  display: block;
+  color: var(--color-error, #ef4444);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
 .create-artwork-container {
   width: 100%;
   padding: 0;

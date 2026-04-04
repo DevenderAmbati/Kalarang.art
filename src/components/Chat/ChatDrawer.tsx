@@ -191,9 +191,12 @@ const ChatView: React.FC<{
     markReadTimeoutRef.current = setTimeout(async () => {
       markReadTimeoutRef.current = null;
       const chatId = getChatId(appUser.uid, contact.uid);
-      await markChatRead(chatId, appUser.uid);
-      // Mark messages as seen by the current user
-      await markMessagesAsSeen(chatId, appUser.uid);
+      try {
+        await markChatRead(chatId, appUser.uid);
+        await markMessagesAsSeen(chatId, appUser.uid);
+      } catch {
+        // Non-critical — ignore read-state errors silently
+      }
     }, 400);
     return () => {
       if (markReadTimeoutRef.current) {
@@ -1270,7 +1273,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
   const clearActiveContact = useCallback(() => {
     if (activeContact && appUser) {
       const chatId = getChatId(appUser.uid, activeContact.uid);
-      markChatRead(chatId, appUser.uid).then(() => setActiveContact(null));
+      markChatRead(chatId, appUser.uid).then(() => setActiveContact(null)).catch(() => setActiveContact(null));
     } else {
       setActiveContact(null);
     }
@@ -1302,7 +1305,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
     if (isOpen && initialContact && appUser) {
       setActiveContact(initialContact);
       const chatId = getChatId(appUser.uid, initialContact.uid);
-      markChatRead(chatId, appUser.uid);
+      markChatRead(chatId, appUser.uid).catch(() => {});
     }
   }, [isOpen, initialContact, appUser]);
 
@@ -1420,7 +1423,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
             <div className={`cd-panel-list ${showingChat ? 'cd-panel-list-hidden' : ''}`}>
               <ConversationList
                 onSelect={(c) => {
-                  if (appUser) markChatRead(getChatId(appUser.uid, c.uid), appUser.uid);
+                  if (appUser) markChatRead(getChatId(appUser.uid, c.uid), appUser.uid).catch(() => {});
                   setActiveContact(c);
                 }}
                 activeUid={activeContact?.uid}

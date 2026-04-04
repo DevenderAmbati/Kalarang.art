@@ -13,14 +13,26 @@ export interface ArtworkFormData {
   isCommissioned: boolean;
 }
 
+export interface ArtworkFormErrors {
+  title?: string;
+  description?: string;
+  category?: string;
+  medium?: string;
+  width?: string;
+  height?: string;
+  price?: string;
+}
+
 interface ArtworkMetadataFormProps {
   formData: ArtworkFormData;
   onFormDataChange: (field: keyof ArtworkFormData, value: string) => void;
+  errors?: ArtworkFormErrors;
 }
 
 const ArtworkMetadataForm: React.FC<ArtworkMetadataFormProps> = ({
   formData,
   onFormDataChange,
+  errors = {},
 }) => {
   const handleInputChange = (field: keyof ArtworkFormData) => 
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -43,6 +55,7 @@ const ArtworkMetadataForm: React.FC<ArtworkMetadataFormProps> = ({
               className="form-input"
               required
             />
+            {errors.title && <span className="field-error">{errors.title}</span>}
           </div>
 
           <div className="form-field">
@@ -64,6 +77,7 @@ const ArtworkMetadataForm: React.FC<ArtworkMetadataFormProps> = ({
               className="form-input form-textarea"
               required
             />
+            {errors.description && <span className="field-error">{errors.description}</span>}
           </div>
         </div>
       </div>
@@ -94,6 +108,7 @@ const ArtworkMetadataForm: React.FC<ArtworkMetadataFormProps> = ({
               placeholder="Select category"
               required
             />
+            {errors.category && <span className="field-error">{errors.category}</span>}
           </div>
 
           <div className="form-field">
@@ -118,6 +133,7 @@ const ArtworkMetadataForm: React.FC<ArtworkMetadataFormProps> = ({
               placeholder="Select medium"
               required
             />
+            {errors.medium && <span className="field-error">{errors.medium}</span>}
           </div>
 
           <div className="form-field">
@@ -149,8 +165,10 @@ const ArtworkMetadataForm: React.FC<ArtworkMetadataFormProps> = ({
                 />
                 <span className="size-unit">H</span>
               </div>
-              
             </div>
+            {(errors.width || errors.height) && (
+              <span className="field-error">{errors.width || errors.height}</span>
+            )}
           </div>
 
           <div className="form-field">
@@ -168,6 +186,7 @@ const ArtworkMetadataForm: React.FC<ArtworkMetadataFormProps> = ({
                 required
               />
             </div>
+            {errors.price && <span className="field-error">{errors.price}</span>}
           </div>
 
           <div className="form-field full-width">

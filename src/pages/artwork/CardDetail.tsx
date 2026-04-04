@@ -437,7 +437,7 @@ const CardDetail: React.FC = () => {
                 return (
                   <div className="commission-accept-offer-payment">
                     <p className="commission-accept-offer-payment-label" style={{ color: 'var(--color-error, #dc2626)' }}>⚠️ Payment Not Available</p>
-                    <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>The artist hasn't set up their UPI ID yet. Please contact them directly or try again later.</p>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>The artist hasn't set up their UPI ID yet. The artist has been informed.</p>
                   </div>
                 );
               }

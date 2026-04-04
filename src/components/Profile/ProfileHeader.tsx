@@ -296,7 +296,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   <span className="stat-number" style={{ display: 'flex', alignItems: 'baseline', gap: '0.15rem' }}>
                     <span style={{ color: '#f59e0b' }}>★</span>
                     {rating.avg.toFixed(1)}
-                    <span style={{ color: 'var(--color-accent)' }}>/5</span>
+                   
                   </span>
                   <span className="stat-label">{rating.count} {rating.count === 1 ? 'Rating' : 'Ratings'}</span>
                 </div>

@@ -1344,6 +1344,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [artistActions, setArtistActions] = useState<ArtistCommissionActions>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
   const allowNavigationRef = useRef(false);
@@ -2638,16 +2639,30 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     };
   }, [shouldVirtualizeCommissions, updateCommGridMetrics, listRequests.length]);
 
+  const validationErrors = {
+    title: !title.trim() ? 'Title is required' : '',
+    description: !description.trim() ? 'Description is required' : '',
+    budget: !budget ? 'Budget is required' : '',
+    customBudget: budget === 'Custom' && !customBudget.trim() ? 'Custom budget amount is required' : '',
+    deadline: !deadline ? 'Deadline is required' : '',
+    customDate: deadline === 'Custom' && !customDate ? 'Custom deadline date is required' : '',
+    customHeight: size === 'Custom' && !customHeight.trim() ? 'Height is required' : '',
+    customWidth: size === 'Custom' && !customWidth.trim() ? 'Width is required' : '',
+    type: !type ? 'Artwork type is required' : '',
+    cityOrPincode: !cityOrPincode.trim() ? 'City or pincode is required' : '',
+  };
+
   const isFormValid =
-    title.trim() &&
-    description.trim() &&
-    budget &&
-    (budget !== 'Custom' || customBudget.trim()) &&
-    deadline &&
-    (deadline !== 'Custom' || customDate) &&
-    (size !== 'Custom' || (customHeight.trim() && customWidth.trim())) &&
-    type &&
-    (deliveryType !== 'Physical artwork' || cityOrPincode.trim());
+    !validationErrors.title &&
+    !validationErrors.description &&
+    !validationErrors.budget &&
+    !validationErrors.customBudget &&
+    !validationErrors.deadline &&
+    !validationErrors.customDate &&
+    !validationErrors.customHeight &&
+    !validationErrors.customWidth &&
+    !validationErrors.type &&
+    !validationErrors.cityOrPincode;
 
   const toggleMulti = (current: string[], setValue: React.Dispatch<React.SetStateAction<string[]>>, item: string) => {
     setValue(current.includes(item) ? current.filter((v) => v !== item) : [...current, item]);
@@ -2685,6 +2700,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     setNewSubject('');
     setStyleOptions(DEFAULT_STYLE_OPTIONS);
     setSubjectOptions(DEFAULT_SUBJECT_OPTIONS);
+    setShowErrors(false);
     if (appUser?.uid) {
       localStorage.removeItem(getDraftKey(appUser.uid));
     }
@@ -2840,7 +2856,10 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       toast.error('Please login to post a commission request.');
       return;
     }
-    if (!isFormValid) return;
+    if (!isFormValid) {
+      setShowErrors(true);
+      return;
+    }
 
     const finalBudget = budget === 'Custom' ? customBudget.trim() : budget;
     const finalDeadline = deadline === 'Custom' ? customDate : deadline;
@@ -2848,8 +2867,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     const finalCustomHeight = size === 'Custom' ? customHeight.trim() : '';
     const finalCustomWidth = size === 'Custom' ? customWidth.trim() : '';
     const finalDeliveryType = deliveryType as '' | 'Digital file' | 'Physical artwork';
-    const finalDeliveryLocation =
-      finalDeliveryType === 'Physical artwork' ? cityOrPincode.trim() : '';
+    const finalDeliveryLocation = cityOrPincode.trim();
 
     setIsSubmitting(true);
     try {
@@ -2982,6 +3000,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
               placeholder="Ex: Realistic portrait"
             />
+            {showErrors && validationErrors.title && (
+              <span className="commission-field-error">{validationErrors.title}</span>
+            )}
 
             <label className="form-label">
               Description <span className="commission-required">*</span>
@@ -2992,6 +3013,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
               placeholder="Describe what you want, style, subject, colors, medium..."
             />
+            {showErrors && validationErrors.description && (
+              <span className="commission-field-error">{validationErrors.description}</span>
+            )}
 
             <label className="form-label">Size</label>
             <CustomDropdown
@@ -3015,6 +3039,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomHeight(e.target.value)}
                     placeholder="Enter height (inches)"
                   />
+                  {showErrors && validationErrors.customHeight && (
+                    <span className="commission-field-error">{validationErrors.customHeight}</span>
+                  )}
                 </div>
                 <div className="form-field">
                   <label className="form-label">
@@ -3028,6 +3055,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomWidth(e.target.value)}
                     placeholder="Enter width (inches)"
                   />
+                  {showErrors && validationErrors.customWidth && (
+                    <span className="commission-field-error">{validationErrors.customWidth}</span>
+                  )}
                 </div>
               </div>
             )}
@@ -3083,6 +3113,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                   placeholder="Select budget range"
                   required
                 />
+                {showErrors && validationErrors.budget && (
+                  <span className="commission-field-error">{validationErrors.budget}</span>
+                )}
               </div>
               <div className="form-field">
                 <label className="form-label">
@@ -3095,6 +3128,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                   placeholder="Select timeline"
                   required
                 />
+                {showErrors && validationErrors.deadline && (
+                  <span className="commission-field-error">{validationErrors.deadline}</span>
+                )}
               </div>
             </div>
 
@@ -3109,6 +3145,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomBudget(e.target.value)}
                   placeholder="Enter your budget (e.g. ₹7,500)"
                 />
+                {showErrors && validationErrors.customBudget && (
+                  <span className="commission-field-error">{validationErrors.customBudget}</span>
+                )}
               </>
             )}
 
@@ -3123,6 +3162,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                   value={customDate}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomDate(e.target.value)}
                 />
+                {showErrors && validationErrors.customDate && (
+                  <span className="commission-field-error">{validationErrors.customDate}</span>
+                )}
               </>
             )}
 
@@ -3150,6 +3192,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                 );
               })}
             </div>
+            {showErrors && validationErrors.type && (
+              <span className="commission-field-error">{validationErrors.type}</span>
+            )}
 
             <label className="form-label">Style (Optional)</label>
             <ChipSelector options={styleOptions} selected={style} onToggle={(item) => toggleMulti(style, setStyle, item)} />
@@ -3218,39 +3263,18 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           {mode === 'form' && (
           <section className="section">
             <h3 className="section-title">Delivery</h3>
-            <label className="form-label">Delivery Type</label>
-            <div className="commission-radio-row">
-              <label className="commission-radio-label">
-                <input
-                  type="radio"
-                  name="deliveryType"
-                  checked={deliveryType === 'Digital file'}
-                  onChange={() => setDeliveryType('Digital file')}
-                />
-                Digital file
-              </label>
-              <label className="commission-radio-label">
-                <input
-                  type="radio"
-                  name="deliveryType"
-                  checked={deliveryType === 'Physical artwork'}
-                  onChange={() => setDeliveryType('Physical artwork')}
-                />
-                Physical artwork
-              </label>
-            </div>
-            {deliveryType === 'Physical artwork' && (
-              <>
-                <label className="form-label">
-                  City / Pincode <span className="commission-required">*</span>
-                </label>
-                <input
-                  className="form-input"
-                  value={cityOrPincode}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCityOrPincode(e.target.value)}
-                  placeholder="Enter city or pincode"
-                />
-              </>
+            <label className="form-label">
+              City / Pincode <span className="commission-required">*</span>
+            </label>
+            <input
+              className="form-input"
+              value={cityOrPincode}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCityOrPincode(e.target.value)}
+              placeholder="Enter city or pincode"
+              required
+            />
+            {showErrors && validationErrors.cityOrPincode && (
+              <span className="commission-field-error">{validationErrors.cityOrPincode}</span>
             )}
           </section>
           )}
@@ -3262,8 +3286,8 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
             </button>
             <button
               type="button"
-              className={`button button-primary ${isFormValid ? '' : 'disabled'}`}
-              disabled={!Boolean(isFormValid) || isSubmitting}
+              className="button button-primary"
+              disabled={isSubmitting}
               onClick={handlePostCommission}
             >
               <span className="commission-button-primary-inner">

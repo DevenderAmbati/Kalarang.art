@@ -22,7 +22,7 @@ import {
 } from '@dnd-kit/sortable';
 import UploadDropzone from './UploadDropzone';
 import ImagePreviewGrid from './ImagePreviewGrid';
-import ArtworkMetadataForm, { ArtworkFormData } from './ArtworkMetadataForm';
+import ArtworkMetadataForm, { ArtworkFormData, ArtworkFormErrors } from './ArtworkMetadataForm';
 import { useAuth } from '../../context/AuthContext';
 import { createArtwork, toggleArtworkPublish, getArtwork, updateArtwork, uploadArtworkImages, uploadSingleArtworkImage, deleteArtworkImagesByUrls, createArtworkWithUrls } from '../../services/artworkService';
 import { cache, cacheKeys } from '../../utils/cache';
@@ -48,6 +48,7 @@ const CreateArtwork: React.FC = () => {
   const [isDragActive, setIsDragActive] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [showPublishErrors, setShowPublishErrors] = useState(false);
   const [savedArtworkId, setSavedArtworkId] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState('');
@@ -682,43 +683,8 @@ const CreateArtwork: React.FC = () => {
       return;
     }
 
-    // Validate all required fields before checking savedArtworkId
-    const missingFields: string[] = [];
-    
-    if (images.length === 0) {
-      missingFields.push('at least one image');
-    }
-    if (!formData.title.trim()) {
-      missingFields.push('title');
-    }
-    if (!formData.description.trim()) {
-      missingFields.push('description');
-    }
-    if (!formData.category) {
-      missingFields.push('category');
-    }
-    if (!formData.medium) {
-      missingFields.push('medium');
-    }
-    if (!formData.width) {
-      missingFields.push('width');
-    }
-    if (!formData.height) {
-      missingFields.push('height');
-    }
-    if (!formData.price) {
-      missingFields.push('price');
-    }
-
-    if (missingFields.length > 0) {
-      if (missingFields.length === 1) {
-        toast.error(`Please fill in: ${missingFields[0]}`);
-      } else if (missingFields.length === 2) {
-        toast.error(`Please fill in: ${missingFields.join(' and ')}`);
-      } else {
-        const lastField = missingFields.pop();
-        toast.error(`Please fill in: ${missingFields.join(', ')}, and ${lastField}`);
-      }
+    if (!isFormValid) {
+      setShowPublishErrors(true);
       return;
     }
 
@@ -786,15 +752,26 @@ const CreateArtwork: React.FC = () => {
     }
   };
 
-  const isFormValid = 
-    formData.title.trim() && 
-    formData.description.trim() && 
-    formData.category && 
-    formData.medium && 
-    formData.width && 
-    formData.height && 
-    formData.price && 
+  const isFormValid =
+    formData.title.trim() &&
+    formData.description.trim() &&
+    formData.category &&
+    formData.medium &&
+    formData.width &&
+    formData.height &&
+    formData.price &&
     images.length > 0;
+
+  const publishValidationErrors: ArtworkFormErrors & { images?: string } = {
+    images: images.length === 0 ? 'At least one image is required' : '',
+    title: !formData.title.trim() ? 'Title is required' : '',
+    description: !formData.description.trim() ? 'Description is required' : '',
+    category: !formData.category ? 'Category is required' : '',
+    medium: !formData.medium ? 'Medium is required' : '',
+    width: !formData.width ? 'Width is required' : '',
+    height: !formData.height ? 'Height is required' : '',
+    price: !formData.price ? 'Price is required' : '',
+  };
 
   return (
     <>
@@ -1039,12 +1016,16 @@ const CreateArtwork: React.FC = () => {
                 </DndContext>
               </div>
             </div>
+            {showPublishErrors && publishValidationErrors.images && (
+              <span className="field-error">{publishValidationErrors.images}</span>
+            )}
           </div>
 
           {/* Form Fields */}
           <ArtworkMetadataForm
             formData={formData}
             onFormDataChange={handleFormDataChange}
+            errors={showPublishErrors ? publishValidationErrors : {}}
           />
 
           {/* Info Message */}
