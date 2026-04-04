@@ -193,6 +193,11 @@
   box-shadow: 0 0 0 3px var(--color-focus-glow);
 }
 
+.dropdown-trigger {
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+}
+
 .form-input::placeholder {
   color: #6b7280;
   font-style: normal;
@@ -459,7 +464,7 @@
 }
 
 .add-link-row .custom-dropdown .dropdown-trigger {
-  padding: 0.625rem 0.875rem;
+  padding: 0.75rem 0.875rem;
   font-size: 0.95rem;
 }
 
@@ -780,7 +785,8 @@
 
   .form-input,
   .form-textarea,
-  .form-select {
+  .form-select,
+  .dropdown-trigger {
     font-size: 0.875rem;
     padding: 0.625rem 0.875rem;
   }

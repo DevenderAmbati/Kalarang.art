@@ -166,6 +166,14 @@
   word-break: break-word;
 }
 
+.notification-review-stars {
+  display: inline-flex;
+  gap: 1px;
+  margin-left: 0.3rem;
+  vertical-align: middle;
+  line-height: 1;
+}
+
 .notification-content {
   flex: 1;
   min-width: 0;

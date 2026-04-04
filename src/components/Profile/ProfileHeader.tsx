@@ -9,6 +9,7 @@ interface ProfileStats {
   followers: number;
   artworks: number;
   following: number;
+  customized: number;
 }
 
 interface User {
@@ -33,6 +34,8 @@ interface ProfileHeaderProps {
   onReachOut?: () => void;
   onFollowersClick?: () => void;
   onFollowingClick?: () => void;
+  rating?: { avg: number; count: number };
+  onRatingClick?: () => void;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -48,6 +51,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onReachOut,
   onFollowersClick,
   onFollowingClick,
+  rating,
+  onRatingClick,
 }) => {
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
@@ -249,9 +254,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             borderRadius: '12px',
             backdropFilter: 'blur(10px)',
             width: 'fit-content',
-            maxWidth: '400px'
+            maxWidth: '600px'
           }}>
-            <div 
+            <div
               className="stat-item"
               onClick={isOwner ? onFollowersClick : undefined}
               style={{
@@ -268,39 +273,35 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <span className="stat-number">{formatNumber(user.stats.followers)}</span>
               <span className="stat-label">Followers</span>
             </div>
-            <span style={{
-              fontSize: '1.5rem',
-              color: '#22d5c0ff',
-              lineHeight: 1,
-              margin: '0 0.3rem'
-            }}>|</span>
+            <span style={{ fontSize: '1.5rem', color: '#22d5c0ff', lineHeight: 1, margin: '0 0.3rem' }}>|</span>
             <div className="stat-item">
               <span className="stat-number">{formatNumber(user.stats.artworks)}</span>
               <span className="stat-label">Artworks</span>
             </div>
-            <span style={{
-              fontSize: '1.5rem',
-              color: '#22d5c0ff',
-              lineHeight: 1,
-              margin: '0 0.3rem'
-            }}>|</span>
-            <div 
-              className="stat-item"
-              onClick={isOwner ? onFollowingClick : undefined}
-              style={{
-                cursor: isOwner ? 'pointer' : 'default',
-                transition: 'transform 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                if (isOwner) e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                if (isOwner) e.currentTarget.style.transform = 'scale(1)';
-              }}
-            >
-              <span className="stat-number">{formatNumber(user.stats.following)}</span>
-              <span className="stat-label">Following</span>
+            <span style={{ fontSize: '1.5rem', color: '#22d5c0ff', lineHeight: 1, margin: '0 0.3rem' }}>|</span>
+            <div className="stat-item">
+              <span className="stat-number">{formatNumber(user.stats.customized)}</span>
+              <span className="stat-label">Customized</span>
             </div>
+            {rating && rating.count > 0 && (
+              <>
+                <span style={{ fontSize: '1.5rem', color: '#22d5c0ff', lineHeight: 1, margin: '0 0.3rem' }}>|</span>
+                <div
+                  className="stat-item"
+                  onClick={onRatingClick}
+                  style={{ cursor: onRatingClick ? 'pointer' : 'default', transition: 'transform 0.2s ease' }}
+                  onMouseEnter={(e) => { if (onRatingClick) e.currentTarget.style.transform = 'scale(1.05)'; }}
+                  onMouseLeave={(e) => { if (onRatingClick) e.currentTarget.style.transform = 'scale(1)'; }}
+                >
+                  <span className="stat-number" style={{ display: 'flex', alignItems: 'baseline', gap: '0.15rem' }}>
+                    <span style={{ color: '#f59e0b' }}>★</span>
+                    {rating.avg.toFixed(1)}
+                    <span style={{ color: 'var(--color-accent)' }}>/5</span>
+                  </span>
+                  <span className="stat-label">{rating.count} {rating.count === 1 ? 'Rating' : 'Ratings'}</span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Action Buttons */}

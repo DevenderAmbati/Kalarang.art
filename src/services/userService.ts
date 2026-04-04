@@ -195,6 +195,7 @@ export async function getUserStats(userId: string): Promise<{
   followers: number;
   following: number;
   artworks: number;
+  customized: number;
 }> {
   // Count followers (excluding self)
   const followersRef = collection(db, "follows");
@@ -213,7 +214,13 @@ export async function getUserStats(userId: string): Promise<{
   const artworksSnapshot = await getDocs(artworksQuery);
   const artworks = artworksSnapshot.size;
 
-  return { followers, following, artworks };
+  // Count completed commissions (artworks made for clients)
+  const commissionsRef = collection(db, "commissions");
+  const commissionsQuery = query(commissionsRef, where("hiredArtistId", "==", userId), where("status", "==", "completed"));
+  const commissionsSnapshot = await getDocs(commissionsQuery);
+  const customized = commissionsSnapshot.size;
+
+  return { followers, following, artworks, customized };
 }
 
 /**
@@ -376,11 +383,11 @@ export async function searchUsers(searchQuery: string): Promise<Array<{
  */
 export function subscribeToUserStats(
   userId: string,
-  onUpdate: (stats: { followers: number; following: number; artworks: number }) => void,
+  onUpdate: (stats: { followers: number; following: number; artworks: number; customized: number }) => void,
   onError?: (error: Error) => void
 ): Unsubscribe {
   const unsubscribers: Unsubscribe[] = [];
-  let currentStats = { followers: 0, following: 0, artworks: 0 };
+  let currentStats = { followers: 0, following: 0, artworks: 0, customized: 0 };
   
   // Subscribe to followers
   const followersQuery = query(
@@ -418,7 +425,20 @@ export function subscribeToUserStats(
       onUpdate({ ...currentStats });
     }, onError)
   );
-  
+
+  // Subscribe to completed commissions
+  const commissionsQuery = query(
+    collection(db, "commissions"),
+    where("hiredArtistId", "==", userId),
+    where("status", "==", "completed")
+  );
+  unsubscribers.push(
+    onSnapshot(commissionsQuery, (snapshot) => {
+      currentStats.customized = snapshot.size;
+      onUpdate({ ...currentStats });
+    }, onError)
+  );
+
   // Return combined unsubscribe function
   return () => {
     unsubscribers.forEach(unsub => unsub());

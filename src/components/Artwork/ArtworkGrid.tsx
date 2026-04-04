@@ -94,8 +94,8 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
     );
   };
 
-  // Fallback for small lists, or for Discover/HomeFeed where the parent has no fixed height for virtualized Grid
-  if (artworks.length < 20 || viewType === 'discover' || viewType === 'homefeed') {
+  // Fallback for small lists, or for views where the parent has no fixed height for virtualized Grid
+  if (artworks.length < 20 || viewType === 'discover' || viewType === 'homefeed' || viewType === 'published' || viewType === 'favourites') {
     return (
       <div className={`artwork-grid ${viewType ? `artwork-grid-${viewType}` : ''}`}>
         {artworks.map((artwork) => (

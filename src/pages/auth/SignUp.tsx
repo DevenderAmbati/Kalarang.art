@@ -376,9 +376,9 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
                 {showRoleGuideTooltip && (
                   <div className="role-guide-tooltip" role="tooltip" id="role-guide-tooltip">
                     <div className="role-guide-tooltip-title">Which role should I choose?</div>
-                    <p><strong>Artist</strong> — You create art and want to connect with buyers to sell your work. You can still discover and buy art from others.</p>
-                    <p><strong>Buyer</strong> — You're here to discover and buy art and connect with artists.</p>
-                    <p><strong>Do both?</strong> Choose <strong>Artist</strong> — you get the full experience to sell your work and buy from others.</p>
+                    <p><strong>Artist</strong> — You create art and want to connect with buyers to sell your work and take commission requests.</p>
+                    <p><strong>Buyer</strong> — You're here to discover and buy art, post commission requests to get customized artwork done.</p>
+                    <p><strong>Do both?</strong> Choose <strong>Artist</strong> — you get the full experience to sell your work and buy from others, but you can't post comission requests.</p>
                   </div>
                 )}
               </div>

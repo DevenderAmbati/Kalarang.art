@@ -10,6 +10,8 @@ import { logout } from '../../services/authService';
 import { useAuth } from '../../context/AuthContext';
 import { PortfolioProvider } from '../../context/PortfolioContext';
 import { getUserProfile, getUserStats } from '../../services/userService';
+import { getReviewsForArtist, CommissionReview } from '../../services/reviewService';
+import ReviewsModal from '../../components/Modals/ReviewsModal';
 import { followArtist, unfollowArtist, isFollowingArtist } from '../../services/interactionService';
 import { toast } from 'react-toastify';
 import { getArtworksByArtist } from '../../services/artworkService';
@@ -25,6 +27,9 @@ const OtherUserPortfolio: React.FC = () => {
   const [activeTab, setActiveTab] = useState('published');
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [artistRating, setArtistRating] = useState<{ avg: number; count: number } | undefined>(undefined);
+  const [artistReviews, setArtistReviews] = useState<CommissionReview[]>([]);
+  const [reviewsModalOpen, setReviewsModalOpen] = useState(false);
   const [publishedArtworks, setPublishedArtworks] = useState<any[]>([]);
   const [galleryArtworks, setGalleryArtworks] = useState<any[]>([]);
   
@@ -38,6 +43,7 @@ const OtherUserPortfolio: React.FC = () => {
       followers: 0,
       artworks: 0,
       following: 0,
+      customized: 0,
     },
     bio: '',
     artStyle: [] as string[],
@@ -89,6 +95,18 @@ const OtherUserPortfolio: React.FC = () => {
 
     loadUserProfile();
   }, [userId, appUser]);
+
+  // Fetch artist rating
+  useEffect(() => {
+    if (!userId) return;
+    getReviewsForArtist(userId).then((reviews) => {
+      const valid = reviews.filter(r => typeof r.rating === 'number' && !isNaN(r.rating));
+      if (valid.length === 0) return;
+      const avg = valid.reduce((sum, r) => sum + r.rating, 0) / valid.length;
+      setArtistRating({ avg, count: valid.length });
+      setArtistReviews(valid);
+    }).catch(() => {});
+  }, [userId]);
 
   // Set document title with artist's first name
   useEffect(() => {
@@ -353,6 +371,8 @@ const OtherUserPortfolio: React.FC = () => {
               isOwner={false}
               isFollowing={isFollowing}
               onFollow={handleFollow}
+              rating={artistRating}
+              onRatingClick={() => setReviewsModalOpen(true)}
             />
             
             <div style={styles.tabSection} className="portfolio-tab-section">
@@ -396,6 +416,12 @@ const OtherUserPortfolio: React.FC = () => {
             }}
           />
         )}
+        <ReviewsModal
+          isOpen={reviewsModalOpen}
+          onClose={() => setReviewsModalOpen(false)}
+          reviews={artistReviews}
+          avgRating={artistRating?.avg ?? 0}
+        />
       </PortfolioProvider>
     </div>
   );

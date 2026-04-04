@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Timestamp, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { QRCodeSVG } from 'qrcode.react';
+import { Timestamp, QueryDocumentSnapshot, DocumentData, onSnapshot, doc as firestoreDoc } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Lottie from 'lottie-react';
@@ -17,6 +19,10 @@ import {
   getCommissionsForArtistApplicationsCached,
   getCommissionsForHiredArtistCached,
   acceptCommissionOfferFromChat,
+  markAdvancePaid,
+  saveReadyToShipImage,
+  markFullPaymentDone,
+  markShipped,
   markCommissionCompletedByBuyer,
   registerArtistApplication,
   removeCommissionShortlistBookmark,
@@ -45,6 +51,13 @@ import { uploadChatMessageImage } from '../../services/chatImageUpload';
 import { notifyServiceWorkerActiveChatId } from '../../services/fcmService';
 import { getUserProfile } from '../../services/userService';
 import { createNotification } from '../../services/notificationService';
+import {
+  CommissionReview,
+  getReviewsForBuyer,
+  getReviewsForArtist,
+  submitReview,
+  submitArtistReply,
+} from '../../services/reviewService';
 import { downloadImageFromUrl, suggestedChatImageFilename } from '../../utils/downloadImage';
 import EmptyState from '../../components/State/EmptyState';
 import LoadingState from '../../components/State/LoadingState';
@@ -75,10 +88,12 @@ const DEFAULT_SUBJECT_OPTIONS = ['Portrait', 'Pet', 'Nature', 'God'];
 
 type BudgetOption = '₹500–₹1,000' | '₹1,000–₹3,000' | '₹3,000–₹5,000' | '₹5,000+' | 'Custom';
 type DeadlineOption = 'Flexible' | '3 days' | '1 week' | '2–3 weeks' | 'Custom';
+type SizeOption = 'A4' | 'A3' | 'A2' | 'Custom';
 type TypeOption = (typeof TYPE_OPTIONS)[number];
 
 const budgetOptions: BudgetOption[] = ['₹500–₹1,000', '₹1,000–₹3,000', '₹3,000–₹5,000', '₹5,000+', 'Custom'];
 const deadlineOptions: DeadlineOption[] = ['Flexible', '3 days', '1 week', '2–3 weeks', 'Custom'];
+const sizeOptions: SizeOption[] = ['A4', 'A3', 'A2', 'Custom'];
 
 function formatAgreedDateLine(iso: string | undefined): string {
   if (!iso?.trim()) return '';
@@ -179,10 +194,12 @@ type CommissionChatMetadata = {
   agreedAdvanceAmount?: string;
   agreedDeliveryDate?: string;
   hiredArtistId?: string;
+  readyToShipImageUrl?: string;
+  fullPaymentDone?: boolean;
 };
 
 const ACCEPT_OFFER_COPY =
-  'Accepting this offer will close any open chats you have with other artists for this commission. You can continue here with the artist you accept. This artist will be assigned to this commission, and the commission status will move to In progress.';
+  'Accepting this offer will close any open chats you have with other artists for this commission.';
 
 const CommissionChatModal: React.FC<{
   isOpen: boolean;
@@ -200,6 +217,9 @@ const CommissionChatModal: React.FC<{
   commissionHiredArtistId?: string | null;
   acceptingOfferMessageId?: string | null;
   onAcceptOffer?: (messageId: string) => Promise<void>;
+  onReadyToShip?: () => void;
+  onMakePayment?: () => void;
+  onMakeShipment?: () => void;
 }> = ({
   isOpen,
   onClose,
@@ -215,6 +235,9 @@ const CommissionChatModal: React.FC<{
   commissionHiredArtistId = null,
   acceptingOfferMessageId = null,
   onAcceptOffer,
+  onReadyToShip,
+  onMakePayment,
+  onMakeShipment,
 }) => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<CommissionChatMessage[]>([]);
@@ -234,6 +257,9 @@ const CommissionChatModal: React.FC<{
   const [offerAdvanceAmount, setOfferAdvanceAmount] = useState('');
   const [sendingOffer, setSendingOffer] = useState(false);
   const [offerAcceptConfirmMessageId, setOfferAcceptConfirmMessageId] = useState<string | null>(null);
+  const [offerAcceptConfirmAdvance, setOfferAcceptConfirmAdvance] = useState('');
+  const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
+  const [buyerAddressForm, setBuyerAddressForm] = useState({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
 
   const showClosedCommissionNoticeFooter = Boolean(
     (chatClosed && (chatClosedReason === 'other_hired' || chatClosedReason === 'commission_completed')) ||
@@ -285,7 +311,30 @@ const CommissionChatModal: React.FC<{
       setOfferFinalPrice('');
       setOfferAdvanceAmount('');
       setOfferAcceptConfirmMessageId(null);
+      setOfferAcceptConfirmAdvance('');
+      setShowPaymentConfirm(false);
+      setBuyerAddressForm({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
     }
+  }, [isOpen]);
+
+  // Lock body scroll when drawer is open (iOS Safari needs position:fixed trick)
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevPosition = document.body.style.position;
+    const prevWidth = document.body.style.width;
+    const scrollY = window.scrollY;
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.top = `-${scrollY}px`;
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.position = prevPosition;
+      document.body.style.width = prevWidth;
+      document.body.style.top = '';
+      window.scrollTo(0, scrollY);
+    };
   }, [isOpen]);
 
   const visibleMessages = useMemo(
@@ -533,6 +582,8 @@ const CommissionChatModal: React.FC<{
     <div className="commission-chat-modal-overlay" onClick={onClose}>
       <div className="commission-chat-modal" onClick={(e) => e.stopPropagation()}>
         <div className="commission-chat-modal-header">
+          <div className="commission-chat-modal-drag-handle" aria-hidden="true" />
+          <div className="commission-chat-modal-header-row">
           <div className="commission-chat-user">
             <img src={contact.avatar || '/artist.png'} alt={contact.name} className="commission-chat-user-avatar" />
             {currentUserRole === 'buyer' ? (
@@ -540,12 +591,13 @@ const CommissionChatModal: React.FC<{
                 {contact.name}
               </button>
             ) : (
-              <span>{contact.name}</span>
+              <span className="commission-chat-user-name-link">{contact.name}</span>
             )}
           </div>
           <button type="button" className="commission-chat-close" onClick={onClose}>
             ×
           </button>
+          </div>
         </div>
 
         {(metadata || messages.some((m) => Boolean(m.commissionTitle))) && (
@@ -575,18 +627,50 @@ const CommissionChatModal: React.FC<{
               )}
               {showAgreedOfferInContext && metadata && (
                 <div className="commission-chat-context-agreed" role="region" aria-label="Agreed offer terms">
-                  <span className="commission-chat-context-agreed-title">Agreed offer</span>
-                  <div className="commission-chat-context-agreed-grid">
-                    {metadata.agreedDeliveryDate?.trim() ? (
-                      <span>Delivery: {formatAgreedDateLine(metadata.agreedDeliveryDate)}</span>
-                    ) : null}
-                    {metadata.agreedFinalPrice?.trim() ? (
-                      <span>Final Price: ₹{metadata.agreedFinalPrice}</span>
-                    ) : null}
-                    {metadata.agreedAdvanceAmount?.trim() ? (
-                      <span>Advance: ₹{metadata.agreedAdvanceAmount}</span>
-                    ) : null}
+                  <div className="commission-chat-context-agreed-left">
+                    <span className="commission-chat-context-agreed-title">Agreed offer</span>
+                    <div className="commission-chat-context-agreed-grid">
+                      {metadata.agreedDeliveryDate?.trim() ? (
+                        <span>Delivery: {formatAgreedDateLine(metadata.agreedDeliveryDate)}</span>
+                      ) : null}
+                      {metadata.agreedFinalPrice?.trim() ? (
+                        <span>Final Price: ₹{metadata.agreedFinalPrice}</span>
+                      ) : null}
+                      {metadata.agreedAdvanceAmount?.trim() ? (
+                        <span>Advance: ₹{metadata.agreedAdvanceAmount}</span>
+                      ) : null}
+                    </div>
                   </div>
+                  {currentUserRole === 'artist' && commissionInProgress && onReadyToShip && !metadata?.fullPaymentDone && (
+                    <button
+                      type="button"
+                      className="button button-outline-green commission-ready-to-ship-chat-btn"
+                      onClick={onReadyToShip}
+                    >
+                      Ready to ship
+                    </button>
+                  )}
+                  {currentUserRole === 'artist' && commissionInProgress && metadata?.fullPaymentDone && onMakeShipment && (
+                    <button
+                      type="button"
+                      className="button button-outline-green commission-ready-to-ship-chat-btn"
+                      onClick={onMakeShipment}
+                    >
+                      Make Shipment
+                    </button>
+                  )}
+                  {currentUserRole === 'buyer' && commissionInProgress && metadata?.readyToShipImageUrl && !metadata?.fullPaymentDone && onMakePayment && (
+                    <button
+                      type="button"
+                      className="button button-outline-green commission-ready-to-ship-chat-btn"
+                      onClick={onMakePayment}
+                    >
+                       Make Payment
+                    </button>
+                  )}
+                  {currentUserRole === 'buyer' && metadata?.fullPaymentDone && (
+                    <span className="commission-full-payment-done-badge">✓ Full payment</span>
+                  )}
                 </div>
               )}
             </div>
@@ -596,6 +680,9 @@ const CommissionChatModal: React.FC<{
         {showSendOfferButton && offerFormOpen && metadata && (
           <div className="commission-chat-offer-form" onClick={(e) => e.stopPropagation()}>
             <p className="commission-chat-offer-form-title">Your offer</p>
+            <p className="commission-chat-offer-form-note">
+              💡 Include delivery charges in the total price. Add shipping days to your delivery date.
+            </p>
             <label className="commission-chat-offer-field">
               <span>Delivery date</span>
               <input
@@ -714,6 +801,7 @@ const CommissionChatModal: React.FC<{
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setOfferAcceptConfirmMessageId(msg.id);
+                                  setOfferAcceptConfirmAdvance(msg.offerAdvanceAmount || '');
                                 }}
                               >
                                 Accept offer
@@ -834,61 +922,205 @@ const CommissionChatModal: React.FC<{
         </footer>
       </div>
     </div>
-    {offerAcceptConfirmMessageId && onAcceptOffer && (
-      <div
-        className="confirm-modal-overlay"
-        role="presentation"
-        onClick={() => {
-          if (!acceptingOfferMessageId) setOfferAcceptConfirmMessageId(null);
-        }}
-      >
+    {offerAcceptConfirmMessageId && onAcceptOffer && (() => {
+      const UPI_ID = '9640557113@ptsbi';
+      const upiUri = `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art${offerAcceptConfirmAdvance ? `&am=${offerAcceptConfirmAdvance}` : ''}&cu=INR`;
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const addressComplete =
+        buyerAddressForm.name.trim() !== '' &&
+        buyerAddressForm.line1.trim() !== '' &&
+        buyerAddressForm.city.trim() !== '' &&
+        buyerAddressForm.pincode.trim() !== '' &&
+        buyerAddressForm.phone.trim() !== '';
+      return (
         <div
-          className="confirm-modal-content"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="commission-accept-offer-title"
-          aria-describedby="commission-accept-offer-desc"
-          onClick={(e) => e.stopPropagation()}
+          className="confirm-modal-overlay"
+          role="presentation"
+          onClick={() => {
+            if (!acceptingOfferMessageId) setOfferAcceptConfirmMessageId(null);
+          }}
         >
-          <h2 id="commission-accept-offer-title" className="confirm-modal-title">
-            Accept offer
-          </h2>
-          <p id="commission-accept-offer-desc" className="confirm-modal-message">
-            {ACCEPT_OFFER_COPY}
-          </p>
-          <div className="confirm-modal-actions confirm-modal-actions--row">
+          <div
+            className="confirm-modal-content commission-accept-offer-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="commission-accept-offer-title"
+            aria-describedby="commission-accept-offer-desc"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
-              className="confirm-modal-btn confirm-modal-btn-cancel"
+              className="commission-accept-offer-close"
+              aria-label="Close"
               disabled={Boolean(acceptingOfferMessageId)}
-              onClick={() => setOfferAcceptConfirmMessageId(null)}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-              disabled={Boolean(acceptingOfferMessageId)}
-              onClick={async () => {
-                const id = offerAcceptConfirmMessageId;
-                if (!id || !onAcceptOffer) return;
-                try {
-                  await onAcceptOffer(id);
-                  setOfferAcceptConfirmMessageId(null);
-                } catch {
-                  // Parent shows toast
-                }
+              onClick={() => {
+                setOfferAcceptConfirmMessageId(null);
+                setShowPaymentConfirm(false);
               }}
             >
-              <span className="commission-hire-tooltip-confirm-inner">
-                {acceptingOfferMessageId && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
-                {acceptingOfferMessageId ? 'Please wait…' : 'Accept'}
-              </span>
+              ×
             </button>
+            <h2 id="commission-accept-offer-title" className="confirm-modal-title">
+              Accept offer
+            </h2>
+            <p id="commission-accept-offer-desc" className="confirm-modal-message">
+              {ACCEPT_OFFER_COPY}
+            </p>
+            <div className="commission-accept-address-form">
+              <p className="commission-accept-address-form-title">Delivery address</p>
+              <input
+                type="text"
+                className="commission-accept-address-input"
+                placeholder="Full name"
+                value={buyerAddressForm.name}
+                onChange={(e) => setBuyerAddressForm((p) => ({ ...p, name: e.target.value }))}
+                disabled={Boolean(acceptingOfferMessageId)}
+              />
+              <input
+                type="text"
+                className="commission-accept-address-input"
+                placeholder="Flat / House / Building"
+                value={buyerAddressForm.line1}
+                onChange={(e) => setBuyerAddressForm((p) => ({ ...p, line1: e.target.value }))}
+                disabled={Boolean(acceptingOfferMessageId)}
+              />
+              <input
+                type="text"
+                className="commission-accept-address-input"
+                placeholder="Street / Area / Locality"
+                value={buyerAddressForm.line2}
+                onChange={(e) => setBuyerAddressForm((p) => ({ ...p, line2: e.target.value }))}
+                disabled={Boolean(acceptingOfferMessageId)}
+              />
+              <div className="commission-accept-address-row">
+                <input
+                  type="text"
+                  className="commission-accept-address-input"
+                  placeholder="City"
+                  value={buyerAddressForm.city}
+                  onChange={(e) => setBuyerAddressForm((p) => ({ ...p, city: e.target.value }))}
+                  disabled={Boolean(acceptingOfferMessageId)}
+                />
+                <input
+                  type="text"
+                  className="commission-accept-address-input"
+                  placeholder="Pincode"
+                  value={buyerAddressForm.pincode}
+                  onChange={(e) => setBuyerAddressForm((p) => ({ ...p, pincode: e.target.value }))}
+                  disabled={Boolean(acceptingOfferMessageId)}
+                />
+              </div>
+              <input
+                type="tel"
+                className="commission-accept-address-input"
+                placeholder="Phone number"
+                value={buyerAddressForm.phone}
+                onChange={(e) => setBuyerAddressForm((p) => ({ ...p, phone: e.target.value }))}
+                disabled={Boolean(acceptingOfferMessageId)}
+              />
+            </div>
+            <div className="commission-accept-offer-payment">
+              <p className="commission-accept-offer-payment-label">
+                Pay advance and accept
+              </p>
+              {offerAcceptConfirmAdvance && (
+                <div className="commission-accept-offer-amount">₹{offerAcceptConfirmAdvance}</div>
+              )}
+              <p className="commission-accept-offer-upiid">UPI ID: <strong>{UPI_ID}</strong></p>
+              {isMobile ? (
+                <a href={upiUri} className="button button-primary commission-accept-offer-upi-btn">
+                  Open UPI App to Pay
+                </a>
+              ) : (
+                <div className="commission-accept-offer-qr">
+                  <QRCodeSVG value={upiUri} size={180} />
+                  <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
+                </div>
+              )}
+            </div>
+            {!addressComplete && (
+              <p className="commission-accept-address-required-hint">* Fill in all address fields to continue</p>
+            )}
+            {showPaymentConfirm ? (
+              <div className="commission-make-payment-confirm-block">
+                <p className="commission-payment-confirm-tooltip-q">Have you made the payment?</p>
+                <div className="confirm-modal-actions confirm-modal-actions--row">
+                  <button
+                    type="button"
+                    className="confirm-modal-btn confirm-modal-btn-cancel"
+                    disabled={Boolean(acceptingOfferMessageId)}
+                    onClick={() => setShowPaymentConfirm(false)}
+                  >
+                    No
+                  </button>
+                  <button
+                    type="button"
+                    className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                    disabled={Boolean(acceptingOfferMessageId)}
+                    onClick={async () => {
+                      const id = offerAcceptConfirmMessageId;
+                      if (!id || !onAcceptOffer) return;
+                      try {
+                        await onAcceptOffer(id);
+                        if (metadata?.artworkId) {
+                          const formattedAddress = [
+                            buyerAddressForm.name,
+                            buyerAddressForm.line1,
+                            buyerAddressForm.line2,
+                            buyerAddressForm.city,
+                            buyerAddressForm.pincode,
+                            buyerAddressForm.phone,
+                          ].filter(Boolean).join(', ');
+                          await markAdvancePaid(
+                            metadata.artworkId,
+                            offerAcceptConfirmAdvance,
+                            formattedAddress || undefined,
+                          ).catch(() => {});
+                        }
+                        setShowPaymentConfirm(false);
+                        setOfferAcceptConfirmMessageId(null);
+                        setOfferAcceptConfirmAdvance('');
+                        setBuyerAddressForm({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
+                      } catch {
+                        // Parent shows toast
+                      }
+                    }}
+                  >
+                    <span className="commission-hire-tooltip-confirm-inner">
+                      {acceptingOfferMessageId && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
+                      {acceptingOfferMessageId ? 'Please wait…' : 'Yes'}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="confirm-modal-actions confirm-modal-actions--row">
+                <button
+                  type="button"
+                  className="confirm-modal-btn confirm-modal-btn-cancel"
+                  disabled={Boolean(acceptingOfferMessageId)}
+                  onClick={() => {
+                    setOfferAcceptConfirmMessageId(null);
+                    setShowPaymentConfirm(false);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                  disabled={Boolean(acceptingOfferMessageId) || !addressComplete}
+                  title={!addressComplete ? 'Please fill in all address fields' : undefined}
+                  onClick={() => setShowPaymentConfirm(true)}
+                >
+                  Accept
+                </button>
+              </div>
+            )}
           </div>
         </div>
-      </div>
-    )}
+      );
+    })()}
     </>,
     document.body,
   );
@@ -911,6 +1143,9 @@ interface CommissionDraftData {
   customBudget: string;
   deadline: DeadlineOption | '';
   customDate: string;
+  size: SizeOption | '';
+  customHeight: string;
+  customWidth: string;
   type: TypeOption | '';
   style: string[];
   subject: string[];
@@ -986,6 +1221,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
   const [customBudget, setCustomBudget] = useState('');
   const [deadline, setDeadline] = useState<DeadlineOption | ''>('');
   const [customDate, setCustomDate] = useState('');
+  const [size, setSize] = useState<SizeOption | ''>('');
+  const [customHeight, setCustomHeight] = useState('');
+  const [customWidth, setCustomWidth] = useState('');
   const [type, setType] = useState<TypeOption | ''>('');
   const [style, setStyle] = useState<string[]>([]);
   const [subject, setSubject] = useState<string[]>([]);
@@ -1020,11 +1258,32 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
   const [acceptingOfferMessageId, setAcceptingOfferMessageId] = useState<string | null>(null);
   const [markingCompletedId, setMarkingCompletedId] = useState<string | null>(null);
   const [completeConfirmItem, setCompleteConfirmItem] = useState<CommissionRequest | null>(null);
+  const [addressTooltipId, setAddressTooltipId] = useState<string | null>(null);
+  const [readyToShipItem, setReadyToShipItem] = useState<CommissionRequest | null>(null);
+  const [readyToShipFile, setReadyToShipFile] = useState<File | null>(null);
+  const [readyToShipPreview, setReadyToShipPreview] = useState<string | null>(null);
+  const [readyToShipUploading, setReadyToShipUploading] = useState(false);
+  const [makePaymentOpen, setMakePaymentOpen] = useState(false);
+  const [makePaymentConfirm, setMakePaymentConfirm] = useState(false);
+  const [makePaymentBusy, setMakePaymentBusy] = useState(false);
+  const [makeShipmentItem, setMakeShipmentItem] = useState<CommissionRequest | null>(null);
+  const [trackingInput, setTrackingInput] = useState('');
+  const [makeShipmentBusy, setMakeShipmentBusy] = useState(false);
+  const [reviewsMap, setReviewsMap] = useState<Record<string, CommissionReview | null>>({});
+  const [reviewOpenId, setReviewOpenId] = useState<string | null>(null);
+  const [reviewInputs, setReviewInputs] = useState<Record<string, string>>({});
+  const [ratingInputs, setRatingInputs] = useState<Record<string, number>>({});
+  const [reviewSubmitting, setReviewSubmitting] = useState<string | null>(null);
+  const [replyOpenId, setReplyOpenId] = useState<string | null>(null);
+  const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
+  const [replySubmitting, setReplySubmitting] = useState<string | null>(null);
+  const reviewsLoadedRef = useRef(false);
   const [artistActionBusy, setArtistActionBusy] = useState<{
     commissionId: string;
     kind: 'apply' | 'shortlist';
   } | null>(null);
   const [applicationsEmptyCtaLoading, setApplicationsEmptyCtaLoading] = useState(false);
+  const [showPortfolioRequiredModal, setShowPortfolioRequiredModal] = useState(false);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [artistActions, setArtistActions] = useState<ArtistCommissionActions>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1244,6 +1503,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       setCustomBudget(draft.customBudget || '');
       setDeadline((draft.deadline as DeadlineOption | '') || '');
       setCustomDate(draft.customDate || '');
+      setSize((draft.size as SizeOption | '') || '');
+      setCustomHeight(draft.customHeight || '');
+      setCustomWidth(draft.customWidth || '');
       setType((draft.type as TypeOption | '') || '');
       setStyle(Array.isArray(draft.style) ? draft.style : []);
       setSubject(Array.isArray(draft.subject) ? draft.subject : []);
@@ -1466,11 +1728,15 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
         const agreedAdvanceAmount = row.agreedAdvanceAmount;
         const agreedDeliveryDate = row.agreedDeliveryDate;
         const hiredArtistId = row.hiredArtistId;
+        const readyToShipImageUrl = row.readyToShipImageUrl;
+        const fullPaymentDone = row.fullPaymentDone;
         if (
           prev.agreedFinalPrice === agreedFinalPrice &&
           prev.agreedAdvanceAmount === agreedAdvanceAmount &&
           prev.agreedDeliveryDate === agreedDeliveryDate &&
-          prev.hiredArtistId === hiredArtistId
+          prev.hiredArtistId === hiredArtistId &&
+          prev.readyToShipImageUrl === readyToShipImageUrl &&
+          prev.fullPaymentDone === fullPaymentDone
         ) {
           return prev;
         }
@@ -1480,10 +1746,43 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           agreedAdvanceAmount,
           agreedDeliveryDate,
           hiredArtistId,
+          readyToShipImageUrl,
+          fullPaymentDone,
         };
       });
     }
   }, [commissionChatOpen, commissionChatMetadata?.artworkId, buyerRequests, mergedArtistCommissions, appUser?.role]);
+
+  // Live-sync readyToShipImageUrl + fullPaymentDone from commission doc while chat is open
+  useEffect(() => {
+    if (!commissionChatOpen || !commissionChatMetadata?.artworkId) return;
+    const ref = firestoreDoc(db, 'commissions', commissionChatMetadata.artworkId);
+    const unsub = onSnapshot(ref, (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      setCommissionChatMetadata((prev) => {
+        if (!prev) return prev;
+        if (prev.readyToShipImageUrl === data.readyToShipImageUrl && prev.fullPaymentDone === data.fullPaymentDone) return prev;
+        return { ...prev, readyToShipImageUrl: data.readyToShipImageUrl, fullPaymentDone: data.fullPaymentDone };
+      });
+    });
+    return () => unsub();
+  }, [commissionChatOpen, commissionChatMetadata?.artworkId]);
+
+  // Load reviews when entering my-applications so dot can be computed for any sub-tab
+  useEffect(() => {
+    if (!appUser?.uid || activeMainTab !== 'my-applications') return;
+    if (reviewsLoadedRef.current) return;
+    reviewsLoadedRef.current = true;
+    const loader = appUser.role === 'buyer'
+      ? getReviewsForBuyer(appUser.uid)
+      : getReviewsForArtist(appUser.uid);
+    loader.then((reviews) => {
+      const map: Record<string, CommissionReview | null> = {};
+      for (const r of reviews) map[r.commissionId] = r;
+      setReviewsMap(map);
+    }).catch(() => {});
+  }, [appUser?.uid, appUser?.role, activeMainTab]);
 
   useEffect(() => {
     if (!appUser?.uid || appUser.role !== 'artist') return;
@@ -1823,6 +2122,10 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           dots[tab] = true;
         }
       }
+      // Dot on completed only if there are reviews without a reply yet
+      if (Object.values(reviewsMap).some((r) => r != null && !r.artistReply)) {
+        dots.completed = true;
+      }
       return { artist: dots, buyer: emptyBuyer };
     }
     if (appUser.role === 'buyer') {
@@ -1833,10 +2136,11 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           dots[tab] = true;
         }
       }
+      // No dot on completed for buyer
       return { artist: emptyArtist, buyer: dots };
     }
     return { artist: emptyArtist, buyer: emptyBuyer };
-  }, [appUser?.uid, appUser?.role, mergedArtistCommissions, buyerRequests, commissionChats, artistActions]);
+  }, [appUser?.uid, appUser?.role, mergedArtistCommissions, buyerRequests, commissionChats, artistActions, reviewsMap]);
 
   const openCommissionChat = (
     chatId: string,
@@ -1875,6 +2179,18 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     if (item.buyerId === appUser.uid) {
       toast.info('You cannot apply to your own commission.');
       return;
+    }
+
+    // Check if artist has at least 4 works (published or in gallery)
+    try {
+      const { getArtistArtworks } = await import('../../services/artworkService');
+      const allWorks = await getArtistArtworks(appUser.uid, false);
+      if (allWorks.length < 4) {
+        setShowPortfolioRequiredModal(true);
+        return;
+      }
+    } catch {
+      // If check fails, allow proceeding
     }
 
     setArtistActionBusy({ commissionId: item.id, kind: 'apply' });
@@ -1934,6 +2250,8 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           agreedAdvanceAmount: item.agreedAdvanceAmount,
           agreedDeliveryDate: item.agreedDeliveryDate,
           hiredArtistId: item.hiredArtistId,
+          readyToShipImageUrl: item.readyToShipImageUrl,
+          fullPaymentDone: item.fullPaymentDone,
         },
         `Hi ${item.buyerName || 'there'}, I would like to apply for your commission "${item.title}".`,
         {
@@ -2208,6 +2526,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     (budget !== 'Custom' || customBudget.trim()) &&
     deadline &&
     (deadline !== 'Custom' || customDate) &&
+    (size !== 'Custom' || (customHeight.trim() && customWidth.trim())) &&
     type &&
     (deliveryType !== 'Physical artwork' || cityOrPincode.trim());
 
@@ -2233,6 +2552,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     setCustomBudget('');
     setDeadline('');
     setCustomDate('');
+    setSize('');
+    setCustomHeight('');
+    setCustomWidth('');
     setType('');
     setStyle([]);
     setSubject([]);
@@ -2256,6 +2578,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       customBudget.trim() ||
       deadline ||
       customDate ||
+      size ||
+      customHeight.trim() ||
+      customWidth.trim() ||
       type ||
       style.length ||
       subject.length ||
@@ -2275,6 +2600,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       customBudget,
       deadline,
       customDate,
+      size,
+      customHeight,
+      customWidth,
       type,
       style,
       subject,
@@ -2397,6 +2725,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
 
     const finalBudget = budget === 'Custom' ? customBudget.trim() : budget;
     const finalDeadline = deadline === 'Custom' ? customDate : deadline;
+    const finalSize = size === 'Custom' ? 'Custom' : size;
+    const finalCustomHeight = size === 'Custom' ? customHeight.trim() : '';
+    const finalCustomWidth = size === 'Custom' ? customWidth.trim() : '';
     const finalDeliveryType = deliveryType as '' | 'Digital file' | 'Physical artwork';
     const finalDeliveryLocation =
       finalDeliveryType === 'Physical artwork' ? cityOrPincode.trim() : '';
@@ -2412,6 +2743,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           description: description.trim(),
           budget: finalBudget || '',
           deadline: finalDeadline || '',
+          size: finalSize || '',
+          customHeight: finalCustomHeight,
+          customWidth: finalCustomWidth,
           type: type || '',
           style,
           subject,
@@ -2540,6 +2874,45 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
               placeholder="Describe what you want, style, subject, colors, medium..."
             />
 
+            <label className="form-label">Size</label>
+            <CustomDropdown
+              value={size}
+              onChange={(value) => setSize(value as SizeOption)}
+              options={sizeOptions.map((option) => ({ value: option, label: option }))}
+              placeholder="Select size"
+            />
+
+            {size === 'Custom' && (
+              <div className="form-grid">
+                <div className="form-field">
+                  <label className="form-label">
+                    Height (inches) <span className="commission-required">*</span>
+                  </label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="1"
+                    value={customHeight}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomHeight(e.target.value)}
+                    placeholder="Enter height (inches)"
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="form-label">
+                    Width (inches) <span className="commission-required">*</span>
+                  </label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="1"
+                    value={customWidth}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomWidth(e.target.value)}
+                    placeholder="Enter width (inches)"
+                  />
+                </div>
+              </div>
+            )}
+
             <label className="form-label">Reference Images</label>
             <div className="upload-section commission-upload-section">
               <div className="commission-dropzone-wrap">
@@ -2633,6 +3006,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                 />
               </>
             )}
+
           </section>
           )}
 
@@ -3009,23 +3383,32 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                               <span>Budget: {item.budget}</span>
                               <span>Deadline: {item.deadline}</span>
                               <span>
+                                Size:{' '}
+                                {item.size === 'Custom'
+                                  ? item.customHeight || item.customWidth
+                                    ? `${item.customHeight || '?'} x ${item.customWidth || '?'} inches`
+                                    : 'Custom'
+                                  : item.size || 'Not specified'}
+                              </span>
+                              <span>
                                 {item.deliveryType || 'Not specified'}
                                 {item.cityOrPincode?.trim() ? `, ${item.cityOrPincode}` : ''}
                               </span>
+                              {isCommissionInProgress(item.status) && (
+                                <button
+                                  type="button"
+                                  className="commission-view-address-btn"
+                                  onClick={() => setAddressTooltipId(addressTooltipId === item.id ? null : item.id)}
+                                >
+                                  {addressTooltipId === item.id ? 'Hide address' : 'View address'}
+                                </button>
+                              )}
                             </div>
-                            <div className="commission-chip-wrap">
-                              {item.type && <span className="commission-badge type">{item.type}</span>}
-                              {item.style.map((tag) => (
-                                <span key={`${item.id}-style-${tag}`} className="commission-badge style">
-                                  {tag}
-                                </span>
-                              ))}
-                              {item.subject.map((tag) => (
-                                <span key={`${item.id}-subject-${tag}`} className="commission-badge subject">
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
+                            {addressTooltipId === item.id && (
+                              <div className="commission-address-inline">
+                                {item.buyerAddress || 'No delivery address provided.'}
+                              </div>
+                            )}
                         {appUser?.role === 'artist' &&
                           (activeMainTab === 'commissions' ||
                             (activeMainTab === 'my-applications' && activeArtistSubTab === 'shortlisted')) && (
@@ -3100,6 +3483,76 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                           </div>
                         </div>
 
+                        {/* Chips + action button row above chat strip */}
+                        {(() => {
+                          const showActionBtn = activeMainTab === 'my-applications' && isCommissionInProgress(item.status) && (
+                            appUser?.role === 'artist' ||
+                            (appUser?.role === 'buyer' && Boolean(item.readyToShipImageUrl) && !item.fullPaymentDone)
+                          );
+                          const hasChips = item.type || item.style.length > 0 || item.subject.length > 0;
+                          if (!hasChips && !showActionBtn) return null;
+                          return (
+                            <div className="commission-card-chips-action-row">
+                              <div className="commission-chip-wrap">
+                                {item.type && <span className="commission-badge type">{item.type}</span>}
+                                {item.style.map((tag) => (
+                                  <span key={`${item.id}-style-${tag}`} className="commission-badge style">{tag}</span>
+                                ))}
+                                {item.subject.map((tag) => (
+                                  <span key={`${item.id}-subject-${tag}`} className="commission-badge subject">{tag}</span>
+                                ))}
+                              </div>
+                              {showActionBtn && (
+                                <div className="commission-card-action-slot">
+                                  {appUser?.role === 'artist' ? (
+                                    item.fullPaymentDone ? (
+                                      <button
+                                        type="button"
+                                        className="commission-card-action-btn"
+                                        onClick={() => { setMakeShipmentItem(item); setTrackingInput(''); }}
+                                      >
+                                        Make Shipment
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="commission-card-action-btn"
+                                        onClick={() => { setReadyToShipItem(item); setReadyToShipFile(null); setReadyToShipPreview(null); }}
+                                      >
+                                        Ready to ship
+                                      </button>
+                                    )
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="commission-card-action-btn"
+                                      onClick={() => {
+                                        const contact = item.hiredArtistId ? chatContactsByUid[item.hiredArtistId] : undefined;
+                                        setCommissionChatMetadata({
+                                          artworkId: item.id,
+                                          artworkTitle: item.title,
+                                          artworkImage: item.referenceImages?.[0],
+                                          agreedFinalPrice: item.agreedFinalPrice,
+                                          agreedAdvanceAmount: item.agreedAdvanceAmount,
+                                          agreedDeliveryDate: item.agreedDeliveryDate,
+                                          hiredArtistId: item.hiredArtistId,
+                                          readyToShipImageUrl: item.readyToShipImageUrl,
+                                          fullPaymentDone: item.fullPaymentDone,
+                                        });
+                                        if (contact) setCommissionChatContact(contact);
+                                        setMakePaymentOpen(true);
+                                        setMakePaymentConfirm(false);
+                                      }}
+                                    >
+                                      Make Payment
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
                         {activeMainTab !== 'commissions' && getCommissionChats(item.id).length > 0 && (
                         <div className="commission-chat-list">
                           <div className="commission-chat-items commission-chat-items-headers">
@@ -3148,6 +3601,229 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                         </div>
                       )}
 
+                        {/* Review section — buyer: write a review; artist: read review + reply */}
+                        {item.status === 'completed' && activeMainTab === 'my-applications' && (() => {
+                          const review = reviewsMap[item.id];
+                          const isBuyerView = appUser?.role === 'buyer' && activeBuyerSubTab === 'completed';
+                          const isArtistView = appUser?.role === 'artist' && activeArtistSubTab === 'completed';
+
+                          const StarDisplay = ({ rating }: { rating: number }) => (
+                            <div className="commission-review-stars-display" aria-label={`${rating} out of 5 stars`}>
+                              {[1,2,3,4,5].map((s) => (
+                                <span key={s} className={`commission-review-star-display${s <= rating ? ' filled' : ''}`}>★</span>
+                              ))}
+                            </div>
+                          );
+
+                          if (isBuyerView) {
+                            if (review) {
+                              return (
+                                <div className="commission-review-block">
+                                  <p className="commission-review-label">Your review</p>
+                                  <StarDisplay rating={review.rating ?? 0} />
+                                  <p className="commission-review-text">"{review.reviewText}"</p>
+                                  {review.artistReply && (
+                                    <div className="commission-review-reply">
+                                      <span className="commission-review-reply-label">Artist replied:</span>
+                                      <p className="commission-review-reply-text">"{review.artistReply}"</p>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+                            // No review yet — show button or inline form
+                            if (reviewOpenId === item.id) {
+                              const currentRating = ratingInputs[item.id] ?? 0;
+                              return (
+                                <div className="commission-review-block">
+                                  <div className="commission-review-stars-input" aria-label="Rate this commission">
+                                    {[1,2,3,4,5].map((s) => (
+                                      <button
+                                        key={s}
+                                        type="button"
+                                        className={`commission-review-star-btn${s <= currentRating ? ' filled' : ''}`}
+                                        disabled={reviewSubmitting === item.id}
+                                        aria-label={`${s} star${s > 1 ? 's' : ''}`}
+                                        onClick={() => setRatingInputs((prev) => ({ ...prev, [item.id]: s }))}
+                                      >★</button>
+                                    ))}
+                                  </div>
+                                  <textarea
+                                    className="commission-review-textarea"
+                                    placeholder="Share your experience with this artist…"
+                                    rows={3}
+                                    value={reviewInputs[item.id] || ''}
+                                    disabled={reviewSubmitting === item.id}
+                                    onChange={(e) => setReviewInputs((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                                  />
+                                  <div className="commission-review-actions">
+                                    <button
+                                      type="button"
+                                      className="commission-review-cancel-btn"
+                                      disabled={reviewSubmitting === item.id}
+                                      onClick={() => setReviewOpenId(null)}
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="commission-review-submit-btn"
+                                      disabled={reviewSubmitting === item.id || !(reviewInputs[item.id] || '').trim() || currentRating === 0}
+                                      onClick={async () => {
+                                        if (!appUser?.uid || !item.hiredArtistId) return;
+                                        const text = (reviewInputs[item.id] || '').trim();
+                                        const rating = ratingInputs[item.id] ?? 0;
+                                        if (!text || rating === 0) return;
+                                        setReviewSubmitting(item.id);
+                                        try {
+                                          const id = await submitReview({
+                                            commissionId: item.id,
+                                            artistId: item.hiredArtistId,
+                                            buyerId: appUser.uid,
+                                            buyerName: appUser.name || 'Buyer',
+                                            buyerAvatar: appUser.avatar,
+                                            commissionTitle: item.title,
+                                            reviewText: text,
+                                            rating,
+                                          });
+                                          const newReview: CommissionReview = {
+                                            id,
+                                            commissionId: item.id,
+                                            artistId: item.hiredArtistId,
+                                            buyerId: appUser.uid,
+                                            buyerName: appUser.name || 'Buyer',
+                                            buyerAvatar: appUser.avatar,
+                                            commissionTitle: item.title,
+                                            reviewText: text,
+                                            rating,
+                                          };
+                                          setReviewsMap((prev) => ({ ...prev, [item.id]: newReview }));
+                                          setReviewOpenId(null);
+                                          createNotification(
+                                            item.hiredArtistId,
+                                            'review_received',
+                                            appUser.uid,
+                                            appUser.name || 'Buyer',
+                                            appUser.avatar,
+                                            undefined, undefined, undefined, undefined,
+                                            item.id,
+                                            item.title,
+                                            String(rating),
+                                          ).catch(() => {});
+                                        } catch {
+                                          toast.error('Could not submit review. Please try again.');
+                                        } finally {
+                                          setReviewSubmitting(null);
+                                        }
+                                      }}
+                                    >
+                                      {reviewSubmitting === item.id ? 'Submitting…' : 'Submit'}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="commission-review-block commission-review-block--cta">
+                                <button
+                                  type="button"
+                                  className="commission-add-review-btn"
+                                  onClick={() => setReviewOpenId(item.id)}
+                                >
+                                  + Add a review
+                                </button>
+                              </div>
+                            );
+                          }
+
+                          if (isArtistView && review) {
+                            return (
+                              <div className="commission-review-block">
+                                <p className="commission-review-label">Buyer's review</p>
+                                {(review.rating ?? 0) > 0 && (
+                                  <div className="commission-review-stars-display" aria-label={`${review.rating} out of 5 stars`}>
+                                    {[1,2,3,4,5].map((s) => (
+                                      <span key={s} className={`commission-review-star-display${s <= (review.rating ?? 0) ? ' filled' : ''}`}>★</span>
+                                    ))}
+                                  </div>
+                                )}
+                                <p className="commission-review-text">"{review.reviewText}"</p>
+                                {review.artistReply ? (
+                                  <div className="commission-review-reply">
+                                    <span className="commission-review-reply-label">Your reply:</span>
+                                    <p className="commission-review-reply-text">"{review.artistReply}"</p>
+                                  </div>
+                                ) : replyOpenId === item.id ? (
+                                  <div className="commission-review-reply-form">
+                                    <textarea
+                                      className="commission-review-textarea"
+                                      placeholder="Write a reply…"
+                                      rows={2}
+                                      value={replyInputs[item.id] || ''}
+                                      disabled={replySubmitting === item.id}
+                                      onChange={(e) => setReplyInputs((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                                    />
+                                    <div className="commission-review-actions">
+                                      <button
+                                        type="button"
+                                        className="commission-review-cancel-btn"
+                                        disabled={replySubmitting === item.id}
+                                        onClick={() => setReplyOpenId(null)}
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="commission-review-submit-btn"
+                                        disabled={replySubmitting === item.id || !(replyInputs[item.id] || '').trim()}
+                                        onClick={async () => {
+                                          const text = (replyInputs[item.id] || '').trim();
+                                          if (!text || !review.id) return;
+                                          setReplySubmitting(item.id);
+                                          try {
+                                            await submitArtistReply(review.id, text);
+                                            setReviewsMap((prev) => ({
+                                              ...prev,
+                                              [item.id]: prev[item.id] ? { ...prev[item.id]!, artistReply: text } : prev[item.id],
+                                            }));
+                                            setReplyOpenId(null);
+                                            createNotification(
+                                              review.buyerId,
+                                              'review_reply',
+                                              appUser!.uid,
+                                              appUser!.name || 'Artist',
+                                              appUser!.avatar,
+                                              undefined, undefined, undefined, undefined,
+                                              item.id,
+                                              item.title,
+                                              text,
+                                            ).catch(() => {});
+                                          } catch {
+                                            toast.error('Could not submit reply. Please try again.');
+                                          } finally {
+                                            setReplySubmitting(null);
+                                          }
+                                        }}
+                                      >
+                                        {replySubmitting === item.id ? 'Submitting…' : 'Submit'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="commission-add-review-btn"
+                                    onClick={() => setReplyOpenId(item.id)}
+                                  >
+                                    Reply
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          return null;
+                        })()}
 
                     </article>
                       );
@@ -3184,6 +3860,16 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
               <div>
                 <p className="commission-preview-label">Deadline</p>
                 <p className="commission-preview-value">{deadline === 'Custom' ? customDate || 'Custom date' : deadline || 'Not set'}</p>
+              </div>
+              <div>
+                <p className="commission-preview-label">Size</p>
+                <p className="commission-preview-value">
+                  {size === 'Custom'
+                    ? customHeight || customWidth
+                      ? `${customHeight || '?'} x ${customWidth || '?'}`
+                      : 'Custom size'
+                    : size || 'Not set'}
+                </p>
               </div>
             </div>
             <p className="commission-preview-label">Tags</p>
@@ -3298,6 +3984,48 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
         </div>
       )}
 
+      {showPortfolioRequiredModal &&
+        createPortal(
+          <div
+            className="confirm-modal-overlay"
+            role="presentation"
+            onClick={() => setShowPortfolioRequiredModal(false)}
+          >
+            <div
+              className="confirm-modal-content"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="portfolio-required-title"
+              aria-describedby="portfolio-required-desc"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="confirm-modal-icon" style={{ background: 'rgba(47, 164, 169, 0.1)', color: 'var(--color-accent, #2fa4a9)', margin: '0 auto 20px' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <h2 id="portfolio-required-title" className="confirm-modal-title">
+                Portfolio required to apply
+              </h2>
+              <p id="portfolio-required-desc" className="confirm-modal-message">
+                To apply for commissions, you need at least <strong>4 works</strong> in your portfolio — either published or saved to your gallery. This helps buyers validate your style and skills before hiring.
+              </p>
+              <div className="confirm-modal-actions">
+                <button
+                  type="button"
+                  className="confirm-modal-btn confirm-modal-btn-cancel"
+                  onClick={() => setShowPortfolioRequiredModal(false)}
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
       {completeConfirmItem &&
         createPortal(
           <div
@@ -3342,6 +4070,376 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                       <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />
                     )}
                     {markingCompletedId ? 'Updating…' : 'Mark as completed'}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {makePaymentOpen && commissionChatMetadata &&
+        createPortal(
+          (() => {
+            const UPI_ID = '9640557113@ptsbi';
+            const finalPrice = parseFloat(commissionChatMetadata.agreedFinalPrice || '0');
+            const advance = parseFloat(commissionChatMetadata.agreedAdvanceAmount || '0');
+            const remaining = Math.max(0, finalPrice - advance);
+            const upiUri = `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art${remaining ? `&am=${remaining}` : ''}&cu=INR`;
+            const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            return (
+              <div
+                className="confirm-modal-overlay"
+                role="presentation"
+                onClick={() => { if (!makePaymentBusy) { setMakePaymentOpen(false); setMakePaymentConfirm(false); } }}
+              >
+                <div
+                  className="confirm-modal-content commission-make-payment-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="make-payment-title"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    className="commission-accept-offer-close"
+                    disabled={makePaymentBusy}
+                    aria-label="Close"
+                    onClick={() => { setMakePaymentOpen(false); setMakePaymentConfirm(false); }}
+                  >×</button>
+                  <h2 id="make-payment-title" className="confirm-modal-title">Make Payment</h2>
+                  <p className="confirm-modal-message">
+                    Please complete the remaining payment so that the artist can ship your artwork.
+                  </p>
+                  {remaining > 0 && (
+                    <div className="commission-make-payment-amount">₹{remaining}</div>
+                  )}
+                  <p className="commission-accept-offer-upiid">UPI ID: <strong>{UPI_ID}</strong></p>
+                  {isMobile ? (
+                    <a href={upiUri} className="button button-primary commission-accept-offer-upi-btn">
+                      Open UPI App to Pay
+                    </a>
+                  ) : (
+                    <div className="commission-accept-offer-qr">
+                      <QRCodeSVG value={upiUri} size={180} />
+                      <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
+                    </div>
+                  )}
+                  {makePaymentConfirm ? (
+                    <div className="commission-make-payment-confirm-block">
+                      <p className="commission-payment-confirm-tooltip-q">Have you done the payment?</p>
+                      <div className="confirm-modal-actions confirm-modal-actions--row">
+                        <button
+                          type="button"
+                          className="confirm-modal-btn confirm-modal-btn-cancel"
+                          disabled={makePaymentBusy}
+                          onClick={() => setMakePaymentConfirm(false)}
+                        >No</button>
+                        <button
+                          type="button"
+                          className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                          disabled={makePaymentBusy}
+                          onClick={async () => {
+                            if (!appUser?.uid || !commissionChatMetadata) return;
+                            setMakePaymentBusy(true);
+                            try {
+                              const totalPaid = finalPrice > 0 ? String(finalPrice) : String(remaining);
+                              await markFullPaymentDone(commissionChatMetadata.artworkId, totalPaid);
+                              const paymentChat = commissionChats.find(
+                                (c) => c.commissionId === commissionChatMetadata.artworkId && c.participants.includes(appUser.uid),
+                              );
+                              if (paymentChat && commissionChatContact) {
+                                await sendCommissionMessage(
+                                  paymentChat.id,
+                                  appUser.uid,
+                                  'Full payment is done. Please do ship the artwork.',
+                                  commissionChatMetadata.artworkId,
+                                  commissionChatMetadata.artworkTitle,
+                                  commissionChatMetadata.artworkImage,
+                                ).catch(() => {});
+                                createNotification(
+                                  commissionChatContact.uid,
+                                  'full_payment_done',
+                                  appUser.uid,
+                                  appUser.name || 'Buyer',
+                                  appUser.avatar,
+                                  undefined, undefined, undefined, undefined,
+                                  commissionChatMetadata.artworkId,
+                                  commissionChatMetadata.artworkTitle,
+                                ).catch(() => {});
+                              }
+                              setCommissionChatMetadata((prev) => prev ? { ...prev, fullPaymentDone: true } : prev);
+                              setBuyerRequests((prev) => prev.map((c) => c.id === commissionChatMetadata.artworkId ? { ...c, fullPaymentDone: true } : c));
+                            
+                              setMakePaymentOpen(false);
+                              setMakePaymentConfirm(false);
+                            } catch {
+                              toast.error('Could not confirm payment. Please try again.');
+                            } finally {
+                              setMakePaymentBusy(false);
+                            }
+                          }}
+                        >
+                          <span className="commission-hire-tooltip-confirm-inner">
+                            {makePaymentBusy && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
+                            {makePaymentBusy ? 'Please wait…' : 'Yes'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="confirm-modal-actions confirm-modal-actions--row">
+                      <button
+                        type="button"
+                        className="confirm-modal-btn confirm-modal-btn-cancel"
+                        disabled={makePaymentBusy}
+                        onClick={() => { setMakePaymentOpen(false); setMakePaymentConfirm(false); }}
+                      >Cancel</button>
+                      <button
+                        type="button"
+                        className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                        disabled={makePaymentBusy}
+                        onClick={() => setMakePaymentConfirm(true)}
+                      >Complete</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })(),
+          document.body,
+        )}
+
+      {readyToShipItem &&
+        createPortal(
+          <div
+            className="confirm-modal-overlay"
+            role="presentation"
+            onClick={() => { if (!readyToShipUploading) setReadyToShipItem(null); }}
+          >
+            <div
+              className="confirm-modal-content commission-ready-to-ship-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="ready-to-ship-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="commission-accept-offer-close"
+                aria-label="Close"
+                disabled={readyToShipUploading}
+                onClick={() => setReadyToShipItem(null)}
+              >
+                ×
+              </button>
+              <h2 id="ready-to-ship-title" className="confirm-modal-title">Ready to ship</h2>
+              <p className="confirm-modal-message">Upload a photo of the artwork so the buyer can see it's ready.</p>
+              <label className="commission-ready-to-ship-upload-area">
+                {readyToShipPreview ? (
+                  <img src={readyToShipPreview} alt="Preview" className="commission-ready-to-ship-preview" />
+                ) : readyToShipItem.readyToShipImageUrl ? (
+                  <img src={readyToShipItem.readyToShipImageUrl} alt="Current ship photo" className="commission-ready-to-ship-preview" />
+                ) : (
+                  <div className="commission-ready-to-ship-placeholder">
+                    <span className="commission-ready-to-ship-placeholder-icon">📷</span>
+                    <span>Tap to choose photo</span>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  disabled={readyToShipUploading}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setReadyToShipFile(file);
+                    setReadyToShipPreview(URL.createObjectURL(file));
+                  }}
+                />
+              </label>
+              {(readyToShipPreview || readyToShipFile) && (
+                <p className="commission-ready-to-ship-change-hint">Tap image to change</p>
+              )}
+              <div className="confirm-modal-actions confirm-modal-actions--row">
+                <button
+                  type="button"
+                  className="confirm-modal-btn confirm-modal-btn-cancel"
+                  disabled={readyToShipUploading}
+                  onClick={() => setReadyToShipItem(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                  disabled={readyToShipUploading || !readyToShipFile}
+                  onClick={async () => {
+                    if (!readyToShipFile || !appUser?.uid || !readyToShipItem) return;
+                    setReadyToShipUploading(true);
+                    try {
+                      const url = await uploadChatMessageImage(appUser.uid, 'commissionChats', readyToShipItem.id, readyToShipFile);
+                      await saveReadyToShipImage(readyToShipItem.id, url);
+                      // Send chat message with image + text to the buyer
+                      const readyToShipText = 'Your artwork is ready to ship, please check how it looks.';
+                      const hiredChat = commissionChats.find(
+                        (c) => c.commissionId === readyToShipItem.id && c.participants.includes(appUser.uid),
+                      );
+                      if (hiredChat) {
+                        await sendCommissionMessage(
+                          hiredChat.id,
+                          appUser.uid,
+                          readyToShipText,
+                          readyToShipItem.id,
+                          readyToShipItem.title,
+                          readyToShipItem.referenceImages?.[0],
+                          url,
+                        ).catch(() => {});
+                      }
+                      // Notify buyer
+                      createNotification(
+                        readyToShipItem.buyerId,
+                        'ready_to_ship',
+                        appUser.uid,
+                        appUser.name || 'Artist',
+                        appUser.avatar,
+                        undefined,
+                        undefined,
+                        undefined,
+                        undefined,
+                        readyToShipItem.id,
+                        readyToShipItem.title,
+                      ).catch(() => {});
+                      const updated = { ...readyToShipItem, readyToShipImageUrl: url };
+                      setHiredArtistCommissions((prev) => prev.map((c) => c.id === updated.id ? updated : c));
+                
+                      setReadyToShipItem(null);
+                      setReadyToShipFile(null);
+                      setReadyToShipPreview(null);
+                    } catch {
+                      toast.error('Upload failed. Please try again.');
+                    } finally {
+                      setReadyToShipUploading(false);
+                    }
+                  }}
+                >
+                  <span className="commission-hire-tooltip-confirm-inner">
+                    {readyToShipUploading && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
+                    {readyToShipUploading ? 'Uploading…' : 'Upload'}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {makeShipmentItem &&
+        createPortal(
+          <div
+            className="confirm-modal-overlay"
+            role="presentation"
+            onClick={() => { if (!makeShipmentBusy) setMakeShipmentItem(null); }}
+          >
+            <div
+              className="confirm-modal-content commission-make-payment-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="make-shipment-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="commission-accept-offer-close"
+                aria-label="Close"
+                disabled={makeShipmentBusy}
+                onClick={() => setMakeShipmentItem(null)}
+              >
+                ×
+              </button>
+              <h2 id="make-shipment-title" className="confirm-modal-title">Make Shipment</h2>
+              <p className="confirm-modal-message">
+                Enter the tracking ID for <strong>{makeShipmentItem.title}</strong>.
+              </p>
+              <input
+                type="text"
+                className="commission-accept-address-input"
+                placeholder="Tracking ID (e.g. DTDC1234567890)"
+                value={trackingInput}
+                disabled={makeShipmentBusy}
+                onChange={(e) => setTrackingInput(e.target.value)}
+                style={{ marginTop: '0.75rem' }}
+              />
+              <div className="confirm-modal-actions confirm-modal-actions--row" style={{ marginTop: '1.25rem' }}>
+                <button
+                  type="button"
+                  className="confirm-modal-btn confirm-modal-btn-cancel"
+                  disabled={makeShipmentBusy}
+                  onClick={() => setMakeShipmentItem(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                  disabled={makeShipmentBusy || !trackingInput.trim()}
+                  onClick={async () => {
+                    if (!makeShipmentItem || !appUser?.uid || !trackingInput.trim()) return;
+                    setMakeShipmentBusy(true);
+                    try {
+                      await markShipped(makeShipmentItem.id, appUser.uid, trackingInput.trim());
+                      // Send chat message to buyer
+                      const shipChat = commissionChats.find(
+                        (c) => c.commissionId === makeShipmentItem.id && c.participants.includes(appUser.uid),
+                      );
+                      if (shipChat) {
+                        await sendCommissionMessage(
+                          shipChat.id,
+                          appUser.uid,
+                          `Your artwork has been shipped! Tracking ID: ${trackingInput.trim()}`,
+                          makeShipmentItem.id,
+                          makeShipmentItem.title,
+                          makeShipmentItem.referenceImages?.[0],
+                        ).catch(() => {});
+                      }
+                      // Notify buyer
+                      createNotification(
+                        makeShipmentItem.buyerId,
+                        'commission_shipped',
+                        appUser.uid,
+                        appUser.name || 'Artist',
+                        appUser.avatar,
+                        undefined, undefined, undefined, undefined,
+                        makeShipmentItem.id,
+                        makeShipmentItem.title,
+                        trackingInput.trim(),
+                      ).catch(() => {});
+                      // Update local state — move to completed
+                      const completed = { ...makeShipmentItem, status: 'completed' as const, trackingId: trackingInput.trim() };
+                      setHiredArtistCommissions((prev) => prev.map((c) => c.id === completed.id ? completed : c));
+                      setBuyerRequests((prev) => prev.map((c) => c.id === completed.id ? completed : c));
+                      setCommissionDocsFromChats((prev) => prev.map((c) => c.id === completed.id ? completed : c));
+                      invalidateCommissionsBrowseCache();
+                      invalidateCommissionsUserCaches(appUser.uid);
+                      invalidateCommissionsUserCaches(makeShipmentItem.buyerId);
+                      if (commissionChatOpen && commissionChatMetadata?.artworkId === makeShipmentItem.id) {
+                        setCommissionChatClosed(true);
+                        setCommissionChatClosedReason('commission_completed');
+                        setCommissionStatusForChat('completed');
+                      }
+                  
+                      setMakeShipmentItem(null);
+                    } catch {
+                      toast.error('Could not update commission. Please try again.');
+                    } finally {
+                      setMakeShipmentBusy(false);
+                    }
+                  }}
+                >
+                  <span className="commission-hire-tooltip-confirm-inner">
+                    {makeShipmentBusy && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
+                    {makeShipmentBusy ? 'Shipping…' : 'Confirm'}
                   </span>
                 </button>
               </div>
@@ -3426,13 +4524,39 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                       commissionChatMetadata.artworkTitle,
                     ).catch(() => {});
                   }
-                  toast.success('Offer accepted. Commission is now in progress.');
                 } catch {
                   toast.error('Could not accept offer. Please try again.');
                   throw new Error('accept_failed');
                 } finally {
                   setAcceptingOfferMessageId(null);
                 }
+              }
+            : undefined
+        }
+        onReadyToShip={
+          appUser?.role === 'artist' && commissionChatMetadata?.artworkId
+            ? () => {
+                const item = hiredArtistCommissions.find((c) => c.id === commissionChatMetadata?.artworkId) ?? null;
+                setReadyToShipItem(item);
+                setReadyToShipFile(null);
+                setReadyToShipPreview(null);
+              }
+            : undefined
+        }
+        onMakePayment={
+          appUser?.role === 'buyer' && commissionChatMetadata?.readyToShipImageUrl && !commissionChatMetadata?.fullPaymentDone
+            ? () => {
+                setMakePaymentOpen(true);
+                setMakePaymentConfirm(false);
+              }
+            : undefined
+        }
+        onMakeShipment={
+          appUser?.role === 'artist' && commissionChatMetadata?.fullPaymentDone && commissionChatMetadata?.artworkId
+            ? () => {
+                const item = hiredArtistCommissions.find((c) => c.id === commissionChatMetadata?.artworkId) ?? null;
+                setMakeShipmentItem(item);
+                setTrackingInput('');
               }
             : undefined
         }

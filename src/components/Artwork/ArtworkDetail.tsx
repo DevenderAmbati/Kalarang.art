@@ -32,6 +32,7 @@ export interface ArtworkDetailProps {
   onShare?: (artworkId: number) => void;
   onSave?: (artworkId: number) => void;
   onReachOut?: (artistId: string) => void;
+  onBuyNow?: (artistId: string) => void;
   onFollow?: (artistId: string) => void;
   onThumbnailClick?: (imageUrl: string) => void;
   isSaved?: boolean;
@@ -46,6 +47,7 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({
   onShare,
   onSave,
   onReachOut,
+  onBuyNow,
   onFollow,
   onThumbnailClick,
   isSaved = false,
@@ -309,8 +311,8 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({
         {/* Left Section - Image Gallery */}
         <div className="artwork-detail-left">
           <div className="artwork-main-image-wrapper" onClick={handleImageClick}>
-            <img 
-              src={selectedImage} 
+            <img
+              src={selectedImage}
               alt={artwork.title}
               className="artwork-main-image"
             />
@@ -319,6 +321,15 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({
                 <span>SOLD</span>
               </div>
             )}
+            <button
+              className={`artwork-detail-fav-btn${isSaved ? ' saved' : ''}`}
+              onClick={(e) => { e.stopPropagation(); onSave?.(artwork.id); }}
+              aria-label={isSaved ? 'Remove from favourites' : 'Add to favourites'}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </button>
           </div>
           
           {thumbnails.length > 0 && (
@@ -380,57 +391,46 @@ const ArtworkDetail: React.FC<ArtworkDetailProps> = ({
           </div>
 
 
-          {/* Action Area */}
+          {/* Action Area — single row: [Share] [Chat]  →  [Buy Now] */}
           <div className="artwork-actions">
-            <div className="action-icons">
-              <button
-                className={`action-icon-btn ${isSaved ? 'saved' : ''}`}
-                onClick={(e) => handleIconClick(e, () => onSave?.(artwork.id))}
-                aria-label="Save to Collection"
-              >
-                <svg 
-                  width="24" 
-                  height="24" 
-                  viewBox="0 0 24 24" 
-                  fill={isSaved ? "currentColor" : "none"}
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                </svg>
-                <span className="action-btn-text">Add to Favourites</span>
-              </button>
-              
+            <div className="artwork-actions-left">
               <button
                 className="action-icon-btn"
                 onClick={(e) => handleIconClick(e, () => onShare?.(artwork.id))}
                 aria-label="Share"
               >
-                <svg 
-                  width="24" 
-                  height="24" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="22" y1="2" x2="11" y2="13"></line>
-                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
                 </svg>
                 <span className="action-btn-text">Share</span>
               </button>
+
+              {artist.id !== currentUserId && !artwork.sold && (
+                <button
+                  className="action-icon-btn"
+                  onClick={(e) => handleIconClick(e, () => onReachOut?.(artist.id))}
+                  aria-label="Chat"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  <span className="action-btn-text">Chat</span>
+                </button>
+              )}
             </div>
 
-            {artist.id !== currentUserId && (
+            {artist.id !== currentUserId && !artwork.sold && onBuyNow && (
               <button
-                className="reach-out-button"
-                onClick={(e) => handleIconClick(e, () => onReachOut?.(artist.id))}
+                className="buy-now-button"
+                onClick={(e) => handleIconClick(e, () => onBuyNow(artist.id))}
+                aria-label="Buy Now"
               >
-                Reach Out
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                </svg>
+                <span>Buy Now</span>
               </button>
             )}
           </div>

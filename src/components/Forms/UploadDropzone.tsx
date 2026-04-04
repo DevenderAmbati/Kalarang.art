@@ -55,6 +55,7 @@ const UploadDropzone: React.FC<UploadDropzoneProps> = ({
         accept="image/png,image/jpg,image/jpeg"
         multiple
         onChange={handleInputChange}
+        
         className="upload-dropzone-input"
       />
     </div>

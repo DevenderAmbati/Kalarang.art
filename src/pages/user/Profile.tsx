@@ -18,6 +18,9 @@ import { toast } from 'react-toastify';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import { getBuyerOrders, BuyerOrder } from '../../services/chatService';
+import { submitReview, getReviewsForBuyer, CommissionReview } from '../../services/reviewService';
+import { createNotification } from '../../services/notificationService';
 import { reauthenticateWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 const Profile: React.FC = () => {
@@ -37,6 +40,14 @@ const Profile: React.FC = () => {
   const [reauthProvider, setReauthProvider] = useState<'password' | 'google'>('password');
   const [isReauthenticating, setIsReauthenticating] = useState(false);
   const [stats, setStats] = useState({ followers: 0, following: 0, artworks: 0 });
+  const [orders, setOrders] = useState<BuyerOrder[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersOpen, setOrdersOpen] = useState(false);
+  const [reviewOrder, setReviewOrder] = useState<BuyerOrder | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewsByArtworkId, setReviewsByArtworkId] = useState<Record<string, CommissionReview>>({});
   const { canInstall, isInstalled, triggerInstall, isIos } = usePwaInstall();
   const { enabled: notifEnabled, loading: notifLoading, toggling: notifToggling, toggle: toggleNotif } = usePushNotifications();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -59,6 +70,71 @@ const Profile: React.FC = () => {
     };
     loadStats();
   }, [appUser?.uid]);
+
+  useEffect(() => {
+    if (!ordersOpen || !appUser?.uid || appUser.role !== 'buyer') return;
+    setOrdersLoading(true);
+    Promise.all([
+      getBuyerOrders(appUser.uid),
+      getReviewsForBuyer(appUser.uid),
+    ]).then(([fetchedOrders, reviews]) => {
+      setOrders(fetchedOrders);
+      const map: Record<string, CommissionReview> = {};
+      reviews.forEach((r) => { map[r.commissionId] = r; });
+      setReviewsByArtworkId(map);
+    }).catch(() => {}).finally(() => setOrdersLoading(false));
+  }, [ordersOpen, appUser?.uid, appUser?.role]);
+
+  const handleSubmitReview = async () => {
+    if (!appUser || !reviewOrder || reviewRating === 0 || !reviewText.trim()) return;
+    setReviewSubmitting(true);
+    try {
+      const newReview: Omit<CommissionReview, 'id' | 'createdAt' | 'artistReply' | 'artistReplyAt'> = {
+        commissionId: reviewOrder.artworkId,
+        artistId: reviewOrder.artistId ?? '',
+        buyerId: appUser.uid,
+        buyerName: appUser.name,
+        buyerAvatar: appUser.avatar,
+        commissionTitle: reviewOrder.artworkTitle,
+        reviewText: reviewText.trim(),
+        rating: reviewRating,
+      };
+      await submitReview(newReview);
+      if (reviewOrder.artistId) {
+        createNotification(
+          reviewOrder.artistId,
+          'review_received',
+          appUser.uid,
+          appUser.name,
+          appUser.avatar,
+          reviewOrder.artworkId,
+          reviewOrder.artworkTitle,
+          reviewOrder.artworkImage,
+          undefined,
+          undefined,
+          undefined,
+          String(reviewRating),
+        ).catch(() => {});
+      }
+      const optimistic: CommissionReview = {
+        ...newReview,
+        id: '',
+        reviewText: reviewText.trim(),
+        rating: reviewRating,
+      };
+      setReviewsByArtworkId((prev) => ({ ...prev, [reviewOrder.artworkId]: optimistic }));
+      setReviewOrder(null);
+      setReviewRating(0);
+      setReviewText('');
+      toast.success('Review submitted!');
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Review submit failed:', err);
+      toast.error('Could not submit review. Please try again.');
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -548,6 +624,206 @@ const Profile: React.FC = () => {
               </button>
             </div>
           </div> */}
+
+          {/* Your Orders — buyer only */}
+          {appUser?.role === 'buyer' && (
+            <div style={styles.supportSection}>
+              <div
+                style={{ ...styles.supportHeader, cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => setOrdersOpen((p) => !p)}
+              >
+                <span style={{ ...styles.supportLabel, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  🛍️ Your Orders
+                  <span style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: '50%',
+                    background: ordersOpen ? 'var(--color-primary)' : 'var(--primary-alpha-10)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: ordersOpen ? '#fff' : 'var(--color-primary)',
+                    transition: 'all 0.25s ease',
+                    flexShrink: 0,
+                  }}>
+                    <svg
+                      width="11" height="11" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" strokeWidth="2.5"
+                      strokeLinecap="round" strokeLinejoin="round"
+                      style={{ transform: ordersOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s ease' }}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </span>
+                </span>
+              </div>
+              {ordersOpen && (
+                ordersLoading ? (
+                  <p style={{ ...styles.supportDescription, marginTop: '0.5rem' }}>Loading orders…</p>
+                ) : orders.length === 0 ? (
+                  <p style={{ ...styles.supportDescription, marginTop: '0.5rem' }}>No orders yet. When you accept an artist's offer, it will appear here.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem' }}>
+                    {orders.map((order) => {
+                      const fmtDate = (ts: any) => ts?.toDate?.()?.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) ?? null;
+                      const existingReview = reviewsByArtworkId[order.artworkId];
+                      const alreadyReviewed = Boolean(existingReview);
+                      return (
+                        <div
+                          key={`${order.chatId}_${order.artworkId}`}
+                          style={{
+                            padding: '0.75rem 0.9rem',
+                            borderRadius: '10px',
+                            border: '1px solid var(--color-border-light)',
+                            background: order.status === 'completed' ? 'rgba(47,164,169,0.06)' : 'var(--color-bg-card)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                            {order.artworkImage && (
+                              <img
+                                src={order.artworkImage}
+                                alt={order.artworkTitle}
+                                style={{ width: 52, height: 52, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+                              />
+                            )}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ margin: 0, fontWeight: 600, fontSize: '0.88rem', color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {order.artworkTitle}
+                              </p>
+                              {order.finalPrice && (
+                                <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>₹{order.finalPrice}</p>
+                              )}
+                              <span style={{
+                                display: 'inline-block',
+                                marginTop: '0.35rem',
+                                padding: '0.15rem 0.55rem',
+                                borderRadius: 20,
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                background: order.status === 'completed' ? 'rgba(47,164,169,0.15)' : 'rgba(251,191,36,0.15)',
+                                color: order.status === 'completed' ? 'var(--color-primary)' : '#b45309',
+                              }}>
+                                {order.status === 'completed' ? 'Completed' : 'Inprogress'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ marginTop: '0.55rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            {(order.orderId || fmtDate(order.orderedAt)) && (
+                              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                {order.orderId && <span>Order ID: <strong style={{ color: 'var(--color-primary)', letterSpacing: '0.5px' }}>{order.orderId}</strong></span>}
+                                {fmtDate(order.orderedAt) && <span>Ordered: <strong>{fmtDate(order.orderedAt)}</strong></span>}
+                              </p>
+                            )}
+                            {order.status === 'completed' && (fmtDate(order.shippedAt) || order.trackingId) && (
+                              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                {fmtDate(order.shippedAt) && <span>Shipped: <strong>{fmtDate(order.shippedAt)}</strong></span>}
+                                {order.trackingId && <span>Tracking ID: <strong>{order.trackingId}</strong></span>}
+                              </p>
+                            )}
+                          </div>
+
+                          {order.status === 'completed' && (
+                            <>
+                              <button
+                                onClick={() => { if (!alreadyReviewed) { setReviewOrder(order); setReviewRating(0); setReviewText(''); } }}
+                                disabled={alreadyReviewed}
+                                style={{
+                                  marginTop: '0.6rem',
+                                  padding: '0.35rem 0.85rem',
+                                  borderRadius: 8,
+                                  border: '1.5px solid var(--color-primary)',
+                                  background: 'transparent',
+                                  color: 'var(--color-primary)',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: alreadyReviewed ? 'none' : 'inline-block',
+                                }}
+                              >
+                                Write a Review
+                              </button>
+                              {existingReview && (
+                                <div style={{ marginTop: '0.6rem', padding: '0.55rem 0.7rem', borderRadius: 8, background: 'rgba(47,164,169,0.06)', border: '1px solid rgba(47,164,169,0.18)' }}>
+                                  <div style={{ display: 'flex', gap: '0.15rem', marginBottom: '0.25rem' }}>
+                                    {[1,2,3,4,5].map((s) => (
+                                      <span key={s} style={{ fontSize: '0.9rem', color: s <= existingReview.rating ? '#f59e0b' : 'var(--color-border-light)' }}>★</span>
+                                    ))}
+                                  </div>
+                                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-text-primary)', lineHeight: 1.5 }}>{existingReview.reviewText}</p>
+                                  {existingReview.artistReply && (
+                                    <div style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid rgba(47,164,169,0.15)' }}>
+                                      <p style={{ margin: 0, fontSize: '0.73rem', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
+                                        Artist replied: {existingReview.artistReply}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              )}
+            </div>
+          )}
+
+          {/* Review modal */}
+          {reviewOrder && (
+            <div
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 10010, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+              onClick={() => { if (!reviewSubmitting) setReviewOrder(null); }}
+            >
+              <div
+                style={{ background: 'var(--color-bg-light)', borderRadius: 14, padding: '1.5rem', width: '100%', maxWidth: 380, position: 'relative' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => setReviewOrder(null)}
+                  disabled={reviewSubmitting}
+                  style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: 'var(--color-text-muted)', lineHeight: 1 }}
+                >×</button>
+                <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 700 }}>Review</h3>
+                <p style={{ margin: '0 0 1rem', fontSize: '0.82rem', color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{reviewOrder.artworkTitle}</p>
+
+                {/* Star rating */}
+                <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.85rem' }}>
+                  {[1,2,3,4,5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setReviewRating(star)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '1.7rem', color: star <= reviewRating ? '#f59e0b' : 'var(--color-border-light)', lineHeight: 1 }}
+                    >★</button>
+                  ))}
+                </div>
+
+                <textarea
+                  rows={4}
+                  placeholder="Share your experience…"
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  disabled={reviewSubmitting}
+                  style={{ width: '100%', padding: '0.5rem 0.7rem', borderRadius: 8, border: '1px solid var(--color-border-light)', fontSize: '0.85rem', resize: 'vertical', boxSizing: 'border-box', background: 'var(--color-bg-card)', color: 'var(--color-text-primary)' }}
+                />
+
+                <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end', marginTop: '0.85rem' }}>
+                  <button
+                    onClick={() => setReviewOrder(null)}
+                    disabled={reviewSubmitting}
+                    style={{ padding: '0.45rem 1rem', borderRadius: 8, border: '1px solid var(--color-border-light)', background: 'transparent', fontSize: '0.83rem', cursor: 'pointer', color: 'var(--color-text-secondary)' }}
+                  >Cancel</button>
+                  <button
+                    onClick={() => void handleSubmitReview()}
+                    disabled={reviewSubmitting || reviewRating === 0 || !reviewText.trim()}
+                    style={{ padding: '0.45rem 1.1rem', borderRadius: 8, border: 'none', background: 'var(--color-primary)', color: '#fff', fontSize: '0.83rem', fontWeight: 600, cursor: reviewSubmitting || reviewRating === 0 || !reviewText.trim() ? 'not-allowed' : 'pointer', opacity: reviewSubmitting || reviewRating === 0 || !reviewText.trim() ? 0.55 : 1 }}
+                  >{reviewSubmitting ? 'Submitting…' : 'Submit'}</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Support & Suggestions Section */}
           <div style={styles.supportSection}>

@@ -26,7 +26,12 @@ export type NotificationType =
   | 'commission_application'   // Buyer: an artist applied to their commission
   | 'commission_offer'         // Buyer: an artist sent an offer
   | 'commission_offer_accepted' // Artist: buyer accepted their offer
-  | 'commission_completed';    // Artist: commission marked completed/closed
+  | 'commission_completed'    // Artist: commission marked completed/closed
+  | 'ready_to_ship'           // Buyer: artist marked artwork as ready to ship
+  | 'full_payment_done'       // Artist: buyer confirmed full payment
+  | 'commission_shipped'      // Buyer: artist shipped the artwork
+  | 'review_received'         // Artist: buyer left a review
+  | 'review_reply';           // Buyer: artist replied to their review
 
 export interface Notification {
   id: string;

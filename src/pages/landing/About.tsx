@@ -184,7 +184,7 @@ const About: React.FC = () => {
                   {HiOutlineUserGroup({ size: 28 })}
                 </div>
                 <p className="about-card-text">
-                  Build a trusted environment where creators and audiences can connect directly
+                  Enable commission artwork requests so buyers can collaborate directly with creators on custom pieces
                 </p>
               </div>
             </div>

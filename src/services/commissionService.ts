@@ -35,6 +35,9 @@ export interface CommissionRequest {
   referenceImages: string[];
   budget: string;
   deadline: string;
+  size?: string;
+  customHeight?: string;
+  customWidth?: string;
   type: string;
   style: string[];
   subject: string[];
@@ -46,6 +49,19 @@ export interface CommissionRequest {
   agreedFinalPrice?: string;
   agreedAdvanceAmount?: string;
   agreedDeliveryDate?: string;
+  /** Buyer's delivery address, saved when accepting an offer */
+  buyerAddress?: string;
+  /** Advance amount confirmed as paid by buyer when accepting offer */
+  advancePaid?: boolean;
+  advanceAmount?: string;
+  /** Image uploaded by artist when artwork is ready to ship */
+  readyToShipImageUrl?: string;
+  /** Set when buyer confirms full payment done */
+  fullPaymentDone?: boolean;
+  /** Total amount paid by buyer (advance + remaining) */
+  totalAmountPaid?: string;
+  /** Tracking ID provided by artist when marking shipment */
+  trackingId?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -55,6 +71,9 @@ export interface CreateCommissionPayload {
   description: string;
   budget: string;
   deadline: string;
+  size?: string;
+  customHeight?: string;
+  customWidth?: string;
   type: string;
   style: string[];
   subject: string[];
@@ -85,6 +104,9 @@ export async function createCommissionRequest(
     referenceImages,
     budget: payload.budget,
     deadline: payload.deadline,
+    size: payload.size || "",
+    customHeight: payload.customHeight || "",
+    customWidth: payload.customWidth || "",
     type: payload.type,
     style: payload.style,
     subject: payload.subject,
@@ -233,6 +255,27 @@ export async function acceptCommissionOfferFromChat(
   await fn({ chatId, messageId });
 }
 
+export async function markFullPaymentDone(commissionId: string, totalAmountPaid: string): Promise<void> {
+  const ref = doc(db, "commissions", commissionId);
+  await updateDoc(ref, { fullPaymentDone: true, totalAmountPaid, updatedAt: serverTimestamp() });
+}
+
+export async function saveReadyToShipImage(commissionId: string, imageUrl: string): Promise<void> {
+  const ref = doc(db, "commissions", commissionId);
+  await updateDoc(ref, { readyToShipImageUrl: imageUrl, updatedAt: serverTimestamp() });
+}
+
+export async function markAdvancePaid(
+  commissionId: string,
+  amount: string,
+  buyerAddress?: string,
+): Promise<void> {
+  const ref = doc(db, "commissions", commissionId);
+  const patch: Record<string, unknown> = { advancePaid: true, advanceAmount: amount, updatedAt: serverTimestamp() };
+  if (buyerAddress) patch.buyerAddress = buyerAddress;
+  await updateDoc(ref, patch as any);
+}
+
 export async function markCommissionCompletedByBuyer(
   commissionId: string,
   buyerId: string,
@@ -249,6 +292,21 @@ export async function markCommissionCompletedByBuyer(
   if (st !== "inprogress") throw new Error("Commission is not in progress");
   await updateDoc(ref, {
     status: "completed",
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/** Artist marks artwork as shipped — sets status to completed and saves tracking ID. */
+export async function markShipped(
+  commissionId: string,
+  artistId: string,
+  trackingId: string,
+): Promise<void> {
+  const ref = doc(db, "commissions", commissionId);
+  await updateDoc(ref, {
+    status: "completed",
+    isShipped: true,
+    trackingId,
     updatedAt: serverTimestamp(),
   });
 }
@@ -349,6 +407,9 @@ type CallableCommissionRow = {
   referenceImages?: string[];
   budget?: string;
   deadline?: string;
+  size?: string;
+  customHeight?: string;
+  customWidth?: string;
   type?: string;
   style?: string[];
   subject?: string[];
@@ -379,6 +440,9 @@ function callableRowToCommission(row: CallableCommissionRow): CommissionRequest 
     referenceImages: Array.isArray(row.referenceImages) ? row.referenceImages : [],
     budget: row.budget || "",
     deadline: row.deadline || "",
+    size: row.size || "",
+    customHeight: row.customHeight || "",
+    customWidth: row.customWidth || "",
     type: row.type || "",
     style: Array.isArray(row.style) ? row.style : [],
     subject: Array.isArray(row.subject) ? row.subject : [],

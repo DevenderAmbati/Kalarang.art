@@ -1,22 +1,28 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import ArtworkDetail, { Artwork as ArtworkDetailType, Artist } from '../../components/Artwork/ArtworkDetail';
 import LoadingState from '../../components/State/LoadingState';
 import ChatDrawer, { ChatContact } from '../../components/Chat/ChatDrawer';
 import { useAuth } from '../../context/AuthContext';
 import { getArtwork, incrementArtworkViews, incrementArtworkReachOutClicks } from '../../services/artworkService';
+import { processBuyNow } from '../../services/chatService';
+import { createNotification } from '../../services/notificationService';
 import { useFavorites } from '../../hooks/useCachedData';
 import { cache, cacheKeys } from '../../utils/cache';
-import { 
+import {
   saveArtworkToFavorites,
   removeArtworkFromFavorites,
   isArtworkInFavorites,
-  followArtist, 
-  unfollowArtist, 
+  followArtist,
+  unfollowArtist,
   isFollowingArtist
 } from '../../services/interactionService';
 import { toast } from 'react-toastify';
 import lineArt1Animation from '../../animations/Line art (1).json';
+import '../../components/Modals/ConfirmModal.css';
+import '../../pages/user/Commissions.css';
 
 const CardDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +35,10 @@ const CardDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [reachOutMessage, setReachOutMessage] = useState<string>('');
+  const [buyNowOpen, setBuyNowOpen] = useState(false);
+  const [buyNowConfirm, setBuyNowConfirm] = useState(false);
+  const [buyNowBusy, setBuyNowBusy] = useState(false);
+  const [buyNowAddress, setBuyNowAddress] = useState({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
   
   const { data: favoriteIds, updateCache: updateFavoritesCache, refetch: refetchFavorites } = useFavorites(appUser?.uid);
 
@@ -182,6 +192,67 @@ const CardDetail: React.FC = () => {
     }
   };
 
+  const handleBuyNow = (artistId: string) => {
+    if (!appUser) { navigate('/signup'); return; }
+    if (appUser.uid === artistId) { toast.info('You cannot buy your own artwork'); return; }
+    setBuyNowOpen(true);
+    setBuyNowConfirm(false);
+    setBuyNowAddress({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
+  };
+
+  const handleConfirmBuyNow = async () => {
+    if (!appUser || !artwork || !artist || !id) return;
+    setBuyNowBusy(true);
+    try {
+      await processBuyNow(
+        appUser.uid,
+        artist.id,
+        id,
+        artwork.title,
+        artwork.artworkImage,
+        String(artwork.price),
+        buyNowAddress,
+      );
+      createNotification(
+        artist.id,
+        'commission_offer_accepted',
+        appUser.uid,
+        appUser.name,
+        appUser.avatar,
+        id,
+        artwork.title,
+        artwork.artworkImage,
+        undefined,
+        undefined,
+        artwork.title,
+        'payment_done',
+      ).catch(() => {});
+      setBuyNowOpen(false);
+      setBuyNowConfirm(false);
+      setBuyNowAddress({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
+      setArtwork((prev) => prev ? { ...prev, sold: true } : prev);
+      window.dispatchEvent(new CustomEvent('artwork-sold', { detail: { artworkId: id } }));
+      // Invalidate all artwork listing caches so sold badge appears everywhere
+      cache.invalidate(cacheKeys.homeFeedPaginated(appUser.uid));
+      cache.invalidate(cacheKeys.homeFeedPaginated());
+      cache.invalidate(cacheKeys.discoverPaginated('featured'));
+      cache.invalidate(cacheKeys.discoverPaginated('newest'));
+      if (id) cache.invalidate(cacheKeys.artwork(id));
+      if (artist) {
+        cache.invalidate(cacheKeys.artistWorks(artist.id));
+        cache.invalidate(cacheKeys.publishedWorks(artist.id));
+        cache.invalidate(cacheKeys.otherUserPortfolio(artist.id));
+      }
+      toast.success('Payment recorded! The artist has been notified to ship your artwork.');
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Buy now failed:', err);
+      toast.error('Could not complete purchase. Please try again.');
+    } finally {
+      setBuyNowBusy(false);
+    }
+  };
+
   const handleReachOut = (artistId: string) => {
     if (!appUser) {
       navigate('/signup');
@@ -266,6 +337,7 @@ const CardDetail: React.FC = () => {
         currentUserAvatar={appUser?.email ? `https://ui-avatars.com/api/?name=${encodeURIComponent(appUser.name || appUser.email)}` : undefined}
         onShare={handleShare}
         onReachOut={handleReachOut}
+        onBuyNow={appUser && appUser.uid !== artist.id ? handleBuyNow : undefined}
         onFollow={handleFollow}
         onThumbnailClick={handleThumbnailClick}
         onArtistClick={handleArtistClick}
@@ -273,6 +345,109 @@ const CardDetail: React.FC = () => {
         isSaved={isSaved}
         currentUserId={appUser?.uid}
       />
+
+      {buyNowOpen && artwork && createPortal(
+        <div
+          className="confirm-modal-overlay"
+          role="presentation"
+          style={{ zIndex: 10002 }}
+          onClick={() => { if (!buyNowBusy) { setBuyNowOpen(false); setBuyNowConfirm(false); } }}
+        >
+          <div
+            className="confirm-modal-content commission-accept-offer-modal"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="commission-accept-offer-close"
+              aria-label="Close"
+              disabled={buyNowBusy}
+              onClick={() => { setBuyNowOpen(false); setBuyNowConfirm(false); }}
+            >×</button>
+            <h2 className="confirm-modal-title">Buy Now</h2>
+            <p className="confirm-modal-message">
+              Complete your purchase for <strong>{artwork.title}</strong>.
+            </p>
+
+            <div className="commission-accept-address-form">
+              <p className="commission-accept-address-form-title">Delivery address</p>
+              <input type="text" className="commission-accept-address-input" placeholder="Full name"
+                value={buyNowAddress.name} onChange={(e) => setBuyNowAddress((p) => ({ ...p, name: e.target.value }))} disabled={buyNowBusy} />
+              <input type="text" className="commission-accept-address-input" placeholder="Flat / House / Building"
+                value={buyNowAddress.line1} onChange={(e) => setBuyNowAddress((p) => ({ ...p, line1: e.target.value }))} disabled={buyNowBusy} />
+              <input type="text" className="commission-accept-address-input" placeholder="Street / Area / Locality"
+                value={buyNowAddress.line2} onChange={(e) => setBuyNowAddress((p) => ({ ...p, line2: e.target.value }))} disabled={buyNowBusy} />
+              <div className="commission-accept-address-row">
+                <input type="text" className="commission-accept-address-input" placeholder="City"
+                  value={buyNowAddress.city} onChange={(e) => setBuyNowAddress((p) => ({ ...p, city: e.target.value }))} disabled={buyNowBusy} />
+                <input type="text" className="commission-accept-address-input" placeholder="Pincode"
+                  value={buyNowAddress.pincode} onChange={(e) => setBuyNowAddress((p) => ({ ...p, pincode: e.target.value }))} disabled={buyNowBusy} />
+              </div>
+              <input type="tel" className="commission-accept-address-input" placeholder="Phone number"
+                value={buyNowAddress.phone} onChange={(e) => setBuyNowAddress((p) => ({ ...p, phone: e.target.value }))} disabled={buyNowBusy} />
+            </div>
+
+            {(() => {
+              const UPI_ID = '9640557113@ptsbi';
+              const amount = String(artwork.price);
+              const upiUri = `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art&am=${amount}&cu=INR`;
+              const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+              const addressComplete = buyNowAddress.name.trim() && buyNowAddress.line1.trim() &&
+                buyNowAddress.city.trim() && buyNowAddress.pincode.trim() && buyNowAddress.phone.trim();
+              return (
+                <>
+                  <div className="commission-accept-offer-payment">
+                    <p className="commission-accept-offer-payment-label">Pay and confirm</p>
+                    <div className="commission-accept-offer-amount">₹{artwork.price.toLocaleString()}</div>
+                    <p className="commission-accept-offer-upiid">UPI ID: <strong>{UPI_ID}</strong></p>
+                    {isMobile ? (
+                      <a href={upiUri} className="button button-primary commission-accept-offer-upi-btn">Open UPI App to Pay</a>
+                    ) : (
+                      <div className="commission-accept-offer-qr">
+                        <QRCodeSVG value={upiUri} size={180} />
+                        <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {!addressComplete && (
+                    <p className="commission-accept-address-required-hint">* Fill in all address fields to continue</p>
+                  )}
+
+                  {buyNowConfirm ? (
+                    <div className="commission-make-payment-confirm-block">
+                      <p className="commission-payment-confirm-tooltip-q">Have you made the payment?</p>
+                      <div className="confirm-modal-actions confirm-modal-actions--row">
+                        <button type="button" className="confirm-modal-btn confirm-modal-btn-cancel"
+                          disabled={buyNowBusy} onClick={() => setBuyNowConfirm(false)}>No</button>
+                        <button type="button" className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                          disabled={buyNowBusy} onClick={() => void handleConfirmBuyNow()}>
+                          <span className="commission-hire-tooltip-confirm-inner">
+                            {buyNowBusy && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
+                            {buyNowBusy ? 'Please wait…' : 'Yes'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="confirm-modal-actions confirm-modal-actions--row">
+                      <button type="button" className="confirm-modal-btn confirm-modal-btn-cancel"
+                        disabled={buyNowBusy} onClick={() => { setBuyNowOpen(false); setBuyNowConfirm(false); }}>Cancel</button>
+                      <button type="button" className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                        disabled={buyNowBusy || !addressComplete}
+                        title={!addressComplete ? 'Please fill in all address fields' : undefined}
+                        onClick={() => setBuyNowConfirm(true)}>Confirm Purchase</button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </div>,
+        document.body
+      )}
 
       {appUser && artwork && artist && id && (
         <ChatDrawer

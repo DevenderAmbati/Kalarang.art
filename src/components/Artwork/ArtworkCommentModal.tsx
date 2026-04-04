@@ -167,12 +167,25 @@ const ArtworkCommentModal: React.FC<ArtworkCommentModalProps> = ({
     ta.style.height = "0px";
     const contentHeight = ta.scrollHeight - paddingY;
     ta.style.height = `${Math.min(Math.max(contentHeight, 0), max)}px`;
-  }, [draft, isOpen, artwork]);
+  }, [draft]);
 
   useEffect(() => {
     if (!listRef.current || comments.length === 0) return;
     listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [comments.length]);
+
+  // Lock background scroll while the modal is open.
+  // Scrolling happens inside Layout's inner containers (not window/body),
+  // so we only need to prevent any residual body scroll — no position:fixed
+  // trick needed (that was causing a visible flicker on open/close).
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
 
   if (!isOpen || !artwork) return null;
 
@@ -336,7 +349,7 @@ const ArtworkCommentModal: React.FC<ArtworkCommentModalProps> = ({
                 disabled={submitting}
                 maxLength={2000}
                 rows={1}
-                autoFocus
+                autoFocus={false}
                 aria-label={showReplyComposer ? "Your reply" : "Add a comment"}
               />
               <button

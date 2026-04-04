@@ -152,6 +152,15 @@ export function useChat(
             artworkImage: data.artworkImage,
             artworkPrice: data.artworkPrice,
             imageUrl: data.imageUrl,
+            messageType: data.messageType,
+            offerFinalPrice: data.offerFinalPrice,
+            offerStatus: data.offerStatus,
+            addressName: data.addressName,
+            addressLine1: data.addressLine1,
+            addressLine2: data.addressLine2,
+            addressCity: data.addressCity,
+            addressPincode: data.addressPincode,
+            addressPhone: data.addressPhone,
           };
         });
 

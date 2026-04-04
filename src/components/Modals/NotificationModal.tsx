@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaUserPlus, FaHeart, FaHandshake, FaCheckCircle, FaCommentDots, FaReply, FaThumbsUp } from 'react-icons/fa';
+import { FaUserPlus, FaHeart, FaHandshake, FaCheckCircle, FaCommentDots, FaReply, FaThumbsUp, FaBox, FaTruck, FaStar } from 'react-icons/fa';
 import { IoIosChatbubbles } from 'react-icons/io';
 import { MdClose, MdWork, MdLocalOffer } from 'react-icons/md';
 import { useAuth } from '../../context/AuthContext';
@@ -87,6 +87,16 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
         return FaHandshake({ size: 20, className: 'notification-icon commission-success' });
       case 'commission_completed':
         return FaCheckCircle({ size: 20, className: 'notification-icon commission-success' });
+      case 'ready_to_ship':
+        return FaBox({ size: 20, className: 'notification-icon commission' });
+      case 'full_payment_done':
+        return FaCheckCircle({ size: 20, className: 'notification-icon commission-success' });
+      case 'commission_shipped':
+        return FaTruck({ size: 20, className: 'notification-icon commission' });
+      case 'review_received':
+        return FaStar({ size: 20, className: 'notification-icon favourite' });
+      case 'review_reply':
+        return FaReply({ size: 20, className: 'notification-icon comment-reply' });
       default:
         return null;
     }
@@ -165,7 +175,13 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
           </>
         );
       case 'commission_offer_accepted':
-        return (
+        return notification.commentSnippet === 'payment_done' ? (
+          <>
+            <strong>{notification.actorName}</strong> made payment for{' '}
+            {notification.commissionTitle && <strong>"{notification.commissionTitle}"</strong>}
+            {'. Please start shipping to the address provided.'}
+          </>
+        ) : (
           <>
             <strong>{notification.actorName}</strong> accepted your offer for{' '}
             {notification.commissionTitle && <strong>"{notification.commissionTitle}"</strong>}
@@ -178,6 +194,64 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
             Your commission{' '}
             {notification.commissionTitle && <strong>"{notification.commissionTitle}"</strong>}
             {' has been marked as completed'}
+          </>
+        );
+      case 'ready_to_ship':
+        return (
+          <>
+            {'Your artwork '}
+            {notification.commissionTitle && <strong>"{notification.commissionTitle}"</strong>}
+            {' is ready to ship. Please check in chat.'}
+          </>
+        );
+      case 'full_payment_done':
+        return (
+          <>
+            <strong>{notification.actorName}</strong>
+            {' has paid the full amount for '}
+            {notification.commissionTitle && <strong>"{notification.commissionTitle}"</strong>}
+            {'. You can start shipping the artwork.'}
+          </>
+        );
+      case 'commission_shipped':
+        return (
+          <>
+            <strong>{notification.actorName}</strong>
+            {' has shipped '}
+            {notification.commissionTitle && <strong>"{notification.commissionTitle}"</strong>}
+            {'. Tracking ID: '}
+            <strong>{notification.commentSnippet}</strong>
+          </>
+        );
+      case 'review_received': {
+        const rating = notification.commentSnippet ? parseInt(notification.commentSnippet, 10) : 0;
+        return (
+          <>
+            <strong>{notification.actorName}</strong>
+            {' left a review for '}
+            {notification.commissionTitle && <strong>"{notification.commissionTitle}"</strong>}
+            {rating > 0 && (
+              <span className="notification-review-stars">
+                {[1,2,3,4,5].map((s) => (
+                  <span key={s} style={{ color: s <= rating ? '#f59e0b' : '#d1d5db', fontSize: '0.85rem' }}>★</span>
+                ))}
+              </span>
+            )}
+          </>
+        );
+      }
+      case 'review_reply':
+        return (
+          <>
+            <strong>{notification.actorName}</strong>
+            {' replied to your review for '}
+            {notification.commissionTitle && <strong>"{notification.commissionTitle}"</strong>}
+            {notification.commentSnippet && (
+              <>
+                {': '}
+                <span className="notification-inline-snippet">"{notification.commentSnippet}"</span>
+              </>
+            )}
           </>
         );
       default:

@@ -21,7 +21,9 @@ service cloud.firestore {
       allow update: if request.auth != null && (
         resource.data.artistId == request.auth.uid || // Owner can update all fields
         // Engagement counters can be updated by authenticated users
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'favorites', 'reachOutClicks', 'likes', 'comments']))
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'favorites', 'reachOutClicks', 'likes', 'comments'])) ||
+        // Any authenticated user can mark artwork as sold (triggered by Buy Now / offer acceptance)
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sold', 'updatedAt']) && request.resource.data.sold == true)
       );
       allow delete: if request.auth != null && resource.data.artistId == request.auth.uid; // Only owner can delete
     }
@@ -77,8 +79,15 @@ service cloud.firestore {
       // Open listings (anyone). Non-open: any signed-in user can read (browse / fallback when callable fails).
       allow read: if resource.data.status == "open"
                   || request.auth != null;
-      allow update, delete: if request.auth != null
-                            && resource.data.buyerId == request.auth.uid;
+      allow update: if request.auth != null && (
+                      resource.data.buyerId == request.auth.uid
+                      || (
+                        resource.data.hiredArtistId == request.auth.uid
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readyToShipImageUrl', 'updatedAt', 'status', 'trackingId'])
+                      )
+                    );
+      allow delete: if request.auth != null
+                    && resource.data.buyerId == request.auth.uid;
 
       // One doc per artist who applied — lets applicants read the parent commission after it leaves "open"
       match /applications/{artistId} {
@@ -147,7 +156,7 @@ service cloud.firestore {
                       && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
         allow update: if request.auth != null
                       && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
-                      && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenBy']));
+                      && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenBy', 'offerStatus']));
       }
     }
 
@@ -183,6 +192,17 @@ service cloud.firestore {
       allow read: if request.auth != null && tokenId.split('_')[0] == request.auth.uid;
       allow create, update: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow delete: if request.auth != null && tokenId.split('_')[0] == request.auth.uid;
+    }
+
+    // Commission reviews — one per commission, written by buyer, replied by artist
+    match /reviews/{reviewId} {
+      allow read: if true; // Reviews are public — visible on artist portfolios
+      allow create: if request.auth != null
+                    && request.resource.data.buyerId == request.auth.uid;
+      allow update: if request.auth != null
+                    && request.auth.uid == resource.data.artistId
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['artistReply', 'artistReplyAt']);
+      allow delete: if false;
     }
 
     // Default deny all other collections

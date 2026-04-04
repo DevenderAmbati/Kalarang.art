@@ -128,9 +128,10 @@ exports.acceptCommissionOffer = onCall(
       });
     });
 
+    const offerAcceptedText = "Offer accepted. Payment is sent and address details are provided.";
     await chatRef.collection("messages").add({
       senderId: buyerId,
-      text: "Offer accepted.",
+      text: offerAcceptedText,
       seenBy: [buyerId],
       commissionId,
       commissionTitle: msg.commissionTitle || "",
@@ -142,7 +143,7 @@ exports.acceptCommissionOffer = onCall(
     otherUnreadPatch[`unreadFor.${artistId}`] = FieldValue.increment(1);
     otherUnreadPatch[`unreadFor.${buyerId}`] = 0;
     await chatRef.update({
-      lastMessage: "Offer accepted.",
+      lastMessage: offerAcceptedText,
       updatedAt: FieldValue.serverTimestamp(),
       ...otherUnreadPatch,
     });
@@ -900,7 +901,7 @@ exports.onNotificationCreated = onDocumentCreated(
     case "commission_offer_accepted":
       title = "Offer Accepted!";
       body = commissionTitle
-        ? `${actorName || "The buyer"} accepted your offer for "${commissionTitle}" — you can start the work!`
+        ? `${actorName || "The buyer"} accepted your offer for "${commissionTitle}". Payment is done — you can start the work!`
         : `${actorName || "The buyer"} accepted your offer — you can start the work!`;
       break;
     case "commission_completed":

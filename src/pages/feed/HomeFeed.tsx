@@ -281,6 +281,21 @@ const HomeFeed: React.FC = () => {
     return () => window.removeEventListener('likes-changed', handleLikesChanged);
   }, [appUser?.uid, refetchLikes]);
 
+  // Mark artwork as sold in all feed state arrays when buyer completes purchase
+  useEffect(() => {
+    const handleArtworkSold = ((e: CustomEvent) => {
+      const { artworkId } = e.detail;
+      const markSold = (list: Artwork[]) => list.map((a) => a.id === artworkId ? { ...a, sold: true } : a);
+      setTopUnseenArtworks(markSold);
+      setRemainingUnseenArtworks(markSold);
+      setDiscoverArtworks(markSold);
+      setSeenFollowedArtworks(markSold);
+      setMyArtworks(markSold);
+    }) as EventListener;
+    window.addEventListener('artwork-sold', handleArtworkSold);
+    return () => window.removeEventListener('artwork-sold', handleArtworkSold);
+  }, []);
+
   // Ensure favorites are loaded
   useEffect(() => {
     if (appUser?.uid && !favoriteIds) {
@@ -708,17 +723,30 @@ const HomeFeed: React.FC = () => {
 
       const isCurrentlyFollowing = followingArtistIdsRef.current?.includes(artistId) ?? false;
 
+      // Optimistic update before the async call to avoid a delayed re-render glitch
+      if (isCurrentlyFollowing) {
+        setFollowingArtistIds((prev) => prev ? prev.filter((id) => id !== artistId) : []);
+        setSessionFollowedArtistIds((prev) => { const n = new Set(prev); n.delete(artistId); return n; });
+      } else {
+        setFollowingArtistIds((prev) => { const n = [...(prev ?? [])]; if (!n.includes(artistId)) n.push(artistId); return n; });
+        setSessionFollowedArtistIds((prev) => new Set(prev).add(artistId));
+      }
+
       try {
         if (isCurrentlyFollowing) {
           await unfollowArtist(appUser.uid, artistId);
-          setFollowingArtistIds((prev) => prev ? prev.filter((id) => id !== artistId) : []);
-          setSessionFollowedArtistIds((prev) => { const n = new Set(prev); n.delete(artistId); return n; });
         } else {
           await followArtist(appUser.uid, artistId, appUser.name, appUser.avatar);
-          setFollowingArtistIds((prev) => { const n = [...(prev ?? [])]; if (!n.includes(artistId)) n.push(artistId); return n; });
-          setSessionFollowedArtistIds((prev) => new Set(prev).add(artistId));
         }
       } catch {
+        // Revert optimistic update on failure
+        if (isCurrentlyFollowing) {
+          setFollowingArtistIds((prev) => { const n = [...(prev ?? [])]; if (!n.includes(artistId)) n.push(artistId); return n; });
+          setSessionFollowedArtistIds((prev) => new Set(prev).add(artistId));
+        } else {
+          setFollowingArtistIds((prev) => prev ? prev.filter((id) => id !== artistId) : []);
+          setSessionFollowedArtistIds((prev) => { const n = new Set(prev); n.delete(artistId); return n; });
+        }
         toast.error('Failed to update follow');
       }
     },

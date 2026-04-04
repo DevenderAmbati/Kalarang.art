@@ -108,6 +108,12 @@ export default function BuyerLanding() {
       description:
         "Start a conversation with artists directly. Ask about their work, process, or commissions.",
     },
+    {
+      title: "Request commission artwork",
+      icon: MdShoppingCart,
+      description:
+        "Post commission requests for custom artwork and work with artists on your ideas.",
+    },
   ];
 
   const journeySteps = [

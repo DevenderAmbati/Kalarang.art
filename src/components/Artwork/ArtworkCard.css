@@ -37,7 +37,8 @@
 .artwork-card-follow-btn {
   flex-shrink: 0;
   align-self: center;
-  min-width: 72px;
+  min-width: 84px;
+  width: 84px;
   padding: 0.35rem 0.75rem;
   font-size: 0.75rem;
   font-weight: 700;

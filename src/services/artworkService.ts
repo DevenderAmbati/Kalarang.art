@@ -841,6 +841,14 @@ export async function updateArtwork(
 }
 
 /**
+ * Mark an artwork as sold.
+ */
+export async function markArtworkAsSold(artworkId: string): Promise<void> {
+  const artworkRef = doc(db, 'artworks', artworkId);
+  await updateDoc(artworkRef, { sold: true, updatedAt: serverTimestamp() });
+}
+
+/**
  * Delete artwork and its images
  */
 export async function deleteArtwork(artworkId: string): Promise<void> {

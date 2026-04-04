@@ -96,8 +96,8 @@ const Home: React.FC = () => {
               {HiOutlineUserGroup({ size: 24 })}
             </div>
             <div>
-              <h3 className="login-feature-title">Global Creative Community</h3>
-              <p className="login-feature-desc">Connect artists and art lovers</p>
+              <h3 className="login-feature-title">Commission Custom Artwork</h3>
+              <p className="login-feature-desc">Hire artists or get hired for personalized art</p>
             </div>
           </div>
         </div>

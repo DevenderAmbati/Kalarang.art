@@ -12,11 +12,14 @@ import { useAuth } from '../../context/AuthContext';
 import { PortfolioProvider } from '../../context/PortfolioContext';
 import { usePublishedWorks, useGalleryWorks } from '../../hooks/useCachedData';
 import { getUserProfile, updateUserBanner, updateUserAvatar, updateUserProfile, getUserStats, getFollowersList, getFollowingList, subscribeToUserStats } from '../../services/userService';
+import { getReviewsForArtist } from '../../services/reviewService';
 import { unfollowArtist } from '../../services/interactionService';
 import { toast } from 'react-toastify';
 import { Artwork } from '../../types/artwork';
 import { createStory, getUserStories } from '../../services/storyService';
 import FollowersModal from '../../components/Modals/FollowersModal';
+import ReviewsModal from '../../components/Modals/ReviewsModal';
+import { CommissionReview } from '../../services/reviewService';
 import '../../components/Artwork/ArtworkGridCard.css'; // Import for story modal styles
 import './Portfolio.css';
 
@@ -35,6 +38,10 @@ const Portfolio: React.FC = () => {
     isLoading: boolean;
   }>({ isOpen: false, type: 'followers', users: [], isLoading: false });
   
+  const [artistRating, setArtistRating] = useState<{ avg: number; count: number } | undefined>(undefined);
+  const [artistReviews, setArtistReviews] = useState<CommissionReview[]>([]);
+  const [reviewsModalOpen, setReviewsModalOpen] = useState(false);
+
   // Fetch data at Portfolio level to persist across tab switches
   const publishedWorksData = usePublishedWorks(appUser?.uid);
   const galleryWorksData = useGalleryWorks(appUser?.uid);
@@ -216,6 +223,7 @@ const Portfolio: React.FC = () => {
       followers: 0,
       artworks: 0,
       following: 0,
+      customized: 0,
     },
   });
 
@@ -288,6 +296,18 @@ const Portfolio: React.FC = () => {
 
     loadUserProfile();
   }, [appUser]);
+
+  // Fetch artist rating
+  useEffect(() => {
+    if (!appUser?.uid) return;
+    getReviewsForArtist(appUser.uid).then((reviews) => {
+      const valid = reviews.filter(r => typeof r.rating === 'number' && !isNaN(r.rating));
+      if (valid.length === 0) return;
+      const avg = valid.reduce((sum, r) => sum + r.rating, 0) / valid.length;
+      setArtistRating({ avg, count: valid.length });
+      setArtistReviews(valid);
+    }).catch(() => {});
+  }, [appUser?.uid]);
 
   // Real-time stats subscription
   useEffect(() => {
@@ -509,6 +529,8 @@ const Portfolio: React.FC = () => {
               isOwner={true}
               onFollowersClick={handleFollowersClick}
               onFollowingClick={handleFollowingClick}
+              rating={artistRating}
+              onRatingClick={() => setReviewsModalOpen(true)}
             />
             
             <div style={styles.tabSection} className="portfolio-tab-section">
@@ -588,6 +610,12 @@ const Portfolio: React.FC = () => {
           isLoading={followersModal.isLoading}
           onRemoveFollower={handleRemoveFollower}
           onUnfollow={handleUnfollow}
+        />
+        <ReviewsModal
+          isOpen={reviewsModalOpen}
+          onClose={() => setReviewsModalOpen(false)}
+          reviews={artistReviews}
+          avgRating={artistRating?.avg ?? 0}
         />
       </PortfolioProvider>
     </div>

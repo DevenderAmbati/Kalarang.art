@@ -1,16 +1,19 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../hooks/useChat';
 import { useDrawerBackNavigation } from '../../hooks/useDrawerBackNavigation';
-import { markChatRead, markMessagesAsSeen, getChatId } from '../../services/chatService';
+import { markChatRead, markMessagesAsSeen, getChatId, sendReachOutOfferMessage, acceptReachOutOffer, sendAddressCard, markArtworkShipped } from '../../services/chatService';
 import { useChatContext } from '../../context/ChatContext';
 import { getUserProfile } from '../../services/userService';
 import { createNotification } from '../../services/notificationService';
 import { notifyServiceWorkerActiveChatId } from '../../services/fcmService';
+import { toast } from 'react-toastify';
 import { downloadImageFromUrl, suggestedChatImageFilename } from '../../utils/downloadImage';
+import '../../components/Modals/ConfirmModal.css';
 import './ChatDrawer.css';
 
 export interface ChatContact {
@@ -168,10 +171,16 @@ const ChatView: React.FC<{
 }> = ({ contact, initialMessage, reachOutMetadata, onClose }) => {
   const { appUser } = useAuth();
   const navigate = useNavigate();
+  const { chats } = useChatContext();
   const { messages, loading, sending, hasMore, ready, sendMessage, loadMore } = useChat(
     appUser?.uid,
     contact.uid
   );
+
+  // shippedArtworkIds from the live chat doc (artist-side filter only)
+  const chatId = appUser ? getChatId(appUser.uid, contact.uid) : null;
+  const activeChatDoc = chats.find((c) => c.id === chatId);
+  const shippedArtworkIds = new Set<string>(activeChatDoc?.shippedArtworkIds ?? []);
 
   // Debounced mark-as-read — avoids excessive writes when many messages arrive quickly
   const lastMsgId = messages.length > 0 ? messages[messages.length - 1].id : null;
@@ -199,6 +208,59 @@ const ChatView: React.FC<{
   const [imageDownloadBusy, setImageDownloadBusy] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [artworkSent, setArtworkSent] = useState(false);
+  // Collapsible artwork cards drawer
+  const [cardsExpanded, setCardsExpanded] = useState(true);
+  // Per-artwork independent state
+  const [offerFormArtworkId, setOfferFormArtworkId] = useState<string | null>(null);
+  const [offerFinalPrice, setOfferFinalPrice] = useState('');
+  const [sendingOfferArtworkId, setSendingOfferArtworkId] = useState<string | null>(null);
+  const [makeShipmentCard, setMakeShipmentCard] = useState<ReachOutMetadata | null>(null);
+  const [trackingInput, setTrackingInput] = useState('');
+  const [makeShipmentBusy, setMakeShipmentBusy] = useState(false);
+  const [offerAcceptMsgId, setOfferAcceptMsgId] = useState<string | null>(null);
+  const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
+  const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
+  const [buyerAddressForm, setBuyerAddressForm] = useState({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
+
+  // Set of artworkIds that already have an accepted offer —
+  // includes both accepted reachout_offer messages AND Buy Now purchases (from acceptedOffers on chat doc)
+  const acceptedArtworkIds = new Set([
+    ...messages
+      .filter((m) => m.messageType === 'reachout_offer' && m.offerStatus === 'accepted' && m.artworkId)
+      .map((m) => m.artworkId!),
+    ...(activeChatDoc?.acceptedOffers ?? []).map((o) => o.artworkId),
+  ]);
+  const hasAcceptedOffer = acceptedArtworkIds.size > 0;
+
+  // Ordered array of all unique artworks referenced in this chat.
+  // Scan messages chronologically so earlier artworks appear first,
+  // then add/update with the current reachOutMetadata prop (buyer side).
+  const artworkCards: ReachOutMetadata[] = (() => {
+    const map = new Map<string, ReachOutMetadata>();
+    for (const m of messages) {
+      if (m.artworkId && m.artworkTitle && !map.has(m.artworkId)) {
+        map.set(m.artworkId, {
+          artworkId: m.artworkId,
+          artworkTitle: m.artworkTitle,
+          artworkImage: m.artworkImage,
+          artworkPrice: m.artworkPrice,
+        });
+      }
+    }
+    if (reachOutMetadata?.artworkId) {
+      map.set(reachOutMetadata.artworkId, reachOutMetadata);
+    }
+    return Array.from(map.values()).filter((c) => !shippedArtworkIds.has(c.artworkId));
+  })();
+
+  // Close offer form when its artwork is accepted
+  useEffect(() => {
+    if (offerFormArtworkId && acceptedArtworkIds.has(offerFormArtworkId)) {
+      setOfferFormArtworkId(null);
+      setOfferFinalPrice('');
+    }
+  }, [offerFormArtworkId, hasAcceptedOffer]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const reachOutNotificationSentRef = useRef(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
@@ -384,6 +446,126 @@ const ChatView: React.FC<{
     }
   };
 
+  const handleSubmitOffer = async (card: ReachOutMetadata) => {
+    if (!appUser) return;
+    const fp = offerFinalPrice.trim();
+    if (!fp) return;
+    setSendingOfferArtworkId(card.artworkId);
+    try {
+      const chatId = getChatId(appUser.uid, contact.uid);
+      await sendReachOutOfferMessage(
+        chatId,
+        appUser.uid,
+        card.artworkId,
+        card.artworkTitle,
+        card.artworkImage,
+        fp,
+      );
+      createNotification(
+        contact.uid,
+        'commission_offer',
+        appUser.uid,
+        appUser.name,
+        appUser.avatar,
+        card.artworkId,
+        card.artworkTitle,
+        card.artworkImage,
+        undefined,
+        undefined,
+        card.artworkTitle,
+      ).catch(() => {});
+      setOfferFormArtworkId(null);
+      setOfferFinalPrice('');
+    } catch {
+      // ignore
+    } finally {
+      setSendingOfferArtworkId(null);
+    }
+  };
+
+  const handleConfirmAccept = async () => {
+    if (!appUser || !offerAcceptMsgId) return;
+    const offerMsg = messages.find((m) => m.id === offerAcceptMsgId);
+    const paymentAmount = offerMsg?.offerFinalPrice || '';
+    setAcceptingOfferId(offerAcceptMsgId);
+    try {
+      const chatId = getChatId(appUser.uid, contact.uid);
+      await acceptReachOutOffer(chatId, offerAcceptMsgId, paymentAmount, offerMsg?.artworkId ? {
+        artworkId: offerMsg.artworkId,
+        artworkTitle: offerMsg.artworkTitle ?? '',
+        artworkImage: offerMsg.artworkImage,
+        artistId: contact.uid,
+      } : undefined);
+
+      // Send automated messages
+      await sendMessage(`🎉 Offer accepted! Please prepare the shipment.`);
+      await sendAddressCard(chatId, appUser.uid, buyerAddressForm, contact.uid);
+
+      // Notify the artist — payment done, start shipping
+      createNotification(
+        contact.uid,
+        'commission_offer_accepted',
+        appUser.uid,
+        appUser.name,
+        appUser.avatar,
+        offerMsg?.artworkId,
+        offerMsg?.artworkTitle,
+        offerMsg?.artworkImage,
+        undefined,
+        undefined,
+        offerMsg?.artworkTitle,
+        'payment_done',
+      ).catch(() => {});
+
+      setShowPaymentConfirm(false);
+      setOfferAcceptMsgId(null);
+      setBuyerAddressForm({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
+      
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to accept offer:', err);
+      toast.error('Could not accept offer. Please try again.');
+    } finally {
+      setAcceptingOfferId(null);
+    }
+  };
+
+  const handleMakeShipment = (card: ReachOutMetadata) => {
+    setMakeShipmentCard(card);
+    setTrackingInput('');
+  };
+
+  const handleConfirmShipment = async () => {
+    if (!appUser || !makeShipmentCard || !trackingInput.trim()) return;
+    setMakeShipmentBusy(true);
+    try {
+      await sendMessage(`📦 "${makeShipmentCard.artworkTitle}" has been shipped! Tracking ID: ${trackingInput.trim()}`);
+      createNotification(
+        contact.uid,
+        'commission_shipped',
+        appUser.uid,
+        appUser.name,
+        appUser.avatar,
+        makeShipmentCard.artworkId,
+        makeShipmentCard.artworkTitle,
+        makeShipmentCard.artworkImage,
+        undefined,       // contactMethod
+        undefined,       // commissionId
+        undefined,       // commissionTitle
+        trackingInput.trim(), // commentSnippet — used as tracking ID
+      ).catch(() => {});
+      if (chatId) await markArtworkShipped(chatId, makeShipmentCard.artworkId, trackingInput.trim());
+      setMakeShipmentCard(null);
+      
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to confirm shipment:', err);
+      toast.error('Could not send shipment update. Please try again.');
+    } finally {
+      setMakeShipmentBusy(false);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -431,6 +613,130 @@ const ChatView: React.FC<{
 
   return (
     <div className="cd-chat">
+      {/* ── Per-artwork context cards ── */}
+      {artworkCards.length > 0 && (() => {
+        const paidArtworkIdSet = new Set<string>(activeChatDoc?.paidArtworkIds ?? []);
+        const cardNodes = artworkCards.map((card) => {
+          const isAccepted = acceptedArtworkIds.has(card.artworkId);
+          const isPaymentDone = paidArtworkIdSet.has(card.artworkId)
+            || (activeChatDoc?.acceptedOffers ?? []).some((o) => o.artworkId === card.artworkId);
+          const showShipmentBtn = isAccepted || isPaymentDone;
+          const isFormOpen = offerFormArtworkId === card.artworkId;
+          const isSendingOffer = sendingOfferArtworkId === card.artworkId;
+          const cardLabel = isPaymentDone
+            ? 'Artwork · Payment received'
+            : isAccepted
+              ? 'Artwork · Offer accepted'
+              : 'Artwork';
+          return (
+            <React.Fragment key={card.artworkId}>
+              <div className={`cd-reachout-context-card${showShipmentBtn ? ' cd-reachout-context-card--locked' : ''}`}>
+                <img src={card.artworkImage || '/logo.jpeg'} alt={card.artworkTitle} />
+                <div className="cd-reachout-context-stack">
+                  <div className="cd-reachout-context-main">
+                    <div>
+                      <p className="cd-reachout-context-label">{cardLabel}</p>
+                      <p className="cd-reachout-context-title">{card.artworkTitle}</p>
+                    </div>
+                    {appUser?.role === 'artist' && (
+                      showShipmentBtn ? (
+                        <button
+                          type="button"
+                          className="cd-reachout-hire-btn"
+                          onClick={() => handleMakeShipment(card)}
+                          disabled={makeShipmentBusy && makeShipmentCard?.artworkId === card.artworkId}
+                        >
+                          Make shipment
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="cd-reachout-hire-btn"
+                          onClick={() => setOfferFormArtworkId((prev) => prev === card.artworkId ? null : card.artworkId)}
+                          disabled={isSendingOffer}
+                        >
+                          Send offer
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+              {isFormOpen && !showShipmentBtn && appUser?.role === 'artist' && (
+                <div className="cd-reachout-offer-form">
+                  <p className="cd-reachout-offer-form-title">Your offer</p>
+                  <label className="cd-reachout-offer-field">
+                    <span>Final price (₹)</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="e.g. 5000"
+                      value={offerFinalPrice}
+                      onChange={(e) => setOfferFinalPrice(e.target.value)}
+                      disabled={isSendingOffer}
+                      autoComplete="off"
+                    />
+                  </label>
+                  <div className="cd-reachout-offer-form-actions">
+                    <button
+                      type="button"
+                      className="cd-reachout-offer-cancel"
+                      disabled={isSendingOffer}
+                      onClick={() => { setOfferFormArtworkId(null); setOfferFinalPrice(''); }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="cd-reachout-offer-submit"
+                      disabled={isSendingOffer || !offerFinalPrice.trim()}
+                      onClick={() => void handleSubmitOffer(card)}
+                    >
+                      {isSendingOffer ? 'Sending…' : 'Send offer to buyer'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </React.Fragment>
+          );
+        });
+
+        if (artworkCards.length === 1) {
+          return <>{cardNodes}</>;
+        }
+
+        return (
+          <div className="cd-cards-drawer">
+            <button
+              type="button"
+              className="cd-cards-drawer-toggle"
+              onClick={() => setCardsExpanded((p) => !p)}
+              aria-expanded={cardsExpanded}
+            >
+              <span className="cd-cards-drawer-toggle-label">
+                {`${artworkCards.length} artworks`}
+                {acceptedArtworkIds.size > 0 && (
+                  <span className="cd-cards-drawer-accepted-badge">
+                    {acceptedArtworkIds.size} accepted
+                  </span>
+                )}
+              </span>
+              <svg
+                className={`cd-cards-drawer-chevron${cardsExpanded ? ' cd-cards-drawer-chevron--open' : ''}`}
+                width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                aria-hidden
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {cardsExpanded && (
+              <div className="cd-cards-drawer-body">{cardNodes}</div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Messages */}
       <div className="cd-chat-messages" ref={listRef}>
         {hasMore && (
@@ -467,8 +773,59 @@ const ChatView: React.FC<{
                 <React.Fragment key={msg.id}>
                   {divider && <div className="cd-chat-divider">{divider}</div>}
                   <div className={`cd-bubble-wrapper ${isMine ? 'cd-bubble-wrapper-mine' : ''}`}>
-                    <div className={`cd-bubble ${isMine ? 'cd-bubble-mine' : 'cd-bubble-theirs'}`}>
-                      {msg.artworkId && msg.artworkTitle && (
+                    <div className={`cd-bubble ${isMine ? 'cd-bubble-mine' : 'cd-bubble-theirs'}${msg.messageType === 'reachout_offer' ? ' cd-bubble-offer' : ''}`}>
+                      {msg.messageType === 'reachout_offer' && (
+                        <div className="cd-offer-card">
+                          <p className="cd-offer-card-title">Price offer</p>
+                          {msg.offerStatus === 'accepted' && (
+                            <span className="cd-offer-card-status">Accepted</span>
+                          )}
+                          <ul className="cd-offer-card-details">
+                            <li>
+                              <span>Artwork</span>
+                              <strong>{msg.artworkTitle || '—'}</strong>
+                            </li>
+                            <li>
+                              <span>Final price</span>
+                              <strong>₹{msg.offerFinalPrice || '—'}</strong>
+                            </li>
+                          </ul>
+                          {appUser?.role === 'buyer' &&
+                            msg.offerStatus !== 'accepted' &&
+                            !acceptedArtworkIds.has(msg.artworkId ?? '') &&
+                            !isMine && (
+                              <button
+                                type="button"
+                                className="cd-offer-accept-btn"
+                                disabled={acceptingOfferId === msg.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOfferAcceptMsgId(msg.id);
+                                  setShowPaymentConfirm(false);
+                                }}
+                              >
+                                Accept offer
+                              </button>
+                            )}
+                        </div>
+                      )}
+                      {msg.messageType === 'address_card' && (
+                        <div className="cd-address-card">
+                          <span className="cd-address-card-label">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            Delivery address
+                          </span>
+                          {msg.addressName && <span className="cd-address-card-name">{msg.addressName}</span>}
+                          <span className="cd-address-card-lines">
+                            {[msg.addressLine1, msg.addressLine2].filter(Boolean).join(', ')}
+                          </span>
+                          <span className="cd-address-card-lines">
+                            {[msg.addressCity, msg.addressPincode].filter(Boolean).join(' – ')}
+                          </span>
+                          {msg.addressPhone && <span className="cd-address-card-phone">{msg.addressPhone}</span>}
+                        </div>
+                      )}
+                      {msg.messageType !== 'reachout_offer' && msg.messageType !== 'address_card' && msg.artworkId && msg.artworkTitle && (
                         <div className="cd-message-artwork-banner">
                           <div className="cd-message-artwork-image">
                             <img src={msg.artworkImage || '/logo.jpeg'} alt={msg.artworkTitle} />
@@ -503,7 +860,7 @@ const ChatView: React.FC<{
                           </button>
                         </div>
                       )}
-                      {Boolean(msg.text?.trim()) && (
+                      {Boolean(msg.text?.trim()) && msg.messageType !== 'reachout_offer' && msg.messageType !== 'address_card' && (
                         <p className="cd-bubble-text">{renderMessageText(msg.text)}</p>
                       )}
                       <span className="cd-bubble-time">{formatMessageTime(msg.createdAt)}</span>
@@ -616,6 +973,183 @@ const ChatView: React.FC<{
         </div>
         </div>
       </footer>
+
+      {/* Accept offer modal — same flow as commission chat */}
+      {offerAcceptMsgId && (() => {
+        const UPI_ID = '9640557113@ptsbi';
+        const offerMsg = messages.find((m) => m.id === offerAcceptMsgId);
+        const advanceAmount = offerMsg?.offerFinalPrice || '';
+        const upiUri = `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art${advanceAmount ? `&am=${advanceAmount}` : ''}&cu=INR`;
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const addressComplete =
+          buyerAddressForm.name.trim() !== '' &&
+          buyerAddressForm.line1.trim() !== '' &&
+          buyerAddressForm.city.trim() !== '' &&
+          buyerAddressForm.pincode.trim() !== '' &&
+          buyerAddressForm.phone.trim() !== '';
+        return createPortal(
+          <div
+            className="confirm-modal-overlay"
+            role="presentation"
+            style={{ zIndex: 10002 }}
+            onClick={() => { if (!acceptingOfferId) setOfferAcceptMsgId(null); }}
+          >
+            <div
+              className="confirm-modal-content commission-accept-offer-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cd-accept-offer-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="commission-accept-offer-close"
+                aria-label="Close"
+                disabled={Boolean(acceptingOfferId)}
+                onClick={() => { setOfferAcceptMsgId(null); setShowPaymentConfirm(false); }}
+              >
+                ×
+              </button>
+              <h2 id="cd-accept-offer-title" className="confirm-modal-title">Accept offer</h2>
+              <p className="confirm-modal-message">
+                Once you accept, the artist will be notified and can begin working on your piece.
+              </p>
+
+              <div className="commission-accept-address-form">
+                <p className="commission-accept-address-form-title">Delivery address</p>
+                <input type="text" className="commission-accept-address-input" placeholder="Full name"
+                  value={buyerAddressForm.name} onChange={(e) => setBuyerAddressForm((p) => ({ ...p, name: e.target.value }))} disabled={Boolean(acceptingOfferId)} />
+                <input type="text" className="commission-accept-address-input" placeholder="Flat / House / Building"
+                  value={buyerAddressForm.line1} onChange={(e) => setBuyerAddressForm((p) => ({ ...p, line1: e.target.value }))} disabled={Boolean(acceptingOfferId)} />
+                <input type="text" className="commission-accept-address-input" placeholder="Street / Area / Locality"
+                  value={buyerAddressForm.line2} onChange={(e) => setBuyerAddressForm((p) => ({ ...p, line2: e.target.value }))} disabled={Boolean(acceptingOfferId)} />
+                <div className="commission-accept-address-row">
+                  <input type="text" className="commission-accept-address-input" placeholder="City"
+                    value={buyerAddressForm.city} onChange={(e) => setBuyerAddressForm((p) => ({ ...p, city: e.target.value }))} disabled={Boolean(acceptingOfferId)} />
+                  <input type="text" className="commission-accept-address-input" placeholder="Pincode"
+                    value={buyerAddressForm.pincode} onChange={(e) => setBuyerAddressForm((p) => ({ ...p, pincode: e.target.value }))} disabled={Boolean(acceptingOfferId)} />
+                </div>
+                <input type="tel" className="commission-accept-address-input" placeholder="Phone number"
+                  value={buyerAddressForm.phone} onChange={(e) => setBuyerAddressForm((p) => ({ ...p, phone: e.target.value }))} disabled={Boolean(acceptingOfferId)} />
+              </div>
+
+              <div className="commission-accept-offer-payment">
+                <p className="commission-accept-offer-payment-label">Pay advance and accept</p>
+                {advanceAmount && <div className="commission-accept-offer-amount">₹{advanceAmount}</div>}
+                <p className="commission-accept-offer-upiid">UPI ID: <strong>{UPI_ID}</strong></p>
+                {isMobile ? (
+                  <a href={upiUri} className="button button-primary commission-accept-offer-upi-btn">Open UPI App to Pay</a>
+                ) : (
+                  <div className="commission-accept-offer-qr">
+                    <QRCodeSVG value={upiUri} size={180} />
+                    <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
+                  </div>
+                )}
+              </div>
+
+              {!addressComplete && (
+                <p className="commission-accept-address-required-hint">* Fill in all address fields to continue</p>
+              )}
+
+              {showPaymentConfirm ? (
+                <div className="commission-make-payment-confirm-block">
+                  <p className="commission-payment-confirm-tooltip-q">Have you made the payment?</p>
+                  <div className="confirm-modal-actions confirm-modal-actions--row">
+                    <button type="button" className="confirm-modal-btn confirm-modal-btn-cancel"
+                      disabled={Boolean(acceptingOfferId)} onClick={() => setShowPaymentConfirm(false)}>
+                      No
+                    </button>
+                    <button type="button" className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                      disabled={Boolean(acceptingOfferId)} onClick={() => void handleConfirmAccept()}>
+                      <span className="commission-hire-tooltip-confirm-inner">
+                        {acceptingOfferId && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
+                        {acceptingOfferId ? 'Please wait…' : 'Yes'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="confirm-modal-actions confirm-modal-actions--row">
+                  <button type="button" className="confirm-modal-btn confirm-modal-btn-cancel"
+                    disabled={Boolean(acceptingOfferId)} onClick={() => { setOfferAcceptMsgId(null); setShowPaymentConfirm(false); }}>
+                    Cancel
+                  </button>
+                  <button type="button" className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                    disabled={Boolean(acceptingOfferId) || !addressComplete}
+                    title={!addressComplete ? 'Please fill in all address fields' : undefined}
+                    onClick={() => setShowPaymentConfirm(true)}>
+                    Accept
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        );
+      })()}
+
+      {/* Make shipment modal */}
+      {makeShipmentCard && createPortal(
+        <div
+          className="confirm-modal-overlay"
+          role="presentation"
+          style={{ zIndex: 10002 }}
+          onClick={() => { if (!makeShipmentBusy) setMakeShipmentCard(null); }}
+        >
+          <div
+            className="confirm-modal-content commission-make-payment-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cd-make-shipment-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="commission-accept-offer-close"
+              aria-label="Close"
+              disabled={makeShipmentBusy}
+              onClick={() => setMakeShipmentCard(null)}
+            >
+              ×
+            </button>
+            <h2 id="cd-make-shipment-title" className="confirm-modal-title">Make Shipment</h2>
+            <p className="confirm-modal-message">
+              Enter the tracking ID for <strong>{makeShipmentCard.artworkTitle}</strong>.
+            </p>
+            <input
+              type="text"
+              className="commission-accept-address-input"
+              placeholder="Tracking ID (e.g. DTDC1234567890)"
+              value={trackingInput}
+              disabled={makeShipmentBusy}
+              onChange={(e) => setTrackingInput(e.target.value)}
+              style={{ marginTop: '0.75rem' }}
+            />
+            <div className="confirm-modal-actions confirm-modal-actions--row" style={{ marginTop: '1.25rem' }}>
+              <button
+                type="button"
+                className="confirm-modal-btn confirm-modal-btn-cancel"
+                disabled={makeShipmentBusy}
+                onClick={() => setMakeShipmentCard(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                disabled={makeShipmentBusy || !trackingInput.trim()}
+                onClick={() => void handleConfirmShipment()}
+              >
+                <span className="commission-hire-tooltip-confirm-inner">
+                  {makeShipmentBusy && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
+                  {makeShipmentBusy ? 'Shipping…' : 'Confirm'}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
@@ -633,6 +1167,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
   const [activeContact, setActiveContact] = useState<ChatContact | null>(null);
   const [isClosing, setIsClosing] = useState(false);
   const isClosingRef = useRef(false);
+  const [layoutHeaderHeight, setLayoutHeaderHeight] = useState(0);
 
   const activeChatId = activeContact && appUser
     ? getChatId(appUser.uid, activeContact.uid)
@@ -724,6 +1259,29 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
     };
   }, [isOpen]);
 
+  // Keep the drawer header height visually aligned with the Layout header.
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    const layoutHeaderEl = document.querySelector('.layout-header') as HTMLElement | null;
+    if (!layoutHeaderEl) return;
+
+    const update = () => {
+      const h = Math.round(layoutHeaderEl.getBoundingClientRect().height);
+      if (Number.isFinite(h) && h > 0) setLayoutHeaderHeight(h);
+    };
+
+    update();
+
+    const ro = new ResizeObserver(() => update());
+    ro.observe(layoutHeaderEl);
+    window.addEventListener('resize', update);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, [isOpen]);
+
   const handleBack = () => {
     if (initialContact) {
       closeDrawer();
@@ -752,6 +1310,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
       <aside
         className={`cd-drawer ${showingChat && showListPanel ? 'cd-drawer-expanded' : ''} ${isClosing ? 'cd-drawer-closing' : ''}`}
         onClick={(e) => e.stopPropagation()}
+        style={{
+          ['--cd-layout-header-height' as any]: layoutHeaderHeight ? `${layoutHeaderHeight}px` : undefined,
+        }}
         role="dialog"
         aria-label="Messages"
       >

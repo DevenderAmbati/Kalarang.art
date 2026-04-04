@@ -150,6 +150,12 @@ export default function ArtistLanding() {
       description:
         "Track views, likes, and engagement on your published work. Understand your audience and refine your strategy (coming soon).",
     },
+    {
+      title: "Commission Artwork Management",
+      icon: MdChat,
+      description:
+        "Apply to commission requests from buyers, discuss requirements, and deliver custom artwork through direct collaboration.",
+    },
   ];
 
   const buyerFeatures = [

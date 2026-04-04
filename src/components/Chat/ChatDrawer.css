@@ -66,6 +66,8 @@
   border-bottom: 1px solid rgba(47, 164, 169, 0.2);
   box-shadow: 0 4px 16px rgba(47, 164, 169, 0.15);
   flex-shrink: 0;
+  box-sizing: border-box;
+  min-height: var(--cd-layout-header-height, 0px);
 }
 
 .cd-drawer-title {
@@ -629,6 +631,566 @@
   white-space: nowrap;
 }
 
+/* ================================================
+   Artwork cards collapsible drawer
+   ================================================ */
+
+.cd-cards-drawer {
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(47, 164, 169, 0.18);
+  background: var(--color-bg-light);
+}
+
+.cd-cards-drawer-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.cd-cards-drawer-toggle:hover {
+  background: var(--primary-alpha-10);
+}
+
+.cd-cards-drawer-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cd-cards-drawer-accepted-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 20px;
+  background: rgba(47, 164, 169, 0.12);
+  color: var(--color-primary);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.cd-cards-drawer-chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.cd-cards-drawer-chevron--open {
+  transform: rotate(180deg);
+}
+
+.cd-cards-drawer-body {
+  padding-bottom: 0.5rem;
+  overflow: hidden;
+}
+
+/* ================================================
+   Reach-out context card — mirrors commission chat design exactly
+   ================================================ */
+
+.cd-reachout-context-card {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  margin: 0.4rem 0.8rem 0;
+  padding: 0.45rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-light);
+  box-shadow: var(--commission-card-shadow);
+  flex-shrink: 0;
+}
+
+.cd-reachout-context-card--locked {
+  background: rgba(47, 164, 169, 0.06);
+  border-color: rgba(47, 164, 169, 0.3);
+}
+
+.cd-reachout-context-card img {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.cd-reachout-context-stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.cd-reachout-context-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.cd-reachout-context-label {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.cd-reachout-context-title {
+  margin: 0.1rem 0 0;
+  font-size: 0.84rem;
+  color: var(--color-royal);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cd-reachout-hire-btn {
+  flex-shrink: 0;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  line-height: 1.25;
+  border-radius: 10px;
+  border: 2px solid var(--color-primary);
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+}
+
+.cd-reachout-hire-btn:hover:not(:disabled) {
+  background: var(--primary-alpha-10);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.cd-reachout-hire-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+
+/* Offer form — mirrors commission-chat-offer-form */
+.cd-reachout-offer-form {
+  margin: 0 0.8rem 0.5rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-white);
+  box-shadow: var(--commission-card-shadow);
+  flex-shrink: 0;
+}
+
+.cd-reachout-offer-form-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-royal);
+}
+
+.cd-reachout-offer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.cd-reachout-offer-field input {
+  padding: 0.42rem 0.6rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  background: var(--color-bg-light);
+  color: var(--color-text-dark);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.cd-reachout-offer-field input:focus {
+  border-color: var(--color-accent, #2fa4a9);
+  box-shadow: 0 0 0 2px var(--color-focus-glow);
+}
+
+.cd-reachout-offer-form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.35rem;
+}
+
+.cd-reachout-offer-cancel {
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--color-border-light);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.cd-reachout-offer-cancel:hover:not(:disabled) {
+  background: var(--color-bg-light);
+}
+
+.cd-reachout-offer-submit {
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--color-primary, #2fa4a9);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.cd-reachout-offer-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Address card message */
+.cd-address-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 180px;
+}
+
+.cd-address-card-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.72;
+  margin-bottom: 0.15rem;
+}
+
+.cd-address-card-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.cd-address-card-lines {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  opacity: 0.9;
+}
+
+.cd-address-card-phone {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin-top: 0.15rem;
+}
+
+/* Offer message bubble — mirrors commission-chat-bubble--offer */
+.cd-bubble-offer {
+  min-width: min(100%, 220px);
+}
+
+.cd-offer-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.cd-offer-card-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-royal);
+}
+
+.cd-bubble-mine .cd-offer-card-title {
+  color: #fff;
+}
+
+.cd-offer-card-status {
+  align-self: flex-start;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: var(--color-accent, #2fa4a9);
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+}
+
+.cd-offer-card-details {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.cd-offer-card-details li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding-bottom: 0.3rem;
+}
+
+.cd-offer-card-details li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.cd-offer-card-details span {
+  color: var(--color-text-muted);
+}
+
+.cd-offer-card-details strong {
+  color: var(--color-text-dark);
+  font-weight: 600;
+}
+
+.cd-bubble-mine .cd-offer-card-details li {
+  border-bottom-color: rgba(255, 255, 255, 0.25);
+}
+
+.cd-bubble-mine .cd-offer-card-details span {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.cd-bubble-mine .cd-offer-card-details strong {
+  color: #1a1a1a;
+}
+
+.cd-offer-accept-btn {
+  margin-top: 0.25rem;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: var(--color-primary, #2fa4a9);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.cd-offer-accept-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.cd-offer-accept-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ================================================
+   Accept-offer modal — shared classes used by the
+   payment/address modal (mirrors Commissions.css)
+   ================================================ */
+
+.commission-accept-offer-modal {
+  position: relative;
+  max-width: 380px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.commission-accept-offer-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--color-text-secondary, #888);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.15s, color 0.15s;
+}
+
+.commission-accept-offer-close:hover { background: rgba(0,0,0,0.06); color: var(--color-text-primary, #111); }
+.commission-accept-offer-close:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Address form */
+.commission-accept-address-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.commission-accept-address-form-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary, #666);
+  margin: 0 0 0.1rem;
+}
+
+.commission-accept-address-input {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--color-border-light, #e5e7eb);
+  border-radius: 7px;
+  background: var(--color-surface, #fff);
+  color: var(--color-text-primary, #111);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.commission-accept-address-input:focus { border-color: var(--color-primary, #2fa4a9); }
+.commission-accept-address-input:disabled { opacity: 0.6; }
+
+.commission-accept-address-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.commission-accept-address-required-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #888);
+  margin: 0.75rem 0 0.15rem;
+  text-align: center;
+}
+
+/* Payment section */
+.commission-accept-offer-payment {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1.25rem 1rem 1rem;
+  margin-top: 0.5rem;
+  background: rgba(47, 164, 169, 0.06);
+  border: 1px solid rgba(47, 164, 169, 0.18);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.commission-accept-offer-payment-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-primary, #2fa4a9);
+  margin: 0;
+}
+
+.commission-accept-offer-amount {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--color-text-primary, #111);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.commission-accept-offer-upiid {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #555);
+  margin: 0;
+}
+
+.commission-accept-offer-upi-btn {
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+  margin-top: 0.4rem;
+  padding: 0.65rem 1rem;
+}
+
+.commission-accept-offer-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.75rem;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-light, #e5e7eb);
+  margin-top: 0.15rem;
+}
+
+.commission-accept-offer-qr-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #666);
+  margin: 0;
+}
+
+/* Payment confirmation block */
+.commission-make-payment-confirm-block {
+  margin-top: 1rem;
+}
+
+.commission-payment-confirm-tooltip-q {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #111);
+  margin: 0 0 0.65rem;
+  text-align: center;
+}
+
+.commission-hire-tooltip-confirm-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+/* Spinner (shared) */
+@keyframes cdInlineSpinnerSpin { to { transform: rotate(360deg); } }
+
+.commission-inline-spinner {
+  display: inline-block;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: cdInlineSpinnerSpin 0.65s linear infinite;
+  vertical-align: -0.12em;
+  flex-shrink: 0;
+}
+
+.commission-inline-spinner--outline {
+  border-color: rgba(47,164,169,0.35);
+  border-top-color: var(--color-accent, #2fa4a9);
+}
+
 .cd-emoji-picker-wrapper {
   position: absolute;
   bottom: 100%;
@@ -816,7 +1378,6 @@
   display: block;
   width: 100%;
   height: auto;
-  vertical-align: middle;
   max-height: 320px;
   object-fit: contain;
   background: rgba(0, 0, 0, 0.06);
