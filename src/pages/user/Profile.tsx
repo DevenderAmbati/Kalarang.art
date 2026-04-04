@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { logout, deleteAccount } from '../../services/authService';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { getUserStats, getFollowersList, getFollowingList } from '../../services/userService';
+import { getUserStats, getFollowersList, getFollowingList, updateUserProfile } from '../../services/userService';
 import { unfollowArtist } from '../../services/interactionService';
 import FollowersModal from '../../components/Modals/FollowersModal';
 import ConfirmModal from '../../components/Modals/ConfirmModal';
@@ -58,6 +58,11 @@ const Profile: React.FC = () => {
     isLoading: boolean;
   }>({ isOpen: false, type: 'followers', users: [], isLoading: false });
 
+  // UPI ID state
+  const [upiId, setUpiId] = useState(appUser?.upiId || '');
+  const [isEditingUpi, setIsEditingUpi] = useState(false);
+  const [isSavingUpi, setIsSavingUpi] = useState(false);
+
   // Load user stats
   useEffect(() => {
     const loadStats = async () => {
@@ -70,6 +75,13 @@ const Profile: React.FC = () => {
     };
     loadStats();
   }, [appUser?.uid]);
+
+  // Sync UPI ID from appUser
+  useEffect(() => {
+    if (appUser?.upiId !== undefined) {
+      setUpiId(appUser.upiId);
+    }
+  }, [appUser?.upiId]);
 
   useEffect(() => {
     if (!ordersOpen || !appUser?.uid || appUser.role !== 'buyer') return;
@@ -147,6 +159,26 @@ const Profile: React.FC = () => {
     } catch (error) {
       setIsLoggingOut(false);
     }
+  };
+
+  const handleSaveUpi = async () => {
+    if (!appUser?.uid) return;
+    
+    setIsSavingUpi(true);
+    try {
+      await updateUserProfile(appUser.uid, { upiId: upiId.trim() || undefined });
+      setIsEditingUpi(false);
+      toast.success('UPI ID updated successfully');
+    } catch (error) {
+      toast.error('Failed to update UPI ID. Please try again.');
+    } finally {
+      setIsSavingUpi(false);
+    }
+  };
+
+  const handleCancelUpiEdit = () => {
+    setUpiId(appUser?.upiId || '');
+    setIsEditingUpi(false);
   };
 
   const handleSendMessage = async () => {
@@ -822,6 +854,118 @@ const Profile: React.FC = () => {
                   >{reviewSubmitting ? 'Submitting…' : 'Submit'}</button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* UPI ID Section - Only for Artists */}
+          {appUser?.role === 'artist' && (
+            <div style={styles.supportSection}>
+              <div style={styles.supportHeader}>
+                <span style={styles.supportLabel}>💳 UPI ID (for Payments)</span>
+              </div>
+              <p style={styles.supportDescription}>
+                Add your UPI ID to receive payments for commissions and artwork sales
+              </p>
+              {isEditingUpi ? (
+                <>
+                  <input
+                    type="text"
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
+                    placeholder="Enter your UPI ID (Paytm, PhonePe or GPay)"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      fontSize: '0.95rem',
+                      border: '1.5px solid var(--color-border-light)',
+                      borderRadius: '8px',
+                      outline: 'none',
+                      transition: 'all 0.2s ease',
+                      background: 'var(--color-bg-card)',
+                      color: 'var(--color-text-primary)',
+                      marginBottom: '0.75rem',
+                      boxSizing: 'border-box' as const,
+                    }}
+                    disabled={isSavingUpi}
+                  />
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={handleCancelUpiEdit}
+                      disabled={isSavingUpi}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        color: 'var(--color-text-secondary)',
+                        background: 'transparent',
+                        border: '1px solid var(--color-border-light)',
+                        borderRadius: '8px',
+                        cursor: isSavingUpi ? 'not-allowed' : 'pointer',
+                        opacity: isSavingUpi ? 0.6 : 1,
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveUpi}
+                      disabled={isSavingUpi}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        color: '#fff',
+                        background: 'var(--gradient-primary)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: isSavingUpi ? 'not-allowed' : 'pointer',
+                        opacity: isSavingUpi ? 0.6 : 1,
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {isSavingUpi ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{
+                    padding: '0.75rem',
+                    background: 'var(--color-bg-secondary)',
+                    borderRadius: '8px',
+                    marginBottom: '0.75rem',
+                    fontSize: '0.95rem',
+                    color: upiId ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                    fontFamily: upiId ? 'monospace' : 'inherit',
+                  }}>
+                    {upiId || 'Not set'}
+                  </div>
+                  <button
+                    onClick={() => setIsEditingUpi(true)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      color: '#fff',
+                      background: 'var(--gradient-primary)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(47, 164, 169, 0.3)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    {upiId ? 'Edit UPI ID' : 'Add UPI ID'}
+                  </button>
+                </>
+              )}
             </div>
           )}
 

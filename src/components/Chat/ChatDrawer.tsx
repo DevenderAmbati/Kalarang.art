@@ -213,6 +213,7 @@ const ChatView: React.FC<{
   // Per-artwork independent state
   const [offerFormArtworkId, setOfferFormArtworkId] = useState<string | null>(null);
   const [offerFinalPrice, setOfferFinalPrice] = useState('');
+  const [offerDeliveryDate, setOfferDeliveryDate] = useState('');
   const [sendingOfferArtworkId, setSendingOfferArtworkId] = useState<string | null>(null);
   const [makeShipmentCard, setMakeShipmentCard] = useState<ReachOutMetadata | null>(null);
   const [trackingInput, setTrackingInput] = useState('');
@@ -221,6 +222,8 @@ const ChatView: React.FC<{
   const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
   const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
   const [buyerAddressForm, setBuyerAddressForm] = useState({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
+  const [artistUpiId, setArtistUpiId] = useState<string | null>(null);
+  const [fetchingArtistUpi, setFetchingArtistUpi] = useState(false);
 
   // Set of artworkIds that already have an accepted offer —
   // includes both accepted reachout_offer messages AND Buy Now purchases (from acceptedOffers on chat doc)
@@ -289,6 +292,40 @@ const ChatView: React.FC<{
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showEmojiPicker]);
+
+  // Fetch artist UPI ID when offer acceptance modal opens
+  useEffect(() => {
+    if (offerAcceptMsgId && contact?.uid) {
+      setFetchingArtistUpi(true);
+      getUserProfile(contact.uid)
+        .then((profile) => {
+          setArtistUpiId(profile?.upiId || null);
+          
+          // Send notification if UPI ID is not set
+          if ((!profile?.upiId || profile.upiId.trim() === '') && appUser) {
+            createNotification(
+              contact.uid,
+              'payment_failed_no_upi',
+              appUser.uid,
+              appUser.name || 'A buyer',
+              appUser.avatar,
+              reachOutMetadata?.artworkId,
+              reachOutMetadata?.artworkTitle
+            ).catch(() => {}); // Silent fail
+          }
+        })
+        .catch(() => {
+          setArtistUpiId(null);
+        })
+        .finally(() => {
+          setFetchingArtistUpi(false);
+        });
+    } else {
+      setArtistUpiId(null);
+      setFetchingArtistUpi(false);
+    }
+  }, [offerAcceptMsgId, contact?.uid, appUser, reachOutMetadata]);
+
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const prevLastIdRef = useRef<string | null>(null);
@@ -460,6 +497,7 @@ const ChatView: React.FC<{
         card.artworkTitle,
         card.artworkImage,
         fp,
+        offerDeliveryDate || undefined,
       );
       createNotification(
         contact.uid,
@@ -476,11 +514,19 @@ const ChatView: React.FC<{
       ).catch(() => {});
       setOfferFormArtworkId(null);
       setOfferFinalPrice('');
+      setOfferDeliveryDate('');
     } catch {
       // ignore
     } finally {
       setSendingOfferArtworkId(null);
     }
+  };
+
+  const formatOfferDeliveryLabel = (iso: string | undefined): string => {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso.trim())) return iso || '—';
+    const [y, m, d] = iso.trim().split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    return dt.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   const handleConfirmAccept = async () => {
@@ -665,6 +711,18 @@ const ChatView: React.FC<{
               {isFormOpen && !showShipmentBtn && appUser?.role === 'artist' && (
                 <div className="cd-reachout-offer-form">
                   <p className="cd-reachout-offer-form-title">Your offer</p>
+                  <p className="cd-reachout-offer-form-note">
+                    💡 Include delivery charges in the total price. Add shipping days to your delivery date.
+                  </p>
+                  <label className="cd-reachout-offer-field">
+                    <span>Delivery date</span>
+                    <input
+                      type="date"
+                      value={offerDeliveryDate}
+                      onChange={(e) => setOfferDeliveryDate(e.target.value)}
+                      disabled={isSendingOffer}
+                    />
+                  </label>
                   <label className="cd-reachout-offer-field">
                     <span>Final price (₹)</span>
                     <input
@@ -682,7 +740,7 @@ const ChatView: React.FC<{
                       type="button"
                       className="cd-reachout-offer-cancel"
                       disabled={isSendingOffer}
-                      onClick={() => { setOfferFormArtworkId(null); setOfferFinalPrice(''); }}
+                      onClick={() => { setOfferFormArtworkId(null); setOfferFinalPrice(''); setOfferDeliveryDate(''); }}
                     >
                       Cancel
                     </button>
@@ -715,11 +773,7 @@ const ChatView: React.FC<{
             >
               <span className="cd-cards-drawer-toggle-label">
                 {`${artworkCards.length} artworks`}
-                {acceptedArtworkIds.size > 0 && (
-                  <span className="cd-cards-drawer-accepted-badge">
-                    {acceptedArtworkIds.size} accepted
-                  </span>
-                )}
+        
               </span>
               <svg
                 className={`cd-cards-drawer-chevron${cardsExpanded ? ' cd-cards-drawer-chevron--open' : ''}`}
@@ -785,6 +839,12 @@ const ChatView: React.FC<{
                               <span>Artwork</span>
                               <strong>{msg.artworkTitle || '—'}</strong>
                             </li>
+                            {msg.offerDeliveryDate && (
+                              <li>
+                                <span>Delivery</span>
+                                <strong>{formatOfferDeliveryLabel(msg.offerDeliveryDate)}</strong>
+                              </li>
+                            )}
                             <li>
                               <span>Final price</span>
                               <strong>₹{msg.offerFinalPrice || '—'}</strong>
@@ -976,10 +1036,10 @@ const ChatView: React.FC<{
 
       {/* Accept offer modal — same flow as commission chat */}
       {offerAcceptMsgId && (() => {
-        const UPI_ID = '9640557113@ptsbi';
+        const UPI_ID = artistUpiId || null;
         const offerMsg = messages.find((m) => m.id === offerAcceptMsgId);
         const advanceAmount = offerMsg?.offerFinalPrice || '';
-        const upiUri = `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art${advanceAmount ? `&am=${advanceAmount}` : ''}&cu=INR`;
+        const upiUri = UPI_ID ? `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art${advanceAmount ? `&am=${advanceAmount}` : ''}&cu=INR` : '';
         const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         const addressComplete =
           buyerAddressForm.name.trim() !== '' &&
@@ -1033,19 +1093,30 @@ const ChatView: React.FC<{
                   value={buyerAddressForm.phone} onChange={(e) => setBuyerAddressForm((p) => ({ ...p, phone: e.target.value }))} disabled={Boolean(acceptingOfferId)} />
               </div>
 
-              <div className="commission-accept-offer-payment">
-                <p className="commission-accept-offer-payment-label">Pay advance and accept</p>
-                {advanceAmount && <div className="commission-accept-offer-amount">₹{advanceAmount}</div>}
-                <p className="commission-accept-offer-upiid">UPI ID: <strong>{UPI_ID}</strong></p>
-                {isMobile ? (
-                  <a href={upiUri} className="button button-primary commission-accept-offer-upi-btn">Open UPI App to Pay</a>
-                ) : (
-                  <div className="commission-accept-offer-qr">
-                    <QRCodeSVG value={upiUri} size={180} />
-                    <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
-                  </div>
-                )}
-              </div>
+              {fetchingArtistUpi ? (
+                <div className="commission-accept-offer-payment">
+                  <p className="commission-accept-offer-payment-label">Loading payment details...</p>
+                </div>
+              ) : !UPI_ID ? (
+                <div className="commission-accept-offer-payment">
+                  <p className="commission-accept-offer-payment-label" style={{ color: 'var(--color-error, #dc2626)' }}>⚠️ Payment Not Available</p>
+                  <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem', textAlign: 'center' }}>The artist hasn't set up their UPI ID yet. Please ask them to add it in their profile.</p>
+                </div>
+              ) : (
+                <div className="commission-accept-offer-payment">
+                  <p className="commission-accept-offer-payment-label">Pay advance and accept</p>
+                  {advanceAmount && <div className="commission-accept-offer-amount">₹{advanceAmount}</div>}
+                  <p className="commission-accept-offer-upiid">UPI ID: <strong>{UPI_ID}</strong></p>
+                  {isMobile ? (
+                    <a href={upiUri} className="button button-primary commission-accept-offer-upi-btn">Open UPI App to Pay</a>
+                  ) : (
+                    <div className="commission-accept-offer-qr">
+                      <QRCodeSVG value={upiUri} size={180} />
+                      <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {!addressComplete && (
                 <p className="commission-accept-address-required-hint">* Fill in all address fields to continue</p>
@@ -1075,8 +1146,8 @@ const ChatView: React.FC<{
                     Cancel
                   </button>
                   <button type="button" className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-                    disabled={Boolean(acceptingOfferId) || !addressComplete}
-                    title={!addressComplete ? 'Please fill in all address fields' : undefined}
+                    disabled={Boolean(acceptingOfferId) || !addressComplete || !UPI_ID || fetchingArtistUpi}
+                    title={!addressComplete ? 'Please fill in all address fields' : !UPI_ID ? 'Artist UPI ID not available' : undefined}
                     onClick={() => setShowPaymentConfirm(true)}>
                     Accept
                   </button>

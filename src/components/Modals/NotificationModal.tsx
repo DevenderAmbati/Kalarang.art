@@ -71,6 +71,8 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
         return FaUserPlus({ size: 20, className: 'notification-icon follow' });
       case 'reachout':
         return IoIosChatbubbles({ size: 20, className: 'notification-icon reachout chat' });
+      case 'payment_failed_no_upi':
+        return FaCheckCircle({ size: 20, className: 'notification-icon commission-success' });
       case 'favourite':
         return FaHeart({ size: 20, className: 'notification-icon favourite' });
       case 'like':
@@ -115,6 +117,12 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
           <>
             <strong>{notification.actorName}</strong> reached out for{' '}
             <strong>{notification.artworkTitle}</strong>
+          </>
+        );
+      case 'payment_failed_no_upi':
+        return (
+          <>
+            <strong>{notification.actorName}</strong> tried to make a payment to you but couldn't complete it. Please add your UPI ID in your profile.
           </>
         );
       case 'favourite':

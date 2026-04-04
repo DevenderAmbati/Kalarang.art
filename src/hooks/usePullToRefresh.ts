@@ -83,19 +83,9 @@ export function usePullToRefresh(
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !containerReady) return;
-
-    // Store current values in refs to avoid closure issues
-    const optionsRef = {
-      pullThreshold,
-      maxPullDistance,
-      isEnabled,
-      isRefreshing,
-    };
+    if (!container || !containerReady || !isEnabled) return;
 
     const handleTouchStart = (e: TouchEvent) => {
-      if (!optionsRef.isEnabled) return;
-      
       // Only activate when at the very top
       if (container.scrollTop <= 0) {
         touchStartY.current = e.touches[0].clientY;
@@ -107,7 +97,7 @@ export function usePullToRefresh(
 
     const handleTouchMove = (e: TouchEvent) => {
       // Skip if not at top or refreshing
-      if (touchStartY.current < 0 || optionsRef.isRefreshing) return;
+      if (touchStartY.current < 0 || isRefreshing) return;
       
       // If scrolled away from top, cancel immediately
       if (container.scrollTop > 0) {
@@ -132,11 +122,11 @@ export function usePullToRefresh(
           isPulling.current = true;
           
           const resistance = 0.5;
-          const resistedDistance = Math.min(pullDelta * resistance, optionsRef.maxPullDistance);
+          const resistedDistance = Math.min(pullDelta * resistance, maxPullDistance);
           currentPullDistance.current = resistedDistance;
           
           setPullDistance(resistedDistance);
-          setIsTriggered(resistedDistance >= optionsRef.pullThreshold);
+          setIsTriggered(resistedDistance >= pullThreshold);
         }
       } else if (pullDelta < -5) {
         // User swiping up, cancel pull-to-refresh
@@ -156,7 +146,7 @@ export function usePullToRefresh(
         return;
       }
 
-      if (currentPullDistance.current >= optionsRef.pullThreshold && !optionsRef.isRefreshing) {
+      if (currentPullDistance.current >= pullThreshold && !isRefreshing) {
         performRefresh();
       } else {
         resetPull();

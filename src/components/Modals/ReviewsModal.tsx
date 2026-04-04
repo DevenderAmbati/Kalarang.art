@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { CommissionReview } from '../../services/reviewService';
 import './ReviewsModal.css';
 
@@ -28,7 +29,7 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ isOpen, onClose, reviews, a
   const formatDate = (ts: any) =>
     ts?.toDate?.()?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) ?? '';
 
-  return (
+  return createPortal(
     <div className="reviews-modal-overlay" onClick={handleOverlayClick}>
       <div className="reviews-modal-content">
         <div className="reviews-modal-header">
@@ -92,7 +93,8 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ isOpen, onClose, reviews, a
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -31,7 +31,8 @@ export type NotificationType =
   | 'full_payment_done'       // Artist: buyer confirmed full payment
   | 'commission_shipped'      // Buyer: artist shipped the artwork
   | 'review_received'         // Artist: buyer left a review
-  | 'review_reply';           // Buyer: artist replied to their review
+  | 'review_reply'            // Buyer: artist replied to their review
+  | 'payment_failed_no_upi';  // Artist: buyer tried to pay but UPI ID not set
 
 export interface Notification {
   id: string;

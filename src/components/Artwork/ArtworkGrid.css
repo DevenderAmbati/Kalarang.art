@@ -64,9 +64,13 @@
     grid-template-columns: 1fr !important;
   }
 
-  /* Discover, Published, Favourites: 2 columns on mobile (default) */
+  /* Own Portfolio Published: 1 column on mobile */
+  .artwork-grid-published.artwork-grid-owner {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Discover, Favourites: 2 columns on mobile */
   .artwork-grid-discover,
-  .artwork-grid-published,
   .artwork-grid-favourites {
     grid-template-columns: repeat(2, 1fr) !important;
   }

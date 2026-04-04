@@ -57,6 +57,8 @@ const CreateArtwork: React.FC = () => {
   const [showUploadGuidelinesTooltip, setShowUploadGuidelinesTooltip] = useState(false);
   const uploadGuidelinesRef = useRef<HTMLDivElement>(null);
   const [showDraftModal, setShowDraftModal] = useState(false);
+  const [showUpiRequiredModal, setShowUpiRequiredModal] = useState(false);
+  const [isArtworkPublished, setIsArtworkPublished] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
   // Track Firebase URLs of newly uploaded images (not yet saved to gallery) for potential cleanup
   const uploadedImageUrlsRef = useRef<string[]>([]);
@@ -309,6 +311,7 @@ const CreateArtwork: React.FC = () => {
         }));
         setImages(existingPreviews);
         setSavedArtworkId(editArtworkId);
+        setIsArtworkPublished(artwork.published || false);
       } catch (error) {
         toast.error('Failed to load artwork');
         navigate('/post');
@@ -679,10 +682,62 @@ const CreateArtwork: React.FC = () => {
       return;
     }
 
+    // Validate all required fields before checking savedArtworkId
+    const missingFields: string[] = [];
+    
+    if (images.length === 0) {
+      missingFields.push('at least one image');
+    }
+    if (!formData.title.trim()) {
+      missingFields.push('title');
+    }
+    if (!formData.description.trim()) {
+      missingFields.push('description');
+    }
+    if (!formData.category) {
+      missingFields.push('category');
+    }
+    if (!formData.medium) {
+      missingFields.push('medium');
+    }
+    if (!formData.width) {
+      missingFields.push('width');
+    }
+    if (!formData.height) {
+      missingFields.push('height');
+    }
+    if (!formData.price) {
+      missingFields.push('price');
+    }
+
+    if (missingFields.length > 0) {
+      if (missingFields.length === 1) {
+        toast.error(`Please fill in: ${missingFields[0]}`);
+      } else if (missingFields.length === 2) {
+        toast.error(`Please fill in: ${missingFields.join(' and ')}`);
+      } else {
+        const lastField = missingFields.pop();
+        toast.error(`Please fill in: ${missingFields.join(', ')}, and ${lastField}`);
+      }
+      return;
+    }
+
     if (!savedArtworkId) {
       toast.error('Please save to gallery first');
       return;
     }
+
+    // Check if UPI ID is configured
+    if (!appUser.upiId || appUser.upiId.trim() === '') {
+      setShowUpiRequiredModal(true);
+      return;
+    }
+
+    await executePublish();
+  };
+
+  const executePublish = async () => {
+    if (!appUser || !savedArtworkId) return;
 
     setIsPublishing(true);
 
@@ -690,6 +745,9 @@ const CreateArtwork: React.FC = () => {
       await toggleArtworkPublish(savedArtworkId, true);
 
       toast.success('✅ Published');
+      
+      // Mark artwork as published
+      setIsArtworkPublished(true);
       
       // Invalidate all portfolio caches when publishing
       if (appUser) {
@@ -716,6 +774,7 @@ const CreateArtwork: React.FC = () => {
         isCommissioned: false,
       });
       setSavedArtworkId(null);
+      setIsArtworkPublished(false);
 
       setTimeout(() => {
         navigate('/portfolio');
@@ -1026,13 +1085,12 @@ const CreateArtwork: React.FC = () => {
                     : 'Save to gallery'}
             </button>
             
-            {!formData.isCommissioned && (
+            {!formData.isCommissioned && !hasUnsavedChanges && !isArtworkPublished && (
               <button
                 type="button"
                 className="button button-primary"
                 onClick={handlePublish}
-                disabled={isPublishing || isSaving || !savedArtworkId || !isFormValid || hasUnsavedChanges || images.some(img => img.isUploading)}
-                style={(!savedArtworkId || !isFormValid || hasUnsavedChanges) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                disabled={isPublishing || isSaving || images.some(img => img.isUploading)}
               >
                 {isPublishing ? 'Publishing...' : 'Publish to feature'}
               </button>
@@ -1040,6 +1098,99 @@ const CreateArtwork: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* UPI Required Modal - shown when trying to publish without UPI ID */}
+      {showUpiRequiredModal && (
+        <div 
+          className="confirm-modal-overlay" 
+          onClick={() => setShowUpiRequiredModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+        >
+          <div 
+            className="confirm-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '1.5rem',
+              maxWidth: '360px',
+              width: '90%',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              position: 'relative',
+            }}
+          >
+            {/* Icon */}
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              background: 'rgba(47, 164, 169, 0.1)',
+              color: 'var(--color-accent, #2fa4a9)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem',
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            
+            <h2 style={{ 
+              margin: '0 0 0.75rem', 
+              fontSize: '1.25rem',
+              color: '#1a1a1a',
+              textAlign: 'center',
+            }}>
+              UPI ID Required
+            </h2>
+            <p style={{ 
+              margin: '0 0 1.5rem', 
+              color: '#666666',
+              lineHeight: 1.5,
+              textAlign: 'center',
+            }}>
+              Update your UPI ID in profile so that buyers can directly transfer money to you.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                className="button button-primary"
+                onClick={() => {
+                  saveDraft();
+                  setShowUpiRequiredModal(false);
+                  navigate('/profile');
+                }}
+                style={{ flex: 1 }}
+              >
+                Go to Profile
+              </button>
+              <button
+                className="button button-outline"
+                onClick={async () => {
+                  setShowUpiRequiredModal(false);
+                  await executePublish();
+                }}
+                style={{ flex: 1 }}
+              >
+                Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Draft Save Modal - shown when navigating away with unsaved content */}
       {showDraftModal && (

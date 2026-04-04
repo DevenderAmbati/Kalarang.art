@@ -36,6 +36,7 @@ export interface ChatMessage {
   imageUrl?: string;
   messageType?: 'reachout_offer' | 'address_card';
   offerFinalPrice?: string;
+  offerDeliveryDate?: string;
   offerStatus?: 'pending' | 'accepted';
   addressName?: string;
   addressLine1?: string;
@@ -237,12 +238,13 @@ export async function sendReachOutOfferMessage(
   artworkTitle: string | undefined,
   artworkImage: string | undefined,
   finalPrice: string,
+  deliveryDate?: string,
 ): Promise<void> {
   const fp = finalPrice.trim();
   if (!fp) throw new Error('Please enter a final price.');
 
   const messagesRef = collection(db, 'chats', chatId, 'messages');
-  await addDoc(messagesRef, {
+  const messageData: any = {
     senderId,
     text: `Offer: ₹${fp}`,
     messageType: 'reachout_offer',
@@ -252,7 +254,11 @@ export async function sendReachOutOfferMessage(
     artworkImage: artworkImage || '',
     seenBy: [senderId],
     createdAt: serverTimestamp(),
-  });
+  };
+  if (deliveryDate?.trim()) {
+    messageData.offerDeliveryDate = deliveryDate.trim();
+  }
+  await addDoc(messagesRef, messageData);
 
   const chatRef = doc(db, 'chats', chatId);
   const chatSnap = await getDoc(chatRef);
@@ -363,6 +369,7 @@ export async function getMessages(
     imageUrl: d.data().imageUrl,
     messageType: d.data().messageType,
     offerFinalPrice: d.data().offerFinalPrice,
+    offerDeliveryDate: d.data().offerDeliveryDate,
     offerStatus: d.data().offerStatus,
     addressName: d.data().addressName,
     addressLine1: d.data().addressLine1,

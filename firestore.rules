@@ -83,7 +83,7 @@ service cloud.firestore {
                       resource.data.buyerId == request.auth.uid
                       || (
                         resource.data.hiredArtistId == request.auth.uid
-                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readyToShipImageUrl', 'updatedAt', 'status', 'trackingId'])
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readyToShipImageUrl', 'updatedAt', 'status', 'trackingId', 'isShipped'])
                       )
                     );
       allow delete: if request.auth != null
@@ -138,8 +138,11 @@ service cloud.firestore {
     // For direct reads (new chats): chatId contains user's uid
     match /chats/{chatId} {
       allow read: if request.auth != null
-                  && (request.auth.uid in resource.data.participants
-                      || chatId.split('_').hasAny([request.auth.uid]));
+                  && (
+                    !exists(/databases/$(database)/documents/chats/$(chatId))
+                    || request.auth.uid in resource.data.participants
+                    || chatId.split('_').hasAny([request.auth.uid])
+                  );
       allow create: if request.auth != null
                     && request.auth.uid in request.resource.data.participants
                     && chatId.split('_').hasAny([request.auth.uid]);
@@ -149,7 +152,10 @@ service cloud.firestore {
       // Messages subcollection — participants only, senderId must match auth
       match /messages/{messageId} {
         allow read: if request.auth != null
-                    && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+                    && (
+                      !exists(/databases/$(database)/documents/chats/$(chatId))
+                      || request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+                    );
         allow create: if request.auth != null
                       && request.resource.data.senderId == request.auth.uid
                       && exists(/databases/$(database)/documents/chats/$(chatId))

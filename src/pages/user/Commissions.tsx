@@ -44,6 +44,7 @@ import {
   markCommissionMessagesSeen,
   sendCommissionMessage,
   sendCommissionOfferMessage,
+  sendCommissionAddressCard,
   subscribeCommissionMessages,
   subscribeToUserCommissionChats,
 } from '../../services/commissionChatService';
@@ -260,6 +261,8 @@ const CommissionChatModal: React.FC<{
   const [offerAcceptConfirmAdvance, setOfferAcceptConfirmAdvance] = useState('');
   const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
   const [buyerAddressForm, setBuyerAddressForm] = useState({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
+  const [artistUpiId, setArtistUpiId] = useState<string | null>(null);
+  const [fetchingArtistUpi, setFetchingArtistUpi] = useState(false);
 
   const showClosedCommissionNoticeFooter = Boolean(
     (chatClosed && (chatClosedReason === 'other_hired' || chatClosedReason === 'commission_completed')) ||
@@ -304,7 +307,7 @@ const CommissionChatModal: React.FC<{
     notifyServiceWorkerActiveChatId(null);
   }, [isOpen, chatId]);
 
-  useEffect(() => {
+ useEffect(() => {
     if (!isOpen) {
       setOfferFormOpen(false);
       setOfferDeliveryDate('');
@@ -314,8 +317,30 @@ const CommissionChatModal: React.FC<{
       setOfferAcceptConfirmAdvance('');
       setShowPaymentConfirm(false);
       setBuyerAddressForm({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
+      setArtistUpiId(null);
+      setFetchingArtistUpi(false);
     }
   }, [isOpen]);
+
+  // Fetch artist UPI ID when offer acceptance modal opens
+  useEffect(() => {
+    if (offerAcceptConfirmMessageId && contact?.uid) {
+      setFetchingArtistUpi(true);
+      getUserProfile(contact.uid)
+        .then((profile) => {
+          setArtistUpiId(profile?.upiId || null);
+        })
+        .catch(() => {
+          setArtistUpiId(null);
+        })
+        .finally(() => {
+          setFetchingArtistUpi(false);
+        });
+    } else if (!offerAcceptConfirmMessageId) {
+      setArtistUpiId(null);
+      setFetchingArtistUpi(false);
+    }
+  }, [offerAcceptConfirmMessageId, contact?.uid]);
 
   // Lock body scroll when drawer is open (iOS Safari needs position:fixed trick)
   useEffect(() => {
@@ -808,6 +833,24 @@ const CommissionChatModal: React.FC<{
                               </button>
                             )}
                         </div>
+                      ) : msg.messageType === 'address_card' ? (
+                        <div className="commission-chat-address-card">
+                          <span className="commission-chat-address-card-label">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                              <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0z"/>
+                              <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            Delivery address
+                          </span>
+                          {msg.addressName && <span className="commission-chat-address-card-name">{msg.addressName}</span>}
+                          <span className="commission-chat-address-card-lines">
+                            {[msg.addressLine1, msg.addressLine2].filter(Boolean).join(', ')}
+                          </span>
+                          <span className="commission-chat-address-card-lines">
+                            {[msg.addressCity, msg.addressPincode].filter(Boolean).join(' – ')}
+                          </span>
+                          {msg.addressPhone && <span className="commission-chat-address-card-phone">{msg.addressPhone}</span>}
+                        </div>
                       ) : (
                         <>
                           {msg.imageUrl && (
@@ -923,8 +966,8 @@ const CommissionChatModal: React.FC<{
       </div>
     </div>
     {offerAcceptConfirmMessageId && onAcceptOffer && (() => {
-      const UPI_ID = '9640557113@ptsbi';
-      const upiUri = `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art${offerAcceptConfirmAdvance ? `&am=${offerAcceptConfirmAdvance}` : ''}&cu=INR`;
+      const UPI_ID = artistUpiId || null;
+      const upiUri = UPI_ID ? `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art${offerAcceptConfirmAdvance ? `&am=${offerAcceptConfirmAdvance}` : ''}&cu=INR` : '';
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const addressComplete =
         buyerAddressForm.name.trim() !== '' &&
@@ -1062,7 +1105,7 @@ const CommissionChatModal: React.FC<{
                       if (!id || !onAcceptOffer) return;
                       try {
                         await onAcceptOffer(id);
-                        if (metadata?.artworkId) {
+                        if (metadata?.artworkId && chatId) {
                           const formattedAddress = [
                             buyerAddressForm.name,
                             buyerAddressForm.line1,
@@ -1075,6 +1118,16 @@ const CommissionChatModal: React.FC<{
                             metadata.artworkId,
                             offerAcceptConfirmAdvance,
                             formattedAddress || undefined,
+                          ).catch(() => {});
+                          
+                          // Send address as a card message in the chat
+                          await sendCommissionAddressCard(
+                            chatId,
+                            currentUserId!,
+                            metadata.artworkId,
+                            buyerAddressForm,
+                            metadata.artworkTitle,
+                            metadata.artworkImage,
                           ).catch(() => {});
                         }
                         setShowPaymentConfirm(false);
@@ -1266,6 +1319,10 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
   const [makePaymentOpen, setMakePaymentOpen] = useState(false);
   const [makePaymentConfirm, setMakePaymentConfirm] = useState(false);
   const [makePaymentBusy, setMakePaymentBusy] = useState(false);
+  const [artistUpiIdForPayment, setArtistUpiIdForPayment] = useState<string | null>(null);
+  const [fetchingUpiIdForPayment, setFetchingUpiIdForPayment] = useState(false);
+  const [makePaymentCommissionId, setMakePaymentCommissionId] = useState<string | null>(null);
+  const [makePaymentCommissionTitle, setMakePaymentCommissionTitle] = useState<string | null>(null);
   const [makeShipmentItem, setMakeShipmentItem] = useState<CommissionRequest | null>(null);
   const [trackingInput, setTrackingInput] = useState('');
   const [makeShipmentBusy, setMakeShipmentBusy] = useState(false);
@@ -1362,24 +1419,43 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       return;
     }
 
-    const commissionElement = document.querySelector('.commission-page');
-    if (!commissionElement) {
-      setIsContainerReady(false);
-      return;
-    }
-
-    let parent = commissionElement.parentElement;
-    while (parent) {
-      const style = window.getComputedStyle(parent);
-      if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-        containerRef.current = parent as HTMLElement;
-        setIsContainerReady(true);
+    // Use a slight delay to ensure the DOM is fully rendered
+    const timeoutId = setTimeout(() => {
+      const commissionElement = document.querySelector('.commission-page');
+      if (!commissionElement) {
+        setIsContainerReady(false);
         return;
       }
-      parent = parent.parentElement;
-    }
 
-    setIsContainerReady(false);
+      // First check for main element as it's commonly used for scrolling
+      const mainElement = document.querySelector('main');
+      if (mainElement) {
+        const mainStyle = window.getComputedStyle(mainElement);
+        if (mainStyle.overflowY === 'auto' || mainStyle.overflowY === 'scroll') {
+          containerRef.current = mainElement as HTMLElement;
+          setIsContainerReady(true);
+          return;
+        }
+      }
+
+      // Then check parent hierarchy
+      let parent = commissionElement.parentElement;
+      while (parent && parent !== document.body) {
+        const style = window.getComputedStyle(parent);
+        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+          containerRef.current = parent as HTMLElement;
+          setIsContainerReady(true);
+          return;
+        }
+        parent = parent.parentElement;
+      }
+
+      // Fallback to document.body if no scrollable parent found
+      containerRef.current = document.body as HTMLElement;
+      setIsContainerReady(true);
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
   }, [mode]);
 
   const refreshCommissionLists = useCallback(async () => {
@@ -1483,6 +1559,43 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     const t = setTimeout(() => commissionPostLottieRef.current?.setSpeed?.(2), 50);
     return () => clearTimeout(t);
   }, [isSubmitting]);
+
+  // Fetch artist UPI ID when make payment modal opens (buyer paying final amount to hired artist)
+  useEffect(() => {
+    if (makePaymentOpen && commissionChatMetadata?.hiredArtistId) {
+      setFetchingUpiIdForPayment(true);
+      getUserProfile(commissionChatMetadata.hiredArtistId)
+        .then((profile) => {
+          setArtistUpiIdForPayment(profile?.upiId || null);
+          
+          // Send notification if UPI ID is not set
+          if ((!profile?.upiId || profile.upiId.trim() === '') && appUser && commissionChatMetadata.hiredArtistId && makePaymentCommissionId) {
+            createNotification(
+              commissionChatMetadata.hiredArtistId,
+              'payment_failed_no_upi',
+              appUser.uid,
+              appUser.name || 'A buyer',
+              appUser.avatar,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              makePaymentCommissionId,
+              makePaymentCommissionTitle || undefined
+            ).catch(() => {}); // Silent fail
+          }
+        })
+        .catch(() => {
+          setArtistUpiIdForPayment(null);
+        })
+        .finally(() => {
+          setFetchingUpiIdForPayment(false);
+        });
+    } else if (!makePaymentOpen) {
+      setArtistUpiIdForPayment(null);
+      setFetchingUpiIdForPayment(false);
+    }
+  }, [makePaymentOpen, commissionChatMetadata?.hiredArtistId, appUser, makePaymentCommissionId, makePaymentCommissionTitle]);
 
   useEffect(() => {
     const updateSize = () => setIsDesktop(window.innerWidth >= 1024);
@@ -2191,6 +2304,12 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       }
     } catch {
       // If check fails, allow proceeding
+    }
+
+    // Check if artist has UPI ID configured
+    if (!appUser.upiId || appUser.upiId.trim() === '') {
+      setShowPortfolioRequiredModal(true);
+      return;
     }
 
     setArtistActionBusy({ commissionId: item.id, kind: 'apply' });
@@ -3156,7 +3275,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           )}
 
           {mode === 'list' && (
-            <>
+            <div style={{ position: 'relative' }}>
               <PullToRefreshIndicator
                 pullDistance={pullToRefreshState.pullDistance}
                 isTriggered={pullToRefreshState.isTriggered}
@@ -3539,6 +3658,8 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                                           readyToShipImageUrl: item.readyToShipImageUrl,
                                           fullPaymentDone: item.fullPaymentDone,
                                         });
+                                        setMakePaymentCommissionId(item.id);
+                                        setMakePaymentCommissionTitle(item.title);
                                         if (contact) setCommissionChatContact(contact);
                                         setMakePaymentOpen(true);
                                         setMakePaymentConfirm(false);
@@ -3843,7 +3964,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                 )}
                 </>
               )}
-            </>
+            </div>
           )}
         </div>
 
@@ -4007,10 +4128,16 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                 </svg>
               </div>
               <h2 id="portfolio-required-title" className="confirm-modal-title">
-                Portfolio required to apply
+                Profile incomplete
               </h2>
               <p id="portfolio-required-desc" className="confirm-modal-message">
-                To apply for commissions, you need at least <strong>4 works</strong> in your portfolio — either published or saved to your gallery. This helps buyers validate your style and skills before hiring.
+                To apply for commissions, you need:
+                <br /><br />
+                • At least <strong>4 works</strong> in your portfolio (published or saved to gallery)
+                <br />
+                • <strong>UPI ID</strong> updated in your profile for payment
+                <br /><br />
+                This helps buyers validate your work and ensures smooth payment processing.
               </p>
               <div className="confirm-modal-actions">
                 <button
@@ -4081,11 +4208,11 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       {makePaymentOpen && commissionChatMetadata &&
         createPortal(
           (() => {
-            const UPI_ID = '9640557113@ptsbi';
+            const UPI_ID = artistUpiIdForPayment || null;
             const finalPrice = parseFloat(commissionChatMetadata.agreedFinalPrice || '0');
             const advance = parseFloat(commissionChatMetadata.agreedAdvanceAmount || '0');
             const remaining = Math.max(0, finalPrice - advance);
-            const upiUri = `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art${remaining ? `&am=${remaining}` : ''}&cu=INR`;
+            const upiUri = UPI_ID ? `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art${remaining ? `&am=${remaining}` : ''}&cu=INR` : '';
             const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
             return (
               <div
@@ -4111,19 +4238,32 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                   <p className="confirm-modal-message">
                     Please complete the remaining payment so that the artist can ship your artwork.
                   </p>
-                  {remaining > 0 && (
-                    <div className="commission-make-payment-amount">₹{remaining}</div>
-                  )}
-                  <p className="commission-accept-offer-upiid">UPI ID: <strong>{UPI_ID}</strong></p>
-                  {isMobile ? (
-                    <a href={upiUri} className="button button-primary commission-accept-offer-upi-btn">
-                      Open UPI App to Pay
-                    </a>
-                  ) : (
-                    <div className="commission-accept-offer-qr">
-                      <QRCodeSVG value={upiUri} size={180} />
-                      <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
+                  {fetchingUpiIdForPayment ? (
+                    <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                      Loading payment details...
                     </div>
+                  ) : !UPI_ID ? (
+                    <div style={{ padding: '1rem', textAlign: 'center' }}>
+                      <p style={{ color: 'var(--color-error, #dc2626)', fontWeight: 600, marginBottom: '0.5rem' }}>⚠️ Payment Not Available</p>
+                      <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>The artist hasn't set up their UPI ID yet. Please contact them to add it in their profile.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {remaining > 0 && (
+                        <div className="commission-make-payment-amount">₹{remaining}</div>
+                      )}
+                      <p className="commission-accept-offer-upiid">UPI ID: <strong>{UPI_ID}</strong></p>
+                      {isMobile ? (
+                        <a href={upiUri} className="button button-primary commission-accept-offer-upi-btn">
+                          Open UPI App to Pay
+                        </a>
+                      ) : (
+                        <div className="commission-accept-offer-qr">
+                          <QRCodeSVG value={upiUri} size={180} />
+                          <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
+                        </div>
+                      )}
+                    </>
                   )}
                   {makePaymentConfirm ? (
                     <div className="commission-make-payment-confirm-block">
@@ -4198,7 +4338,8 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                       <button
                         type="button"
                         className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-                        disabled={makePaymentBusy}
+                        disabled={makePaymentBusy || !UPI_ID || fetchingUpiIdForPayment}
+                        title={!UPI_ID ? 'Artist UPI ID not available' : undefined}
                         onClick={() => setMakePaymentConfirm(true)}
                       >Complete</button>
                     </div>
@@ -4523,6 +4664,24 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                       commissionChatMetadata.artworkId,
                       commissionChatMetadata.artworkTitle,
                     ).catch(() => {});
+                    
+                    // Check if artist has UPI ID and send notification if missing
+                    getUserProfile(commissionChatContact.uid)
+                      .then((profile) => {
+                        if (!profile?.upiId || profile.upiId.trim() === '') {
+                          createNotification(
+                            commissionChatContact.uid,
+                            'payment_failed_no_upi',
+                            appUser.uid,
+                            appUser.name || 'A buyer',
+                            appUser.avatar,
+                            undefined, undefined, undefined, undefined,
+                            commissionChatMetadata.artworkId,
+                            commissionChatMetadata.artworkTitle
+                          ).catch(() => {}); // Silent fail
+                        }
+                      })
+                      .catch(() => {}); // Silent fail
                   }
                 } catch {
                   toast.error('Could not accept offer. Please try again.');

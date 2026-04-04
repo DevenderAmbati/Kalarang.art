@@ -56,13 +56,20 @@ export interface CommissionChatMessage {
   /** Uploaded chat image (Storage URL) */
   imageUrl?: string;
   /** Artist-sent commission offer (structured card in chat) */
-  messageType?: 'commission_offer' | string;
+  messageType?: 'commission_offer' | 'address_card' | string;
   offerStatus?: CommissionOfferStatus;
   offerFinalPrice?: string;
   offerAdvanceAmount?: string;
   /** ISO date string (YYYY-MM-DD) */
   offerDeliveryDate?: string;
   acceptedAt?: Timestamp | null;
+  /** Address card fields */
+  addressName?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  addressCity?: string;
+  addressPincode?: string;
+  addressPhone?: string;
 }
 
 export function getCommissionChatId(commissionId: string, uid1: string, uid2: string): string {
@@ -152,6 +159,12 @@ export function subscribeCommissionMessages(
         offerAdvanceAmount: data.offerAdvanceAmount,
         offerDeliveryDate: data.offerDeliveryDate,
         acceptedAt: data.acceptedAt,
+        addressName: data.addressName,
+        addressLine1: data.addressLine1,
+        addressLine2: data.addressLine2,
+        addressCity: data.addressCity,
+        addressPincode: data.addressPincode,
+        addressPhone: data.addressPhone,
       };
     });
     callback(messages);
@@ -336,4 +349,49 @@ export async function closeHiredArtistChatWhenCommissionCompleted(
   };
   patch[`unreadFor.${hiredArtistId}`] = increment(1);
   await updateDoc(chatRef, patch as any);
+}
+
+/** Sends a structured address card message in a commission chat. */
+export async function sendCommissionAddressCard(
+  chatId: string,
+  senderId: string,
+  commissionId: string,
+  address: { name: string; line1: string; line2: string; city: string; pincode: string; phone: string },
+  commissionTitle?: string,
+  commissionImage?: string,
+): Promise<void> {
+  const chatRef = doc(db, 'commissionChats', chatId);
+  const snap = await getDoc(chatRef);
+  if (snap.exists() && Boolean(snap.data().closed)) {
+    throw new Error('This chat is closed.');
+  }
+  const participants = snap.exists() ? ((snap.data().participants as string[]) || []) : [];
+  const otherUserId = participants.find((uid) => uid !== senderId);
+
+  await addDoc(collection(db, 'commissionChats', chatId, 'messages'), {
+    senderId,
+    text: 'Delivery address',
+    messageType: 'address_card',
+    addressName: address.name,
+    addressLine1: address.line1,
+    addressLine2: address.line2,
+    addressCity: address.city,
+    addressPincode: address.pincode,
+    addressPhone: address.phone,
+    seenBy: [senderId],
+    commissionId,
+    commissionTitle: commissionTitle || '',
+    commissionImage: commissionImage || '',
+    createdAt: serverTimestamp(),
+  } as DocumentData);
+
+  const updateData: Record<string, unknown> = {
+    lastMessage: 'Delivery address',
+    updatedAt: serverTimestamp(),
+    [`unreadFor.${senderId}`]: 0,
+  };
+  if (otherUserId) {
+    updateData[`unreadFor.${otherUserId}`] = increment(1);
+  }
+  await updateDoc(chatRef, updateData as any);
 }

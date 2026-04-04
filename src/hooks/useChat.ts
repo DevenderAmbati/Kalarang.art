@@ -154,6 +154,7 @@ export function useChat(
             imageUrl: data.imageUrl,
             messageType: data.messageType,
             offerFinalPrice: data.offerFinalPrice,
+            offerDeliveryDate: data.offerDeliveryDate,
             offerStatus: data.offerStatus,
             addressName: data.addressName,
             addressLine1: data.addressLine1,

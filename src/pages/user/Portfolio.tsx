@@ -185,7 +185,7 @@ const Portfolio: React.FC = () => {
     if (!storyArtwork || !appUser) return;
 
     try {
-      await createStory(
+  await createStory(
         storyArtwork.id,
         appUser.uid,
         storyArtwork.artistName,

@@ -803,6 +803,17 @@
   color: var(--color-royal);
 }
 
+.cd-reachout-offer-form-note {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary, #666);
+  background: rgba(47, 164, 169, 0.06);
+  border-left: 3px solid var(--color-primary, #2fa4a9);
+  border-radius: 4px;
+}
+
 .cd-reachout-offer-field {
   display: flex;
   flex-direction: column;

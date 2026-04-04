@@ -15,9 +15,6 @@ import {
   unfollowArtist,
 } from '../../services/interactionService';
 import { Artwork } from '../../types/artwork';
-import {
-  getArtistArtworks,
-} from '../../services/artworkService';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { toast } from 'react-toastify';
 import artAnimation from '../../animations/no content.json';
@@ -31,7 +28,6 @@ import { usePostSeen } from '../../hooks/usePostSeen';
 import ConfirmModal from '../../components/Modals/ConfirmModal';
 import ArtworkCommentModal from '../../components/Artwork/ArtworkCommentModal';
 import ChatDrawer, { ChatContact, ReachOutMetadata } from '../../components/Chat/ChatDrawer';
-import { useScrollDirection } from '../../hooks/useScrollDirection';
 import './homeFeed.css';
 import '../user/Commissions.css';
 
@@ -156,6 +152,7 @@ const HomeFeed: React.FC = () => {
   const [reachOutMessage, setReachOutMessage] = useState('');
   const [reachOutMetadata, setReachOutMetadata] = useState<ReachOutMetadata | null>(null);
   const [commentArtwork, setCommentArtwork] = useState<Artwork | null>(null);
+  const [showUpiReminderModal, setShowUpiReminderModal] = useState(false);
 
   // Infinite scroll state
   const [topUnseenArtworks, setTopUnseenArtworks] = useState<Artwork[]>([]);
@@ -171,15 +168,38 @@ const HomeFeed: React.FC = () => {
   /** Artists followed via discover cards in this session — show "Following" toggle for these only. */
   const [sessionFollowedArtistIds, setSessionFollowedArtistIds] = useState<Set<string>>(new Set());
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
-
-  /** Artists only: Following feed vs own published works. */
-  const [feedTab, setFeedTab] = useState<'following' | 'my-art'>('following');
-  const [myArtworks, setMyArtworks] = useState<Artwork[]>([]);
-  const [loadingMyArt, setLoadingMyArt] = useState(false);
   const [virtualSliceEnd, setVirtualSliceEnd] = useState(VIRTUAL_BATCH_SIZE);
 
   const isArtist = appUser?.role === 'artist';
-  const { hidden: tabsHidden, anchorRef: tabsAnchorRef } = useScrollDirection();
+
+  // Check if artist has published artworks but no UPI ID - show reminder once per session
+  useEffect(() => {
+    const checkUpiReminder = async () => {
+      if (!appUser || appUser.role !== 'artist') return;
+      
+      // Check if already dismissed in this session
+      const dismissed = sessionStorage.getItem('upi-reminder-dismissed');
+      if (dismissed) return;
+      
+      // Check if UPI ID is already set
+      if (appUser.upiId && appUser.upiId.trim() !== '') return;
+      
+      try {
+        // Import the service dynamically to avoid circular dependencies
+        const { getArtistArtworks } = await import('../../services/artworkService');
+        const publishedWorks = await getArtistArtworks(appUser.uid, true);
+        
+        // If artist has published artworks, show the modal
+        if (publishedWorks.length > 0) {
+          setShowUpiReminderModal(true);
+        }
+      } catch (error) {
+        // Silently fail
+      }
+    };
+
+    checkUpiReminder();
+  }, [appUser]);
 
   // Use cached data hooks
   const { data: favoriteIds, updateCache: updateFavoritesCache, refetch: refetchFavorites } = useFavorites(appUser?.uid);
@@ -290,7 +310,6 @@ const HomeFeed: React.FC = () => {
       setRemainingUnseenArtworks(markSold);
       setDiscoverArtworks(markSold);
       setSeenFollowedArtworks(markSold);
-      setMyArtworks(markSold);
     }) as EventListener;
     window.addEventListener('artwork-sold', handleArtworkSold);
     return () => window.removeEventListener('artwork-sold', handleArtworkSold);
@@ -374,7 +393,6 @@ const HomeFeed: React.FC = () => {
   useEffect(() => {
     const handleScroll = () => {
       if (!hasMore || loadingMore) return;
-      if (isArtist && feedTab === 'my-art') return;
 
       // Get the main content container
       const mainContent = document.querySelector('.layout-main-content');
@@ -394,29 +412,7 @@ const HomeFeed: React.FC = () => {
       mainContent.addEventListener('scroll', handleScroll);
       return () => mainContent.removeEventListener('scroll', handleScroll);
     }
-  }, [hasMore, loadingMore, loadMoreArtworks, isArtist, feedTab]);
-
-  // Artist "My Art" tab: published pieces with engagement counts
-  useEffect(() => {
-    if (!isArtist || !appUser?.uid || feedTab !== 'my-art') return;
-
-    let cancelled = false;
-    setLoadingMyArt(true);
-    getArtistArtworks(appUser.uid, true)
-      .then((list) => {
-        if (!cancelled) setMyArtworks(list);
-      })
-      .catch(() => {
-        if (!cancelled) toast.error('Failed to load your artworks');
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingMyArt(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isArtist, appUser?.uid, feedTab]);
+  }, [hasMore, loadingMore, loadMoreArtworks]);
 
   // Auto-advance timer for stories (5 seconds per story)
   useEffect(() => {
@@ -1074,9 +1070,7 @@ const HomeFeed: React.FC = () => {
   );
 
   const handleShare = (id: number | string) => {
-    const sourceList = isArtist && feedTab === 'my-art'
-      ? myArtworks
-      : [...topUnseenArtworks, ...remainingUnseenArtworks, ...discoverArtworks];
+    const sourceList = [...topUnseenArtworks, ...remainingUnseenArtworks, ...discoverArtworks];
     const artwork = sourceList?.find((a) => a.id === id.toString());
     if (artwork && navigator.share) {
       navigator.share({
@@ -1226,32 +1220,10 @@ const HomeFeed: React.FC = () => {
   return (
     <>
       <div style={styles.container} className="home-feed">
-        {isArtist && (
-          <>
-            <div ref={tabsAnchorRef} className={`commission-main-tabs-fixed${tabsHidden ? ' pill-tabs-hidden' : ''}`}>
-              <div className="commission-main-tabs">
-                <button
-                  type="button"
-                  className={`commission-tab ${feedTab === 'following' ? 'active' : ''}`}
-                  onClick={() => setFeedTab('following')}
-                >
-                  Following
-                </button>
-                <button
-                  type="button"
-                  className={`commission-tab ${feedTab === 'my-art' ? 'active' : ''}`}
-                  onClick={() => setFeedTab('my-art')}
-                >
-                  Creations
-                </button>
-              </div>
-            </div>
-            <div className="commission-main-tabs-spacer" />
-          </>
-        )}
+
 
         {/* Stories Section */}
-        {(!isArtist || feedTab !== 'my-art') && !loadingStories && (
+        {!loadingStories && (
           <div className="stories-section">
             <div className="stories-container">
               {groupedStories.length === 0 ? (
@@ -1316,49 +1288,8 @@ const HomeFeed: React.FC = () => {
           </div>
         )}
 
-        {/* Following feed (everyone) or My Art (artists) */}
-        {isArtist && feedTab === 'my-art' ? (
-          loadingMyArt ? (
-            <LoadingState
-              animation={africanArtAnimation}
-              message="Loading your artworks..."
-              fullHeight
-            />
-          ) : myArtworks.length === 0 ? (
-            <EmptyState
-              animation={artAnimation}
-              title="No published art yet"
-              description="Upload your artwork to see it here with likes, comments, and saves."
-              actionLabel="Upload artwork"
-              actionPath="/upload"
-            />
-          ) : (
-            <div className="homefeed-artwork-grid">
-              {myArtworks.map((artwork) => (
-                <ArtworkCard
-                  key={artwork.id}
-                  id={parseInt(artwork.id, 10) || 0}
-                  artworkImage={artwork.images[0]}
-                  artworkImages={artwork.images}
-                  artistAvatar={artwork.artistAvatar || '/artist.png'}
-                  artistName={artwork.artistName}
-                  artistId={artwork.artistId}
-                  currentUserId={appUser?.uid}
-                  title={artwork.title}
-                  description={artwork.description}
-                  onCardClick={() => handleArtworkClick(artwork.id)}
-                  onShare={() => handleShare(artwork.id)}
-                  onComment={() => setCommentArtwork(artwork)}
-                  engagementStats={{
-                    likes: artwork.likes ?? 0,
-                    comments: artwork.comments ?? 0,
-                    favorites: artwork.favorites ?? 0,
-                  }}
-                />
-              ))}
-            </div>
-          )
-        ) : loading ? (
+        {/* Following feed */}
+        {loading ? (
           <LoadingState
             animation={africanArtAnimation}
             message="Discovering amazing artworks..."
@@ -1541,6 +1472,103 @@ const HomeFeed: React.FC = () => {
         artwork={commentArtwork}
         appUser={appUser}
       />
+
+      {/* UPI ID Reminder Modal */}
+      {showUpiReminderModal && ReactDOM.createPortal(
+        <div 
+          className="confirm-modal-overlay" 
+          onClick={() => {
+            setShowUpiReminderModal(false);
+            sessionStorage.setItem('upi-reminder-dismissed', 'true');
+          }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+        >
+          <div 
+            className="confirm-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '1.5rem',
+              maxWidth: '400px',
+              width: '90%',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              position: 'relative',
+            }}
+          >
+            {/* Icon */}
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              background: 'rgba(47, 164, 169, 0.1)',
+              color: 'var(--color-accent, #2fa4a9)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem',
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            
+            <h2 style={{ 
+              margin: '0 0 0.75rem', 
+              fontSize: '1.25rem',
+              color: '#1a1a1a',
+              textAlign: 'center',
+            }}>
+              Add Your UPI ID
+            </h2>
+            <p style={{ 
+              margin: '0 0 1.5rem', 
+              color: '#666666',
+              lineHeight: 1.5,
+              textAlign: 'center',
+            }}>
+              It seems you have already published some artworks for sale. Please add your UPI ID so that buyers can directly make payments to you. It is completely safe.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                className="button button-primary"
+                onClick={() => {
+                  setShowUpiReminderModal(false);
+                  sessionStorage.setItem('upi-reminder-dismissed', 'true');
+                  navigate('/profile');
+                }}
+                style={{ flex: 1 }}
+              >
+                Go to Profile
+              </button>
+              <button
+                className="button button-outline"
+                onClick={() => {
+                  setShowUpiReminderModal(false);
+                  sessionStorage.setItem('upi-reminder-dismissed', 'true');
+                }}
+                style={{ flex: 1 }}
+              >
+                Later
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {chatDrawerOpen && reachOutContact && appUser && (
         <ChatDrawer

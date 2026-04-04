@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getArtwork, incrementArtworkViews, incrementArtworkReachOutClicks } from '../../services/artworkService';
 import { processBuyNow } from '../../services/chatService';
 import { createNotification } from '../../services/notificationService';
+import { getUserProfile } from '../../services/userService';
 import { useFavorites } from '../../hooks/useCachedData';
 import { cache, cacheKeys } from '../../utils/cache';
 import {
@@ -39,6 +40,8 @@ const CardDetail: React.FC = () => {
   const [buyNowConfirm, setBuyNowConfirm] = useState(false);
   const [buyNowBusy, setBuyNowBusy] = useState(false);
   const [buyNowAddress, setBuyNowAddress] = useState({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
+  const [artistUpiId, setArtistUpiId] = useState<string | null>(null);
+  const [fetchingUpiId, setFetchingUpiId] = useState(false);
   
   const { data: favoriteIds, updateCache: updateFavoritesCache, refetch: refetchFavorites } = useFavorites(appUser?.uid);
 
@@ -192,9 +195,34 @@ const CardDetail: React.FC = () => {
     }
   };
 
-  const handleBuyNow = (artistId: string) => {
+  const handleBuyNow = async (artistId: string) => {
     if (!appUser) { navigate('/signup'); return; }
     if (appUser.uid === artistId) { toast.info('You cannot buy your own artwork'); return; }
+    
+    // Fetch artist's UPI ID
+    setFetchingUpiId(true);
+    try {
+      const artistProfile = await getUserProfile(artistId);
+      setArtistUpiId(artistProfile?.upiId || null);
+      
+      // Send notification if UPI ID is not set
+      if (!artistProfile?.upiId || artistProfile.upiId.trim() === '') {
+        createNotification(
+          artistId,
+          'payment_failed_no_upi',
+          appUser.uid,
+          appUser.name || 'A buyer',
+          appUser.avatar,
+          id,
+          artwork?.title
+        ).catch(() => {}); // Silent fail
+      }
+    } catch {
+      setArtistUpiId(null);
+    } finally {
+      setFetchingUpiId(false);
+    }
+    
     setBuyNowOpen(true);
     setBuyNowConfirm(false);
     setBuyNowAddress({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
@@ -390,12 +418,30 @@ const CardDetail: React.FC = () => {
             </div>
 
             {(() => {
-              const UPI_ID = '9640557113@ptsbi';
+              const UPI_ID = artistUpiId || null;
               const amount = String(artwork.price);
-              const upiUri = `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art&am=${amount}&cu=INR`;
+              const upiUri = UPI_ID ? `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art&am=${amount}&cu=INR` : '';
               const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
               const addressComplete = buyNowAddress.name.trim() && buyNowAddress.line1.trim() &&
                 buyNowAddress.city.trim() && buyNowAddress.pincode.trim() && buyNowAddress.phone.trim();
+              
+              if (fetchingUpiId) {
+                return (
+                  <div className="commission-accept-offer-payment">
+                    <p className="commission-accept-offer-payment-label">Loading payment details...</p>
+                  </div>
+                );
+              }
+              
+              if (!UPI_ID) {
+                return (
+                  <div className="commission-accept-offer-payment">
+                    <p className="commission-accept-offer-payment-label" style={{ color: 'var(--color-error, #dc2626)' }}>⚠️ Payment Not Available</p>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>The artist hasn't set up their UPI ID yet. Please contact them directly or try again later.</p>
+                  </div>
+                );
+              }
+              
               return (
                 <>
                   <div className="commission-accept-offer-payment">
@@ -423,7 +469,7 @@ const CardDetail: React.FC = () => {
                         <button type="button" className="confirm-modal-btn confirm-modal-btn-cancel"
                           disabled={buyNowBusy} onClick={() => setBuyNowConfirm(false)}>No</button>
                         <button type="button" className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-                          disabled={buyNowBusy} onClick={() => void handleConfirmBuyNow()}>
+                          disabled={buyNowBusy || !UPI_ID} onClick={() => void handleConfirmBuyNow()}>
                           <span className="commission-hire-tooltip-confirm-inner">
                             {buyNowBusy && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
                             {buyNowBusy ? 'Please wait…' : 'Yes'}
@@ -436,8 +482,8 @@ const CardDetail: React.FC = () => {
                       <button type="button" className="confirm-modal-btn confirm-modal-btn-cancel"
                         disabled={buyNowBusy} onClick={() => { setBuyNowOpen(false); setBuyNowConfirm(false); }}>Cancel</button>
                       <button type="button" className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-                        disabled={buyNowBusy || !addressComplete}
-                        title={!addressComplete ? 'Please fill in all address fields' : undefined}
+                        disabled={buyNowBusy || !addressComplete || !UPI_ID}
+                        title={!addressComplete ? 'Please fill in all address fields' : !UPI_ID ? 'Artist UPI ID not available' : undefined}
                         onClick={() => setBuyNowConfirm(true)}>Confirm Purchase</button>
                     </div>
                   )}

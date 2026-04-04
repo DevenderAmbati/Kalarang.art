@@ -6,6 +6,7 @@ import ArtworkGrid from '../../components/Artwork/ArtworkGrid';
 import EmptyState from '../../components/State/EmptyState';
 import LoadingState from '../../components/State/LoadingState';
 import ConfirmModal from '../../components/Modals/ConfirmModal';
+import ArtworkCommentModal from '../../components/Artwork/ArtworkCommentModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { usePublishedWorks, useFavorites, UseCachedDataResult } from '../../hooks/useCachedData';
@@ -58,6 +59,8 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
     type: 'delete',
     artworkId: '',
   });
+
+  const [commentArtwork, setCommentArtwork] = useState<Artwork | null>(null);
 
   useEffect(() => {
     if (favoriteIds) {
@@ -220,6 +223,27 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
     });
   };
 
+  const handleCommentClick = (id: string) => {
+    const artwork = artworks?.find(a => a.id === id);
+    if (artwork) {
+      setCommentArtwork(artwork);
+    }
+  };
+
+  const handleShare = (id: string) => {
+    const artwork = artworks?.find((a) => a.id === id);
+    if (artwork && navigator.share) {
+      navigator.share({
+        title: artwork.title,
+        text: `Check out "${artwork.title}" by ${artwork.artistName}`,
+        url: `${window.location.origin}/card/${id}`,
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(`${window.location.origin}/card/${id}`);
+      toast.success('Link copied to clipboard!');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="published-works-wrapper">
@@ -265,6 +289,9 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
                 artistId: artwork.artistId,
                 price: artwork.price,
                 sold: artwork.sold,
+                likes: artwork.likes || 0,
+                comments: artwork.comments || 0,
+                favorites: artwork.favorites || 0,
               }))}
               viewType="published"
               onArtworkClick={handleArtworkClick}
@@ -277,6 +304,8 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
               onAddToStory={onAddToStory}
               artworkIdsInStories={artworkIdsInStories}
               currentUserId={appUser?.uid}
+              onCommentClick={handleCommentClick}
+              onShare={isOwnProfile ? handleShare : undefined}
             />
           )}
         </div>
@@ -295,6 +324,13 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
         }
         confirmText={confirmModal.type === 'delete' ? 'Delete' : 'Mark as Sold'}
         cancelText="Cancel"
+      />
+
+      <ArtworkCommentModal
+        isOpen={commentArtwork !== null}
+        onClose={() => setCommentArtwork(null)}
+        artwork={commentArtwork}
+        appUser={appUser}
       />
     </div>
   );
