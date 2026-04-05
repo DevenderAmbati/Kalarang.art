@@ -156,7 +156,7 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
          
       } else {
         await saveArtworkToFavorites(appUser.uid, id);
-        toast.success('Saved to your favourites');
+        
       }
       // Invalidate favorite artworks cache
       cache.invalidate(cacheKeys.favoriteArtworks(appUser.uid));

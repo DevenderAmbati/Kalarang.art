@@ -154,6 +154,11 @@ const HomeFeed: React.FC = () => {
   const [commentArtwork, setCommentArtwork] = useState<Artwork | null>(null);
   const [showUpiReminderModal, setShowUpiReminderModal] = useState(false);
 
+  // Story touch/hold state
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartXRef = useRef<number>(0);
+  const isHoldingRef = useRef<boolean>(false);
+
   // Infinite scroll state
   const [topUnseenArtworks, setTopUnseenArtworks] = useState<Artwork[]>([]);
   const [remainingUnseenArtworks, setRemainingUnseenArtworks] = useState<Artwork[]>([]);
@@ -802,6 +807,13 @@ const HomeFeed: React.FC = () => {
   };
 
   const handleCloseStory = async () => {
+    // Cleanup hold timer
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    isHoldingRef.current = false;
+    
     // Mark user as viewed if all their stories were seen
     if (selectedStory) {
       setViewedUsers(prev => new Set(prev).add(selectedStory.artistId));
@@ -1050,6 +1062,69 @@ const HomeFeed: React.FC = () => {
     }
   };
 
+  // Handle touch start - start hold timer
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    isHoldingRef.current = false;
+    
+    // Set timer for hold detection (500ms)
+    holdTimerRef.current = setTimeout(() => {
+      isHoldingRef.current = true;
+      setIsPaused(true);
+    }, 500);
+  };
+
+  // Handle touch end - navigate or resume
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    // Clear hold timer
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+
+    // If user was holding, just resume playback
+    if (isHoldingRef.current) {
+      isHoldingRef.current = false;
+      setIsPaused(false);
+      return;
+    }
+
+    // Otherwise, handle navigation (tap)
+    const rect = e.currentTarget.getBoundingClientRect();
+    const tapX = touchStartXRef.current - rect.left;
+    const width = rect.width;
+    
+    // Pause auto-advance briefly when user taps
+    setIsPaused(true);
+    setTimeout(() => setIsPaused(false), 300);
+    
+    // Left third of the image
+    if (tapX < width / 3) {
+      handlePreviousStory();
+    }
+    // Right third of the image
+    else if (tapX > (width * 2) / 3) {
+      handleNextStory();
+    }
+  };
+
+  // Handle touch cancel - cleanup
+  const handleTouchCancel = () => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    if (isHoldingRef.current) {
+      isHoldingRef.current = false;
+      setIsPaused(false);
+    }
+  };
+
+  // Prevent context menu (download options) on long press
+  const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
   const handleArtworkClick = (id: number | string) => {
     sessionStorage.setItem('artworkSourceRoute', '/home');
     navigate(`/card/${id}`);
@@ -1111,7 +1186,7 @@ const HomeFeed: React.FC = () => {
          
       } else {
         await saveArtworkToFavorites(appUser.uid, artworkId, appUser.name, appUser.avatar);
-        toast.success('Saved to your favourites');
+ 
       }
       // Invalidate favorite artworks cache
       cache.invalidate(cacheKeys.favoriteArtworks(appUser.uid));
@@ -1410,11 +1485,20 @@ const HomeFeed: React.FC = () => {
               </div>
             ) : (
               <>
-                <div className="story-image-wrapper" onClick={handleImageClick}>
+                <div 
+                  className="story-image-wrapper" 
+                  onClick={handleImageClick}
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
+                  onTouchCancel={handleTouchCancel}
+                  onContextMenu={handleContextMenu}
+                >
                   <img 
                     src={selectedStory.image} 
                     alt={selectedStory.name} 
                     className="story-fullscreen-image"
+                    draggable={false}
+                    style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
                   />
                   {selectedStory.price && <div className="story-price">{selectedStory.price}</div>}
                 </div>

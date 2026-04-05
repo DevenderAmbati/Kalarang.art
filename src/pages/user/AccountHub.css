@@ -108,16 +108,3 @@
     border-radius: 6px;
   }
 }
-
-@media (max-width: 380px) {
-  .account-hub-main-tabs-wrap .account-hub-main-tabs {
-    flex-wrap: wrap;
-    justify-content: center;
-    max-width: 100%;
-  }
-
-  .account-hub-tab {
-    min-width: calc(50% - 0.15rem);
-    flex: 1 1 calc(50% - 0.15rem);
-  }
-}

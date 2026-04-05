@@ -454,7 +454,7 @@ const Discover: React.FC = () => {
          
       } else {
         await saveArtworkToFavorites(appUser.uid, id, appUser.name, appUser.avatar);
-        toast.success('Saved to your favourites');
+      
       }
       // Invalidate favorite artworks cache
       cache.invalidate(cacheKeys.favoriteArtworks(appUser.uid));

@@ -68,6 +68,7 @@ import PullToRefreshIndicator from '../../components/Common/PullToRefreshIndicat
 import africanAmericanArtAnimation from '../../animations/African American Art.json';
 import noContentAnimation from '../../animations/no content.json';
 import artPostLoaderAnimation from '../../animations/Line art (1).json';
+import CommissionFlowInfoModal from '../../components/Modals/CommissionFlowInfoModal';
 import '../../components/Modals/ConfirmModal.css';
 import './Commissions.css';
 
@@ -725,7 +726,13 @@ const CommissionChatModal: React.FC<{
                   inputMode="decimal"
                   placeholder="e.g. 5000"
                   value={offerFinalPrice}
-                  onChange={(e) => setOfferFinalPrice(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow only numbers
+                    if (value === '' || /^\d+$/.test(value)) {
+                      setOfferFinalPrice(value);
+                    }
+                  }}
                   disabled={sendingOffer}
                   autoComplete="off"
                 />
@@ -737,7 +744,13 @@ const CommissionChatModal: React.FC<{
                   inputMode="decimal"
                   placeholder="e.g. 2000"
                   value={offerAdvanceAmount}
-                  onChange={(e) => setOfferAdvanceAmount(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow only numbers
+                    if (value === '' || /^\d+$/.test(value)) {
+                      setOfferAdvanceAmount(value);
+                    }
+                  }}
                   disabled={sendingOffer}
                   autoComplete="off"
                 />
@@ -1365,6 +1378,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
   const [chatContactsByUid, setChatContactsByUid] = useState<Record<string, CommissionChatContact>>({});
   const hasRestoredListUiRef = useRef(false);
   const backfillApplicationRef = useRef<Set<string>>(new Set());
+  const [showCommissionFlowInfo, setShowCommissionFlowInfo] = useState(false);
 
   // Pagination state for the browse "Commissions" tab
   const [browseLastVisible, setBrowseLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
@@ -1604,6 +1618,22 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
   }, []);
+
+  // Auto-open commission flow info modal on first visit
+  useEffect(() => {
+    if (mode !== 'list' || !appUser?.uid || !onCommissionsRoute) return;
+    
+    const storageKey = `commission-flow-info-seen-${appUser.uid}`;
+    const hasSeen = localStorage.getItem(storageKey);
+    
+    if (!hasSeen) {
+      // Small delay to let the page render first
+      const timer = setTimeout(() => {
+        setShowCommissionFlowInfo(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [appUser?.uid, mode, onCommissionsRoute]);
 
   useEffect(() => {
     if (mode !== 'form' || !appUser?.uid) return;
@@ -2236,10 +2266,6 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           dots[tab] = true;
         }
       }
-      // Dot on completed only if there are reviews without a reply yet
-      if (Object.values(reviewsMap).some((r) => r != null && !r.artistReply)) {
-        dots.completed = true;
-      }
       return { artist: dots, buyer: emptyBuyer };
     }
     if (appUser.role === 'buyer') {
@@ -2272,12 +2298,21 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     setCommissionChatContact(contact);
     setCommissionChatMetadata(metadata);
     setCommissionChatInitialMessage(initialMessage);
-    setCommissionStatusForChat(opts?.commissionStatus ?? 'open');
-    setCommissionHiredArtistIdForChat(opts?.hiredArtistId ?? null);
-    setCommissionChatClosed(Boolean(opts?.chatClosed));
-    setCommissionChatClosedReason(opts?.closedReason);
     setCommissionChatOpen(true);
+    if (opts?.commissionStatus) setCommissionStatusForChat(opts.commissionStatus);
+    if (opts?.chatClosed) setCommissionChatClosed(opts.chatClosed);
+    if (opts?.closedReason !== undefined) setCommissionChatClosedReason(opts.closedReason);
+    if (opts?.hiredArtistId !== undefined) setCommissionHiredArtistIdForChat(opts.hiredArtistId);
+    notifyServiceWorkerActiveChatId(chatId);
   };
+
+  const handleCommissionFlowInfoClose = useCallback(() => {
+    setShowCommissionFlowInfo(false);
+    if (appUser?.uid) {
+      const storageKey = `commission-flow-info-seen-${appUser.uid}`;
+      localStorage.setItem(storageKey, 'true');
+    }
+  }, [appUser?.uid]);
 
   const handleApplyClick = async (item: CommissionRequest) => {
     if (!appUser?.uid || appUser.role !== 'artist') return;
@@ -3324,6 +3359,28 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                     Applications
                   </button>
                 </div>
+                <button
+                  type="button"
+                  className="commission-info-icon-btn"
+                  onClick={() => setShowCommissionFlowInfo(true)}
+                  aria-label="Commission flow information"
+                  title="How commissions work"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="16" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                  </svg>
+                </button>
               </div>
               <div className="commission-main-tabs-spacer" />
 
@@ -3533,10 +3590,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                                     : 'Custom'
                                   : item.size || 'Not specified'}
                               </span>
-                              <span>
-                                {item.deliveryType || 'Not specified'}
-                                {item.cityOrPincode?.trim() ? `, ${item.cityOrPincode}` : ''}
-                              </span>
+                              {item.cityOrPincode?.trim() && (
+                                <span>Delivery: {item.cityOrPincode}</span>
+                              )}
                               {isCommissionInProgress(item.status) && (
                                 <button
                                   type="button"
@@ -4743,6 +4799,12 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
               }
             : undefined
         }
+      />
+
+      <CommissionFlowInfoModal
+        isOpen={showCommissionFlowInfo}
+        onClose={handleCommissionFlowInfoClose}
+        userRole={appUser?.role === 'artist' ? 'artist' : 'buyer'}
       />
     </div>
   );

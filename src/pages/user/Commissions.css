@@ -421,13 +421,13 @@
   border: 1.75px solid rgba(47, 164, 169, 0.38);
   border-radius: 10px;
   padding: 0.2rem;
-  width: fit-content;
+  min-width: fit-content;
   max-width: calc(100% - 2rem);
-  margin: 0 auto;
   box-sizing: border-box;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.45),
     0 4px 18px rgba(11, 31, 42, 0.07);
+  justify-self: center;
 }
 
 .commission-main-tabs-fixed {
@@ -436,12 +436,17 @@
   left: 0;
   right: 0;
   z-index: 30;
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
   background: transparent;
   padding: 0.35rem 0.75rem 0.25rem;
   /* transform only when .pill-tabs-hidden — avoids breaking backdrop-filter on the inner pill */
   transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.commission-main-tabs-fixed .commission-main-tabs {
+  grid-column: 2;
 }
 
 .commission-main-tabs-fixed.pill-tabs-hidden {
@@ -459,7 +464,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 1 1 0;
+  flex: 0 0 auto;
   min-width: 96px;
   min-height: 34px;
   box-sizing: border-box;
@@ -501,6 +506,50 @@
   outline-offset: 2px;
 }
 
+.commission-info-icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  color: var(--color-primary);
+  flex-shrink: 0;
+  grid-column: 3;
+  justify-self: start;
+  margin-left: 0.5rem;
+}
+
+.commission-info-icon-btn:hover {
+  background: var(--primary-alpha-10);
+  transform: scale(1.05);
+}
+
+.commission-info-icon-btn:active {
+  transform: scale(0.95);
+}
+
+.commission-info-icon-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .commission-info-icon-btn {
+    padding: 0.3rem;
+    margin-left: 0.35rem;
+  }
+
+  .commission-info-icon-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
 @media (min-width: 1024px) {
   .commission-main-tabs-fixed .commission-main-tabs {
     padding: 0.18rem;
@@ -518,19 +567,6 @@
 
   .commission-main-tabs-spacer {
     height: 2.85rem;
-  }
-}
-
-@media (max-width: 380px) {
-  .commission-main-tabs-fixed .commission-main-tabs {
-    flex-wrap: wrap;
-    justify-content: center;
-    max-width: 100%;
-  }
-
-  .commission-tab {
-    min-width: calc(50% - 0.15rem);
-    flex: 1 1 calc(50% - 0.15rem);
   }
 }
 
@@ -2592,9 +2628,9 @@
 .commission-card-chips-action-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.5rem;
-  padding: 0rem 1rem 0.3rem;
+  padding: 0 0 0.3rem 0;
   border-top: none;
 }
 

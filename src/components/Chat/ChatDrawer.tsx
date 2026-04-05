@@ -733,7 +733,13 @@ const ChatView: React.FC<{
                       inputMode="decimal"
                       placeholder="e.g. 5000"
                       value={offerFinalPrice}
-                      onChange={(e) => setOfferFinalPrice(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow only numbers
+                        if (value === '' || /^\d+$/.test(value)) {
+                          setOfferFinalPrice(value);
+                        }
+                      }}
                       disabled={isSendingOffer}
                       autoComplete="off"
                     />
@@ -1111,7 +1117,7 @@ const ChatView: React.FC<{
                   {advanceAmount && <div className="commission-accept-offer-amount">₹{advanceAmount}</div>}
                   <p className="commission-accept-offer-upiid">UPI ID: <strong>{UPI_ID}</strong></p>
                   {isMobile ? (
-                    <a href={upiUri} className="button button-primary commission-accept-offer-upi-btn">Open UPI App to Pay</a>
+                    <a href={upiUri} className="button button-primary commission-accept-offer-upi-btn" style={{ textAlign: 'center' }}>Open UPI App to Pay</a>
                   ) : (
                     <div className="commission-accept-offer-qr">
                       <QRCodeSVG value={upiUri} size={180} />

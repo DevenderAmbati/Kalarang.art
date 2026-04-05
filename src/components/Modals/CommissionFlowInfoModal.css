@@ -1,0 +1,263 @@
+.commission-flow-info-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: commissionFlowFadeIn 0.2s ease-in;
+  backdrop-filter: blur(8px);
+  padding: 20px;
+}
+
+@keyframes commissionFlowFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.commission-flow-info-content {
+  background: var(--color-bg-white);
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: commissionFlowSlideUp 0.3s ease-out;
+  overflow: hidden;
+}
+
+@keyframes commissionFlowSlideUp {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.commission-flow-info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+
+.commission-flow-info-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.commission-flow-info-close {
+  background: none;
+  border: none;
+  font-size: 32px;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.commission-flow-info-close:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.commission-flow-info-intro {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+
+.commission-flow-info-intro p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.commission-flow-info-steps {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.commission-flow-info-step {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.commission-flow-info-step::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 28px;
+  width: 2px;
+  height: calc(100% + 12px);
+  background: linear-gradient(to bottom, var(--color-primary) 0%, rgba(47, 164, 169, 0.3) 100%);
+}
+
+.commission-flow-info-step:last-child {
+  margin-bottom: 0;
+}
+
+.commission-flow-info-step:last-child::before {
+  display: none;
+}
+
+.commission-flow-info-step-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.commission-flow-info-step-number {
+  background: var(--color-primary);
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.commission-flow-info-step-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 28px;
+}
+
+.commission-flow-info-step-description {
+  margin: 0 0 0 40px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.commission-flow-info-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.commission-flow-info-btn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.commission-flow-info-btn:hover {
+  background: var(--color-primary);
+  color: white;
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.commission-flow-info-btn:active {
+  transform: translateY(0);
+  filter: brightness(1);
+}
+
+/* Info icon button in tabs */
+.commission-info-icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+  vertical-align: middle;
+  color: var(--color-text-secondary);
+}
+
+.commission-info-icon-btn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-primary);
+}
+
+.commission-info-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .commission-flow-info-content {
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+    max-height: 95vh;
+  }
+
+  .commission-flow-info-title {
+    font-size: 18px;
+  }
+
+  .commission-flow-info-header {
+    padding: 20px 20px 12px;
+  }
+
+  .commission-flow-info-intro {
+    padding: 12px 20px;
+  }
+
+  .commission-flow-info-steps {
+    padding: 16px 20px;
+  }
+
+  .commission-flow-info-footer {
+    padding: 12px 20px;
+  }
+
+  .commission-flow-info-step-title {
+    font-size: 14px;
+  }
+
+  .commission-flow-info-step-description {
+    font-size: 13px;
+    margin-left: 40px;
+  }
+}
