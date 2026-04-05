@@ -40,7 +40,7 @@ const CommissionFlowInfoModal: React.FC<CommissionFlowInfoModalProps> = ({
     },
     {
       title: '5. Receive Advance Payment',
-      description: 'The buyer pays the advance amount via UPI. Also address details will be provided',
+      description: 'The buyer pays the advance amount via UPI. Also address details will be provided in the chat.',
     },
     {
       title: '6. Create Artwork',
@@ -48,7 +48,7 @@ const CommissionFlowInfoModal: React.FC<CommissionFlowInfoModalProps> = ({
     },
     {
       title: '7. Upload & Mark Ready',
-      description:  'Once the artwork is ready, click on "Ready to Ship" and upload the final image for the buyer to review.',
+      description:  'Once the artwork is ready, click on "Ready to Ship" button in the chat and upload the final image for the buyer to review.',
     },
     {
       title: '8. Receive Final Payment',
@@ -56,7 +56,7 @@ const CommissionFlowInfoModal: React.FC<CommissionFlowInfoModalProps> = ({
     },
     {
       title: '9. Ship Physical Artwork',
-      description: 'Ship the artwork by yourself to the address provided by the buyer. Click "Make shipment" and enter the tracking number.',
+      description: 'Ship the artwork by yourself to the address provided by the buyer. Click "Make shipment" button in the chat and enter the tracking number.',
     },
     {
       title: '10. Completion & Review',
@@ -91,7 +91,7 @@ const CommissionFlowInfoModal: React.FC<CommissionFlowInfoModalProps> = ({
     },
     {
       title: '7. Make Final Payment',
-      description: 'If satisfied, pay the remaining amount via UPI.',
+      description: 'If satisfied, pay the remaining amount via UPI, by clicking on the "Make Payment" button in the chat. If not, you can ask the artist to make changes.',
     },
     {
       title: '8. Receive Delivery',
