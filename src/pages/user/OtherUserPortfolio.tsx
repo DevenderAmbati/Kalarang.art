@@ -23,7 +23,7 @@ import './Portfolio.css';
 const OtherUserPortfolio: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const { appUser } = useAuth();
+  const { appUser, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('published');
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -67,6 +67,11 @@ const OtherUserPortfolio: React.FC = () => {
       return;
     }
 
+    // Wait for auth to initialize before loading profile
+    if (authLoading) {
+      return;
+    }
+
     // If viewing own profile, redirect to /portfolio
     if (appUser && userId === appUser.uid) {
       navigate('/portfolio');
@@ -94,7 +99,7 @@ const OtherUserPortfolio: React.FC = () => {
     }
 
     loadUserProfile();
-  }, [userId, appUser]);
+  }, [userId, appUser, authLoading]);
 
   // Fetch artist rating
   useEffect(() => {
@@ -128,13 +133,19 @@ const OtherUserPortfolio: React.FC = () => {
       const profile = await getUserProfile(userId);
       
       if (!profile) {
-        toast.error('User not found');
-        navigate('/home');
+        if (!backgroundRefetch) {
+          toast.error('User not found');
+        }
         return;
       }
 
-      // Fetch real-time stats
-      const stats = await getUserStats(userId);
+      // Fetch real-time stats (may partially fail for unauthenticated users)
+      let stats = { followers: 0, following: 0, artworks: 0, customized: 0 };
+      try {
+        stats = await getUserStats(userId);
+      } catch {
+        // Stats might fail for non-authenticated users, use defaults
+      }
 
       setProfileUser({
         name: profile.name,
@@ -158,13 +169,23 @@ const OtherUserPortfolio: React.FC = () => {
       // Check if current user is following this artist
       let following = false;
       if (appUser) {
-        following = await isFollowingArtist(appUser.uid, userId);
-        setIsFollowing(following);
+        try {
+          following = await isFollowingArtist(appUser.uid, userId);
+          setIsFollowing(following);
+        } catch {
+          // Following check might fail, use default
+        }
       }
 
       // Load artworks
-      const artworks = await getArtworksByArtist(userId);
-      const published = artworks.filter(art => art.published);
+      let artworks: any[] = [];
+      let published: any[] = [];
+      try {
+        artworks = await getArtworksByArtist(userId);
+        published = artworks.filter(art => art.published);
+      } catch {
+        // Artworks might fail, use empty array
+      }
       
       setPublishedArtworks(published);
       // Gallery shows all artworks including unpublished and commissioned works
@@ -200,8 +221,8 @@ const OtherUserPortfolio: React.FC = () => {
         staleTime,
         cacheTime
       );
-    } catch (error) {
-      toast.error('Failed to load profile');
+    } catch {
+      // Some data might have failed to load, but we still show what we have
     } finally {
       setIsLoadingProfile(false);
     }
@@ -343,7 +364,7 @@ const OtherUserPortfolio: React.FC = () => {
     );
   };
 
-  if (isLoadingProfile) {
+  if (authLoading || isLoadingProfile) {
     return (
       <LoadingState 
         animation={lineArt1Animation}

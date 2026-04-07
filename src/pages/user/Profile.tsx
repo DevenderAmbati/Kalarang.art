@@ -18,7 +18,7 @@ import { toast } from 'react-toastify';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { getBuyerOrders, BuyerOrder } from '../../services/chatService';
+import { getBuyerOrders, getArtistShippings, BuyerOrder } from '../../services/chatService';
 import { submitReview, getReviewsForBuyer, CommissionReview } from '../../services/reviewService';
 import { createNotification } from '../../services/notificationService';
 import { reauthenticateWithPopup, GoogleAuthProvider } from 'firebase/auth';
@@ -43,6 +43,9 @@ const Profile: React.FC = () => {
   const [orders, setOrders] = useState<BuyerOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersOpen, setOrdersOpen] = useState(false);
+  const [shippings, setShippings] = useState<BuyerOrder[]>([]);
+  const [shippingsLoading, setShippingsLoading] = useState(false);
+  const [shippingsOpen, setShippingsOpen] = useState(false);
   const [reviewOrder, setReviewOrder] = useState<BuyerOrder | null>(null);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
@@ -84,11 +87,11 @@ const Profile: React.FC = () => {
   }, [appUser?.upiId]);
 
   useEffect(() => {
-    if (!ordersOpen || !appUser?.uid || appUser.role !== 'buyer') return;
+    if (!ordersOpen || !appUser?.uid) return;
     setOrdersLoading(true);
     Promise.all([
       getBuyerOrders(appUser.uid),
-      getReviewsForBuyer(appUser.uid),
+      appUser.role === 'buyer' ? getReviewsForBuyer(appUser.uid) : Promise.resolve([]),
     ]).then(([fetchedOrders, reviews]) => {
       setOrders(fetchedOrders);
       const map: Record<string, CommissionReview> = {};
@@ -96,6 +99,18 @@ const Profile: React.FC = () => {
       setReviewsByArtworkId(map);
     }).catch(() => {}).finally(() => setOrdersLoading(false));
   }, [ordersOpen, appUser?.uid, appUser?.role]);
+
+  // Load artist shippings (orders to fulfill)
+  useEffect(() => {
+    if (!shippingsOpen || !appUser?.uid || appUser.role !== 'artist') return;
+    setShippingsLoading(true);
+    getArtistShippings(appUser.uid)
+      .then((fetchedShippings) => {
+        setShippings(fetchedShippings);
+      })
+      .catch(() => {})
+      .finally(() => setShippingsLoading(false));
+  }, [shippingsOpen, appUser?.uid, appUser?.role]);
 
   const handleSubmitReview = async () => {
     if (!appUser || !reviewOrder || reviewRating === 0 || !reviewText.trim()) return;
@@ -657,15 +672,120 @@ const Profile: React.FC = () => {
             </div>
           </div> */}
 
-          {/* Your Orders — buyer only */}
-          {appUser?.role === 'buyer' && (
+          {/* Your Shippings — artist only (orders to fulfill) */}
+          {appUser?.role === 'artist' && (
             <div style={styles.supportSection}>
               <div
                 style={{ ...styles.supportHeader, cursor: 'pointer', userSelect: 'none' }}
-                onClick={() => setOrdersOpen((p) => !p)}
+                onClick={() => setShippingsOpen((p) => !p)}
               >
                 <span style={{ ...styles.supportLabel, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  🛍️ Your Orders
+                  📦 Your Shippings
+                  <span style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: '50%',
+                    background: shippingsOpen ? 'var(--color-primary)' : 'var(--primary-alpha-10)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: shippingsOpen ? '#fff' : 'var(--color-primary)',
+                    transition: 'all 0.25s ease',
+                    flexShrink: 0,
+                  }}>
+                    <svg
+                      width="11" height="11" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" strokeWidth="2.5"
+                      strokeLinecap="round" strokeLinejoin="round"
+                      style={{ transform: shippingsOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s ease' }}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </span>
+                </span>
+              </div>
+              {shippingsOpen && (
+                shippingsLoading ? (
+                  <p style={{ ...styles.supportDescription, marginTop: '0.5rem' }}>Loading shippings…</p>
+                ) : shippings.length === 0 ? (
+                  <p style={{ ...styles.supportDescription, marginTop: '0.5rem' }}>
+                    No orders to ship yet. When a buyer accepts your offer, it will appear here.
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem' }}>
+                    {shippings.map((order) => {
+                      const fmtDate = (ts: any) => ts?.toDate?.()?.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) ?? null;
+                      return (
+                        <div
+                          key={`${order.chatId}_${order.artworkId}`}
+                          style={{
+                            padding: '0.75rem 0.9rem',
+                            borderRadius: '10px',
+                            border: '1px solid var(--color-border-light)',
+                            background: order.status === 'completed' ? 'rgba(47,164,169,0.06)' : 'var(--color-bg-card)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                            {order.artworkImage && (
+                              <img
+                                src={order.artworkImage}
+                                alt={order.artworkTitle}
+                                style={{ width: 52, height: 52, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+                              />
+                            )}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ margin: 0, fontWeight: 600, fontSize: '0.88rem', color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {order.artworkTitle}
+                              </p>
+                              {order.finalPrice && (
+                                <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>₹{order.finalPrice}</p>
+                              )}
+                              <span style={{
+                                display: 'inline-block',
+                                marginTop: '0.35rem',
+                                padding: '0.15rem 0.55rem',
+                                borderRadius: 20,
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                background: order.status === 'completed' ? 'rgba(47,164,169,0.15)' : 'rgba(251,191,36,0.15)',
+                                color: order.status === 'completed' ? 'var(--color-primary)' : '#b45309',
+                              }}>
+                                {order.status === 'completed' ? 'Shipped' : 'To Ship'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ marginTop: '0.55rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            {(order.orderId || fmtDate(order.orderedAt)) && (
+                              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                {order.orderId && <span>Order ID: <strong style={{ color: 'var(--color-primary)', letterSpacing: '0.5px' }}>{order.orderId}</strong></span>}
+                                {fmtDate(order.orderedAt) && <span>Ordered: <strong>{fmtDate(order.orderedAt)}</strong></span>}
+                              </p>
+                            )}
+                            {order.status === 'completed' && (fmtDate(order.shippedAt) || order.trackingId) && (
+                              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                {fmtDate(order.shippedAt) && <span>Shipped: <strong>{fmtDate(order.shippedAt)}</strong></span>}
+                                {order.trackingId && <span>Tracking ID: <strong>{order.trackingId}</strong></span>}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              )}
+            </div>
+          )}
+
+          {/* Your Orders - available for both buyers and artists (orders they placed) */}
+          <div style={styles.supportSection}>
+            <div
+              style={{ ...styles.supportHeader, cursor: 'pointer', userSelect: 'none' }}
+              onClick={() => setOrdersOpen((p) => !p)}
+            >
+              <span style={{ ...styles.supportLabel, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                🛍️ Your Orders
                   <span style={{
                     width: 22,
                     height: 22,
@@ -689,22 +809,25 @@ const Profile: React.FC = () => {
                   </span>
                 </span>
               </div>
-              {ordersOpen && (
-                ordersLoading ? (
-                  <p style={{ ...styles.supportDescription, marginTop: '0.5rem' }}>Loading orders…</p>
-                ) : orders.length === 0 ? (
-                  <p style={{ ...styles.supportDescription, marginTop: '0.5rem' }}>No orders yet. When you accept an artist's offer, it will appear here.</p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem' }}>
-                    {orders.map((order) => {
-                      const fmtDate = (ts: any) => ts?.toDate?.()?.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) ?? null;
-                      const existingReview = reviewsByArtworkId[order.artworkId];
-                      const alreadyReviewed = Boolean(existingReview);
-                      return (
-                        <div
-                          key={`${order.chatId}_${order.artworkId}`}
-                          style={{
-                            padding: '0.75rem 0.9rem',
+            {ordersOpen && (
+              ordersLoading ? (
+                <p style={{ ...styles.supportDescription, marginTop: '0.5rem' }}>Loading orders…</p>
+              ) : orders.length === 0 ? (
+                <p style={{ ...styles.supportDescription, marginTop: '0.5rem' }}>
+                  No orders yet. When you purchase art from an artist, it will appear here.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem' }}>
+                  {orders.map((order) => {
+                    const fmtDate = (ts: any) => ts?.toDate?.()?.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) ?? null;
+                    const existingReview = reviewsByArtworkId[order.artworkId];
+                    const alreadyReviewed = Boolean(existingReview);
+                    const isBuyer = appUser?.role === 'buyer';
+                    return (
+                      <div
+                        key={`${order.chatId}_${order.artworkId}`}
+                        style={{
+                          padding: '0.75rem 0.9rem',
                             borderRadius: '10px',
                             border: '1px solid var(--color-border-light)',
                             background: order.status === 'completed' ? 'rgba(47,164,169,0.06)' : 'var(--color-bg-card)',
@@ -755,7 +878,8 @@ const Profile: React.FC = () => {
                             )}
                           </div>
 
-                          {order.status === 'completed' && (
+                          {/* Review button - only for buyers */}
+                          {isBuyer && order.status === 'completed' && (
                             <>
                               <button
                                 onClick={() => { if (!alreadyReviewed) { setReviewOrder(order); setReviewRating(0); setReviewText(''); } }}
@@ -801,7 +925,6 @@ const Profile: React.FC = () => {
                 )
               )}
             </div>
-          )}
 
           {/* Review modal */}
           {reviewOrder && (

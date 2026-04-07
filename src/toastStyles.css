@@ -5,7 +5,7 @@
 
 /* Toast Container */
 .Toastify__toast-container {
-  z-index: 99999;
+  z-index: 999999;
   width: auto;
   max-width: 500px;
   min-width: 280px;

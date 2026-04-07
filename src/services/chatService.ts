@@ -537,6 +537,7 @@ export async function markArtworkShipped(chatId: string, artworkId: string, trac
 export interface BuyerOrder {
   chatId: string;
   artistId?: string;
+  buyerId?: string;
   artworkId: string;
   artworkTitle: string;
   artworkImage?: string;
@@ -548,9 +549,14 @@ export interface BuyerOrder {
   orderId?: string;
 }
 
+// Generic alias for BuyerOrder (works for both buyers and artists)
+export type UserOrder = BuyerOrder;
+
 /**
- * Returns all readymade artwork orders for a buyer, derived from chats
+ * Returns all readymade artwork orders for a user (buyer or artist), derived from chats
  * that have at least one accepted reach-out offer.
+ * - For buyers: returns orders they placed
+ * - For artists: returns orders they need to fulfill
  */
 /**
  * Direct "Buy Now" flow — creates/gets the chat, records payment, sends
@@ -618,21 +624,84 @@ export async function getBuyerOrders(userId: string): Promise<BuyerOrder[]> {
     const shipped: string[] = data.shippedArtworkIds ?? [];
     const trackingIds: Record<string, string> = data.trackingIds ?? {};
     const shippedAtMap: Record<string, Timestamp> = data.shippedAt ?? {};
+    const participants = data.participants as [string, string];
+    
     for (const offer of accepted) {
-      orders.push({
-        chatId: d.id,
-        artistId: offer.artistId,
-        artworkId: offer.artworkId,
-        artworkTitle: offer.artworkTitle,
-        artworkImage: offer.artworkImage,
-        finalPrice: offer.finalPrice,
-        orderId: offer.orderId,
-        status: shipped.includes(offer.artworkId) ? 'completed' : 'in_progress',
-        trackingId: trackingIds[offer.artworkId],
-        orderedAt: offer.orderedAt,
-        shippedAt: shippedAtMap[offer.artworkId],
-      });
+      // Determine buyerId: the participant who is NOT the artist
+      const buyerId = participants.find(p => p !== offer.artistId) || userId;
+      
+      // Only include if userId is the buyer (not the artist)
+      if (buyerId === userId) {
+        orders.push({
+          chatId: d.id,
+          artistId: offer.artistId,
+          buyerId: buyerId,
+          artworkId: offer.artworkId,
+          artworkTitle: offer.artworkTitle,
+          artworkImage: offer.artworkImage,
+          finalPrice: offer.finalPrice,
+          orderId: offer.orderId,
+          status: shipped.includes(offer.artworkId) ? 'completed' : 'in_progress',
+          trackingId: trackingIds[offer.artworkId],
+          orderedAt: offer.orderedAt,
+          shippedAt: shippedAtMap[offer.artworkId],
+        });
+      }
     }
   }
   return orders;
+}
+
+/**
+ * Returns orders that the artist needs to fulfill/ship.
+ * These are orders where the userId is the artistId.
+ */
+export async function getArtistShippings(userId: string): Promise<BuyerOrder[]> {
+  const chatsRef = collection(db, 'chats');
+  const q = query(
+    chatsRef,
+    where('participants', 'array-contains', userId),
+    orderBy('updatedAt', 'desc'),
+  );
+  const snapshot = await getDocs(q);
+  const shippings: BuyerOrder[] = [];
+  for (const d of snapshot.docs) {
+    const data = d.data();
+    const accepted: AcceptedOffer[] = data.acceptedOffers ?? [];
+    if (accepted.length === 0) continue;
+    const shipped: string[] = data.shippedArtworkIds ?? [];
+    const trackingIds: Record<string, string> = data.trackingIds ?? {};
+    const shippedAtMap: Record<string, Timestamp> = data.shippedAt ?? {};
+    const participants = data.participants as [string, string];
+    
+    for (const offer of accepted) {
+      // Only include if userId is the artist
+      if (offer.artistId === userId) {
+        const buyerId = participants.find(p => p !== offer.artistId);
+        shippings.push({
+          chatId: d.id,
+          artistId: offer.artistId,
+          buyerId: buyerId,
+          artworkId: offer.artworkId,
+          artworkTitle: offer.artworkTitle,
+          artworkImage: offer.artworkImage,
+          finalPrice: offer.finalPrice,
+          orderId: offer.orderId,
+          status: shipped.includes(offer.artworkId) ? 'completed' : 'in_progress',
+          trackingId: trackingIds[offer.artworkId],
+          orderedAt: offer.orderedAt,
+          shippedAt: shippedAtMap[offer.artworkId],
+        });
+      }
+    }
+  }
+  return shippings;
+}
+
+/**
+ * Generic alias for getting all orders (both as buyer and as artist).
+ * Returns orders from the perspective of the userId provided.
+ */
+export async function getUserOrders(userId: string): Promise<UserOrder[]> {
+  return getBuyerOrders(userId);
 }

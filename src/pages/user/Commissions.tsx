@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import { MdContentCopy } from 'react-icons/md';
 import { Timestamp, QueryDocumentSnapshot, DocumentData, onSnapshot, doc as firestoreDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { createPortal } from 'react-dom';
@@ -1082,17 +1083,34 @@ const CommissionChatModal: React.FC<{
               {offerAcceptConfirmAdvance && (
                 <div className="commission-accept-offer-amount">₹{offerAcceptConfirmAdvance}</div>
               )}
-              <p className="commission-accept-offer-upiid">UPI ID: <strong>{UPI_ID}</strong></p>
-              {isMobile ? (
-                <a href={upiUri} className="button button-primary commission-accept-offer-upi-btn">
-                  Open UPI App to Pay
-                </a>
-              ) : (
-                <div className="commission-accept-offer-qr">
-                  <QRCodeSVG value={upiUri} size={180} />
-                  <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
-                </div>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
+                <p className="commission-accept-offer-upiid" style={{ margin: 0 }}>UPI ID: <strong>{UPI_ID}</strong></p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(UPI_ID!);
+                    toast.success('UPI ID copied to clipboard!');
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: '0.25rem',
+                    cursor: 'pointer',
+                    color: 'var(--color-primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Copy UPI ID"
+                >
+                  {MdContentCopy({ size: 18 })}
+                </button>
+              </div>
+              <div className="commission-accept-offer-qr">
+                <QRCodeSVG value={upiUri} size={180} />
+                <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
+              </div>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>💡 You are directly paying to the artist</p>
             </div>
             {!addressComplete && (
               <p className="commission-accept-address-required-hint">* Fill in all address fields to continue</p>
@@ -4332,17 +4350,34 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                       {remaining > 0 && (
                         <div className="commission-make-payment-amount">₹{remaining}</div>
                       )}
-                      <p className="commission-accept-offer-upiid">UPI ID: <strong>{UPI_ID}</strong></p>
-                      {isMobile ? (
-                        <a href={upiUri} className="button button-primary commission-accept-offer-upi-btn">
-                          Open UPI App to Pay
-                        </a>
-                      ) : (
-                        <div className="commission-accept-offer-qr">
-                          <QRCodeSVG value={upiUri} size={180} />
-                          <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
+                        <p className="commission-accept-offer-upiid" style={{ margin: 0 }}>UPI ID: <strong>{UPI_ID}</strong></p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(UPI_ID!);
+                            toast.success('UPI ID copied to clipboard!');
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: '0.25rem',
+                            cursor: 'pointer',
+                            color: 'var(--color-primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          title="Copy UPI ID"
+                        >
+                          {MdContentCopy({ size: 18 })}
+                        </button>
+                      </div>
+                      <div className="commission-accept-offer-qr">
+                        <QRCodeSVG value={upiUri} size={180} />
+                        <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
+                      </div>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>💡 You are directly paying to the artist</p>
                     </>
                   )}
                   {makePaymentConfirm ? (

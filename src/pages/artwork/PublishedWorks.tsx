@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { saveArtworkToFavorites, removeArtworkFromFavorites, isArtworkInFavorites } from '../../services/interactionService';
+import { 
+  saveArtworkToFavorites, 
+  removeArtworkFromFavorites, 
+  isArtworkInFavorites,
+  likeArtwork,
+  unlikeArtwork,
+  hasLikedArtwork
+} from '../../services/interactionService';
 import { Artwork } from '../../types/artwork';
 import ArtworkGrid from '../../components/Artwork/ArtworkGrid';
 import EmptyState from '../../components/State/EmptyState';
@@ -36,8 +43,9 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
   const ownData = usePublishedWorks(appUser?.uid, !cachedData);
   const { data: artworks, isLoading, refetch, updateCache } = cachedData || ownData;
   
-  const { data: favoriteIds, updateCache: updateFavoritesCache, refetch: refetchFavorites } = useFavorites(appUser?.uid);
+  const { data: favoriteIds, updateCache: updateFavoritesCache, refetch: refetchFavorites } = useFavorites(appUser?.uid, !!appUser);
   const [savedArtworks, setSavedArtworks] = useState<Set<string>>(new Set());
+  const [likedArtworks, setLikedArtworks] = useState<Set<string>>(new Set());
 
   // Listen for favorites changes from other components
   useEffect(() => {
@@ -68,11 +76,25 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
     }
   }, [favoriteIds, appUser]);
 
+  // Load liked artworks
+  useEffect(() => {
+    const loadLikedArtworks = async () => {
+      if (!appUser || !artworks) return;
+      
+      const liked = new Set<string>();
+      for (const artwork of artworks) {
+        const isLiked = await hasLikedArtwork(appUser.uid, artwork.id);
+        if (isLiked) {
+          liked.add(artwork.id);
+        }
+      }
+      setLikedArtworks(liked);
+    };
+    
+    loadLikedArtworks();
+  }, [appUser, artworks]);
+
   const handleArtworkClick = (id: string) => {
-    if (!appUser) {
-      navigate('/signup');
-      return;
-    }
     sessionStorage.setItem('artworkSourceRoute', isOwnProfile ? '/portfolio' : location.pathname);
     navigate(`/card/${id}`);
   };
@@ -224,6 +246,10 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
   };
 
   const handleCommentClick = (id: string) => {
+    if (!appUser) {
+      toast.info('Please log in to comment on artworks');
+      return;
+    }
     const artwork = artworks?.find(a => a.id === id);
     if (artwork) {
       setCommentArtwork(artwork);
@@ -241,6 +267,48 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
     } else {
       navigator.clipboard.writeText(`${window.location.origin}/card/${id}`);
       toast.success('Link copied to clipboard!');
+    }
+  };
+
+  const handleLike = async (id: string) => {
+    if (!appUser) {
+      toast.info('Please log in to like artworks');
+      return;
+    }
+
+    const isLiked = likedArtworks.has(id);
+
+    // Optimistic update
+    setLikedArtworks(prev => {
+      const newSet = new Set(prev);
+      if (isLiked) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+
+    try {
+      if (isLiked) {
+        await unlikeArtwork(appUser.uid, id);
+      } else {
+        await likeArtwork(appUser.uid, id, appUser.name, appUser.avatar);
+      }
+      // Broadcast change for real-time updates
+      window.dispatchEvent(new CustomEvent('likes-changed', { detail: { userId: appUser.uid } }));
+    } catch (error) {
+      // Revert on error
+      setLikedArtworks(prev => {
+        const newSet = new Set(prev);
+        if (isLiked) {
+          newSet.add(id);
+        } else {
+          newSet.delete(id);
+        }
+        return newSet;
+      });
+      toast.error('Failed to update like');
     }
   };
 
@@ -305,7 +373,9 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
               artworkIdsInStories={artworkIdsInStories}
               currentUserId={appUser?.uid}
               onCommentClick={handleCommentClick}
-              onShare={isOwnProfile ? handleShare : undefined}
+              onShare={isOwnProfile ? handleShare : handleShare}
+              onLike={!isOwnProfile ? handleLike : undefined}
+              likedArtworks={likedArtworks}
             />
           )}
         </div>

@@ -34,6 +34,8 @@ export interface ArtworkGridProps {
   viewType?: 'homefeed' | 'discover' | 'published' | 'favourites';
   onCommentClick?: (id: string) => void;
   onShare?: (id: string) => void;
+  onLike?: (id: string) => void;
+  likedArtworks?: Set<string>;
 }
 
 const ArtworkGrid: React.FC<ArtworkGridProps> = ({ 
@@ -51,7 +53,9 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
   currentUserId,
   viewType,
   onCommentClick,
-  onShare
+  onShare,
+  onLike,
+  likedArtworks = new Set()
 }) => {
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
 
@@ -67,9 +71,9 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
     if (screenWidth >= 1440) return 4;
     if (screenWidth >= 1024) return 3;
     if (screenWidth >= 640) return 2;
-    // Mobile view: 1 column for homefeed, 1 column for own portfolio published tab, 2 columns for others
+    // Mobile view: 1 column for homefeed and all published tabs
     if (viewType === 'homefeed') return 1;
-    if (viewType === 'published' && isOwner) return 1;
+    if (viewType === 'published') return 1;
     return 2;
   };
 
@@ -100,6 +104,8 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
           viewType={viewType}
           onCommentClick={onCommentClick}
           onShare={onShare}
+          onLike={onLike}
+          isLiked={likedArtworks.has(artwork.id)}
         />
       </div>
     );
@@ -133,6 +139,8 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
             viewType={viewType}
             onCommentClick={onCommentClick}
             onShare={onShare}
+            onLike={onLike}
+            isLiked={likedArtworks.has(artwork.id)}
           />
         ))}
       </div>

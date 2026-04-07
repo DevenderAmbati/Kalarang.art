@@ -258,6 +258,17 @@
   }
 }
 
+/* Extra small screens - reduce padding for stories */
+@media (max-width: 370px) {
+  .stories-container {
+    padding: 0.25rem 0 0.5rem 0.25rem;
+  }
+  
+  .stories-heading {
+    padding: 0 0.25rem;
+  }
+}
+
 /* Fullscreen Story Modal */
 .story-fullscreen {
   position: fixed;
@@ -673,6 +684,13 @@
   .homefeed-artwork-grid {
     grid-template-columns: 1fr;
     row-gap: 1.5rem;
+  }
+}
+
+/* Extra small screens - reduce horizontal padding to prevent card cutoff */
+@media (max-width: 370px) {
+  .homefeed-artwork-grid {
+    padding: 1.5rem 0.5rem !important;
   }
 }
 

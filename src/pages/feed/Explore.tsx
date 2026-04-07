@@ -4,6 +4,7 @@ import ArtworkGrid from '../../components/Artwork/ArtworkGrid';
 import FilterPanel, { FilterState } from '../../components/Filters/FilterPanel';
 import LoadingState from '../../components/State/LoadingState';
 import EmptyState from '../../components/State/EmptyState';
+import { useAuth } from '../../context/AuthContext';
 import { Artwork as ArtworkType } from '../../types/artwork';
 import {
   getPublishedArtworksPaginated,
@@ -30,6 +31,7 @@ const getGridColumnCount = (width: number): number => {
 
 const Explore: React.FC = () => {
   const navigate = useNavigate();
+  const { appUser, loading: authLoading } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   /* Lock document scroll so only the inner .explore-scroll-container scrolls */
@@ -281,10 +283,9 @@ const Explore: React.FC = () => {
     if (showSuggestions) { document.addEventListener('mousedown', handler); return () => document.removeEventListener('mousedown', handler); }
   }, [showSuggestions]);
 
-  // All interactions redirect to login with an info toast
+  // Show toast without redirecting - login/signup buttons are in header
   const goToLogin = () => {
-    toast.info('Sign in to access this feature', { toastId: 'explore-login-prompt' });
-    navigate('/login');
+    toast.info('Please log in to access this feature', { toastId: 'explore-login-prompt' });
   };
 
   const searchSuggestions = useMemo(() => {
@@ -434,6 +435,23 @@ const Explore: React.FC = () => {
                   Explore curated artwork<span className="discover-description-extended"> from talented artists</span>.
                 </p>
               </div>
+              {/* Login/Signup buttons for non-authenticated users */}
+              {!authLoading && !appUser && (
+                <div className="explore-auth-buttons">
+                  <button
+                    className="explore-login-btn"
+                    onClick={() => navigate('/login')}
+                  >
+                    Log in
+                  </button>
+                  <button
+                    className="explore-signup-btn"
+                    onClick={() => navigate('/signup')}
+                  >
+                    Sign up
+                  </button>
+                </div>
+              )}
               {/* Drawer Toggle Button */}
               <button 
                 className={`discover-drawer-toggle ${isSearchDrawerOpen ? 'open' : ''}`}

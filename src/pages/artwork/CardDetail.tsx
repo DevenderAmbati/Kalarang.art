@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
+import { MdContentCopy } from 'react-icons/md';
 import ArtworkDetail, { Artwork as ArtworkDetailType, Artist } from '../../components/Artwork/ArtworkDetail';
 import LoadingState from '../../components/State/LoadingState';
 import ChatDrawer, { ChatContact } from '../../components/Chat/ChatDrawer';
@@ -143,7 +144,7 @@ const CardDetail: React.FC = () => {
 
   const handleLike = async (artworkId: number) => {
     if (!appUser || !id) {
-      navigate('/signup');
+      toast.info('Please log in to save artworks to favorites');
       return;
     }
 
@@ -196,7 +197,11 @@ const CardDetail: React.FC = () => {
   };
 
   const handleBuyNow = async (artistId: string) => {
-    if (!appUser) { navigate('/signup'); return; }
+    if (!appUser) { 
+      toast.info('Please log in to purchase artworks');
+      navigate('/signup');
+      return; 
+    }
     if (appUser.uid === artistId) { toast.info('You cannot buy your own artwork'); return; }
     
     // Fetch artist's UPI ID
@@ -283,7 +288,7 @@ const CardDetail: React.FC = () => {
 
   const handleReachOut = (artistId: string) => {
     if (!appUser) {
-      navigate('/signup');
+      toast.info('Please log in to reach out to artists');
       return;
     }
 
@@ -308,7 +313,7 @@ const CardDetail: React.FC = () => {
 
   const handleFollow = async (artistId: string) => {
     if (!appUser) {
-      navigate('/signup');
+      toast.info('Please log in to follow artists');
       return;
     }
 
@@ -334,7 +339,7 @@ const CardDetail: React.FC = () => {
 
   const handleArtistClick = (artistId: string) => {
     if (!appUser) {
-      navigate('/signup');
+      toast.info('Please log in to view artist profiles');
       return;
     }
     const isOwnProfile = artistId === appUser.uid;
@@ -365,7 +370,7 @@ const CardDetail: React.FC = () => {
         currentUserAvatar={appUser?.email ? `https://ui-avatars.com/api/?name=${encodeURIComponent(appUser.name || appUser.email)}` : undefined}
         onShare={handleShare}
         onReachOut={handleReachOut}
-        onBuyNow={appUser && appUser.uid !== artist.id ? handleBuyNow : undefined}
+        onBuyNow={(!appUser || appUser.uid !== artist.id) ? handleBuyNow : undefined}
         onFollow={handleFollow}
         onThumbnailClick={handleThumbnailClick}
         onArtistClick={handleArtistClick}
@@ -447,15 +452,34 @@ const CardDetail: React.FC = () => {
                   <div className="commission-accept-offer-payment">
                     <p className="commission-accept-offer-payment-label">Pay and confirm</p>
                     <div className="commission-accept-offer-amount">₹{artwork.price.toLocaleString()}</div>
-                    <p className="commission-accept-offer-upiid">UPI ID: <strong>{UPI_ID}</strong></p>
-                    {isMobile ? (
-                      <a href={upiUri} className="button button-primary commission-accept-offer-upi-btn">Open UPI App to Pay</a>
-                    ) : (
-                      <div className="commission-accept-offer-qr">
-                        <QRCodeSVG value={upiUri} size={180} />
-                        <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
+                      <p className="commission-accept-offer-upiid" style={{ margin: 0 }}>UPI ID: <strong>{UPI_ID}</strong></p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(UPI_ID!);
+                          toast.success('UPI ID copied to clipboard!');
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: '0.25rem',
+                          cursor: 'pointer',
+                          color: 'var(--color-primary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Copy UPI ID"
+                      >
+                        {MdContentCopy({ size: 18 })}
+                      </button>
+                    </div>
+                    <div className="commission-accept-offer-qr">
+                      <QRCodeSVG value={upiUri} size={180} />
+                      <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>💡 You are directly paying to the artist</p>
                   </div>
 
                   {!addressComplete && (

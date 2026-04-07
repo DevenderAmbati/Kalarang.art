@@ -641,6 +641,40 @@
   }
 }
 
+/* Extra small screens - reduce stats bar size further */
+@media (max-width: 341px) {
+  .stats-section {
+    gap: 0.25rem;
+    padding: 0.3rem 0.4rem;
+    margin: 0.25rem auto;
+  }
+
+  .stat-number {
+    font-size: 0.8rem;
+  }
+
+  .stat-label {
+    font-size: 0.45rem;
+    letter-spacing: 0.02em;
+  }
+
+  .stat-divider {
+    height: 16px;
+  }
+
+  .action-buttons .btn {
+    width: 100px !important;
+    min-width: 100px !important;
+    padding: 0.45rem 0.4rem !important;
+    font-size: 0.65rem !important;
+    height: 34px !important;
+  }
+
+  .action-buttons .btn .btn-icon {
+    font-size: 0.75rem !important;
+  }
+}
+
 /* Hover Effects for Better Interaction */
 @media (hover: hover) {
   .stat-item:hover .stat-number {

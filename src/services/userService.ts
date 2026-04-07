@@ -215,10 +215,17 @@ export async function getUserStats(userId: string): Promise<{
   const artworks = artworksSnapshot.size;
 
   // Count completed commissions (artworks made for clients)
-  const commissionsRef = collection(db, "commissions");
-  const commissionsQuery = query(commissionsRef, where("hiredArtistId", "==", userId), where("status", "==", "completed"));
-  const commissionsSnapshot = await getDocs(commissionsQuery);
-  const customized = commissionsSnapshot.size;
+  // This may fail for non-authenticated users due to Firestore rules
+  let customized = 0;
+  try {
+    const commissionsRef = collection(db, "commissions");
+    const commissionsQuery = query(commissionsRef, where("hiredArtistId", "==", userId), where("status", "==", "completed"));
+    const commissionsSnapshot = await getDocs(commissionsQuery);
+    customized = commissionsSnapshot.size;
+  } catch {
+    // Silently fail for unauthenticated users - they can't read completed commissions
+    customized = 0;
+  }
 
   return { followers, following, artworks, customized };
 }

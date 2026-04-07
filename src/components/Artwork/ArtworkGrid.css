@@ -64,8 +64,8 @@
     grid-template-columns: 1fr !important;
   }
 
-  /* Own Portfolio Published: 1 column on mobile */
-  .artwork-grid-published.artwork-grid-owner {
+  /* All Published tabs: 1 column on mobile (own and other portfolios) */
+  .artwork-grid-published {
     grid-template-columns: 1fr !important;
   }
 
