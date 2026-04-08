@@ -438,7 +438,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 0 4px 8px;
+  padding: 0 0 0 8px;
   flex-wrap: nowrap;
   gap: 4px;
 }
@@ -450,7 +450,7 @@
 .artwork-actions-left {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
   flex: 1;
   min-width: 0;
 }
@@ -505,9 +505,9 @@
 .artwork-stat--clickable .artwork-stat-icon {
   background: rgba(47, 164, 169, 0.15);
   border-radius: 50%;
-  padding: 4px;
-  width: 26px;
-  height: 26px;
+  padding: 6px;
+  width: 34px;
+  height: 34px;
   transition: all var(--transition-fast);
 }
 
@@ -527,10 +527,10 @@
   border: none;
   color: var(--color-primary);
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   border-radius: 50%;
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
   transition: all var(--transition-fast);
   display: flex;
   align-items: center;
@@ -545,8 +545,8 @@
 }
 
 .action-icon svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
 }
 
 /* Like button specific styles */
@@ -555,12 +555,8 @@
 }
 
 .action-icon.action-like.active {
-  background: rgba(47, 164, 169, 0.25);
+  background: rgba(47, 164, 169, 0.15);
   color: var(--color-primary);
-}
-
-.action-icon.action-like.active svg {
-  fill: currentColor;
 }
 
 .action-icon.action-like.animating {
@@ -581,17 +577,17 @@
 
 /* Interactive actions for other users' published works */
 .artwork-actions-interactive {
-  padding: 4px 8px;
+  padding: 0 8px;
 }
 
 .artwork-actions-interactive .artwork-actions-left {
-  gap: 8px;
+  gap: 12px;
 }
 
 .artwork-actions-interactive .action-icon {
-  width: 28px;
-  height: 28px;
-  padding: 5px;
+  width: 34px;
+  height: 34px;
+  padding: 6px;
 }
 
 /* Price Badge in single strip */

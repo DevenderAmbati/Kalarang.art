@@ -188,7 +188,7 @@
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 4px 16px 6px;
+  padding: 10px 16px;
   border-top: 1px solid var(--primary-alpha-20);
 }
 
@@ -274,36 +274,39 @@
   line-height: 0;
 }
 
-.action-icon {
-  background: none;
+.artwork-card .artwork-actions .action-icon {
+  background: rgba(47, 164, 169, 0.15);
   border: none;
-  color: var(--color-text-muted);
+  color: var(--color-primary);
   cursor: pointer;
-  padding: 8px;
-  border-radius: 8px;
+  padding: 5px;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
   transition: all var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.action-icon:hover {
+.artwork-card .artwork-actions .action-icon:hover {
+  background: rgba(47, 164, 169, 0.25);
   color: var(--color-primary);
-  background-color: var(--primary-alpha-10);
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
-.action-icon.active {
+.artwork-card .artwork-actions .action-icon.active {
   color: var(--color-primary);
 }
 
-.action-icon.active:hover {
-  color: var(--color-accent);
+.artwork-card .artwork-actions .action-icon.active:hover {
+  color: var(--color-primary);
 }
 
-.action-icon svg {
-  width: 20px;
-  height: 20px;
+.artwork-card .artwork-actions .action-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* Heart animation keyframes */

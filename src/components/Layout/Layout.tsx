@@ -139,6 +139,7 @@ const Layout: React.FC<LayoutProps> = ({
     if (isFavouritesActive) return 'Favourites';
     if (location.pathname === '/commissions') return 'Comission Board';
     if (location.pathname === '/post' && appUser?.role === 'buyer') return 'Post Comission';
+    if (location.pathname === '/post' && appUser?.role === 'artist') return 'Upload Artwork';
     if (isArtworkDetail) return 'Artwork';
     if (location.pathname === '/account') return 'Account';
     if (location.pathname === '/portfolio') return 'Portfolio';

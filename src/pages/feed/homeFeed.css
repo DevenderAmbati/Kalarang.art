@@ -17,10 +17,23 @@
 /* Following + Creations: icon strokes / default color teal (not muted grey) */
 .home-feed .artwork-actions .action-icon {
   color: var(--color-primary);
+  background: rgba(47, 164, 169, 0.15);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  padding: 6px;
+}
+
+.home-feed .artwork-actions .artwork-actions-left {
+  gap: 12px;
+}
+
+.home-feed .artwork-actions .action-icon:hover {
+  background: rgba(47, 164, 169, 0.25);
 }
 
 .home-feed .artwork-actions .action-icon.active:hover {
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 .home-feed .artwork-stat--clickable,
@@ -30,6 +43,11 @@
 
 .home-feed .artwork-stat--clickable:hover .artwork-stat-icon {
   color: var(--color-primary);
+}
+
+.home-feed .artwork-actions .action-icon svg {
+  width: 18px;
+  height: 18px;
 }
 
 .home-feed .artwork-actions .action-icon:focus-visible,
