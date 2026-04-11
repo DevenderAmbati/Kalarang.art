@@ -197,14 +197,20 @@ const Layout: React.FC<LayoutProps> = ({
                   <button
                     type="button"
                     style={styles.publicHeaderLink}
-                    onClick={() => navigate('/login')}
+                    onClick={() => {
+                      sessionStorage.setItem('postAuthRedirect', location.pathname);
+                      navigate('/login');
+                    }}
                   >
                     Log in
                   </button>
                   <button
                     type="button"
                     style={styles.publicHeaderCta}
-                    onClick={() => navigate('/signup')}
+                    onClick={() => {
+                      sessionStorage.setItem('postAuthRedirect', location.pathname);
+                      navigate('/signup');
+                    }}
                   >
                     Sign up
                   </button>

@@ -33,13 +33,10 @@ const ResetPassword: React.FC = () => {
 
     try {
       // Use environment-based config
-      const baseUrl =
-        window.location.hostname.includes("staging")
-          ? "https://kalarang-staging.web.app"
-          : "https://kalarang.art";
+
 
       await sendPasswordResetEmail(auth, email, {
-        url: `${baseUrl}/reset-password`,
+        url: `${process.env.REACT_APP_BASE_URL}/reset-password`,
         handleCodeInApp: true
       });
       

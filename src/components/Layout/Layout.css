@@ -157,3 +157,12 @@
     padding-bottom: max(24px, env(safe-area-inset-bottom, 0px)) !important;
   }
 }
+
+/* Very small screens - prevent horizontal overflow */
+@media (max-width: 320px) {
+  .layout-main-content,
+  .layout-inner-scroll--with-bottom-nav {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+}

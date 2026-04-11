@@ -490,6 +490,7 @@ const Discover: React.FC = () => {
 
   const handleClearSearch = () => {
     handleSearchChange('');
+    setDebouncedSearchQuery(''); // Clear debounced query immediately
     setMatchedUsers([]);
     setShowSuggestions(false);
     searchInputRef.current?.focus();

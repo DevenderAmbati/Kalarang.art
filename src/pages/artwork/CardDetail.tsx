@@ -197,10 +197,11 @@ const CardDetail: React.FC = () => {
   };
 
   const handleBuyNow = async (artistId: string) => {
-    if (!appUser) { 
+    if (!appUser) {
       toast.info('Please log in to purchase artworks');
+      sessionStorage.setItem('postAuthRedirect', location.pathname);
       navigate('/signup');
-      return; 
+      return;
     }
     if (appUser.uid === artistId) { toast.info('You cannot buy your own artwork'); return; }
     

@@ -40,6 +40,11 @@ import BuyerLanding from "./pages/landing/BuyerLanding";
 import { ScrollToTop } from "./components/Common/ScrollToTop";
 import PwaUpdatePrompt from "./components/PwaUpdatePrompt";
 
+// Module-level cache for post-auth redirect to handle StrictMode double-render
+// This ensures both render calls see the same value
+let cachedPostAuthRedirect: string | null = null;
+let postAuthRedirectConsumed = false;
+
 /**
  * Single shell for all 5 bottom-nav tabs + artwork detail.
  * Each tab component is passed as a named prop so Layout keeps it mounted
@@ -183,6 +188,7 @@ function App() {
     // Navigation handled by auth state change
   };
 
+
   const handleLogout = async () => {
     await logout();
   };
@@ -200,6 +206,25 @@ function App() {
 
   if (loading) {
     return null;
+  }
+
+  // Read pending redirect synchronously during render using module-level cache
+  // This handles StrictMode double-render by caching the value
+  let postAuthRedirect: string | null = null;
+  if (isAuthenticated()) {
+    if (!postAuthRedirectConsumed) {
+      const r = sessionStorage.getItem('postAuthRedirect');
+      if (r) {
+        cachedPostAuthRedirect = r;
+        sessionStorage.removeItem('postAuthRedirect');
+        postAuthRedirectConsumed = true;
+      }
+    }
+    postAuthRedirect = cachedPostAuthRedirect;
+  } else {
+    // Reset when user logs out
+    cachedPostAuthRedirect = null;
+    postAuthRedirectConsumed = false;
   }
 
   return (
@@ -242,12 +267,12 @@ function App() {
 
               <Route
                 path="/login"
-                element={isAuthenticated() ? <Navigate to="/home" replace /> : <Login onLogin={handleLogin} />}
+                element={isAuthenticated() ? <Navigate to={postAuthRedirect ?? "/home"} replace /> : <Login onLogin={handleLogin} />}
               />
 
               <Route
                 path="/signup"
-                element={isAuthenticated() ? <Navigate to={appUser!.role === "artist" ? "/artist" : appUser!.role === "buyer" ? "/buyer" : "/home"} replace /> : <SignUp onSignUp={handleSignUp} />}
+                element={isAuthenticated() ? <Navigate to={postAuthRedirect ?? (appUser!.role === "artist" ? "/artist" : appUser!.role === "buyer" ? "/buyer" : "/home")} replace /> : <SignUp onSignUp={handleSignUp} />}
               />
 
               {/* Username creation route for artists */}

@@ -1677,7 +1677,7 @@ const styles = {
   container: {
     minHeight: '100%',
     padding: '0',
-    margin: '0 -0.5rem',
+    margin: '0',
   },
 };
 

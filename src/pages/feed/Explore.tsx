@@ -307,6 +307,7 @@ const Explore: React.FC = () => {
 
   const handleClearSearch = () => {
     setSearchQuery('');
+    setDebouncedSearchQuery(''); // Clear debounced query immediately
     setMatchedUsers([]);
     setShowSuggestions(false);
     searchInputRef.current?.focus();
