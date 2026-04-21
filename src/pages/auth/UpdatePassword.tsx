@@ -119,7 +119,7 @@ const UpdatePassword: React.FC = () => {
       <div style={{ maxWidth: '550px', width: '100%', zIndex: 10 }}>
         <div className="login-mobile-header">
           <img src="/logo1.png" alt="Kalarang Logo" className="login-mobile-logo" />
-          <h1 className="login-mobile-headline">Where Art Meets Its People</h1>
+          <h1 className="login-mobile-headline">Get your paintings customized</h1>
           <p className="login-mobile-subtext">Update your password to meet our security requirements.</p>
         </div>
 

@@ -5,8 +5,9 @@ import { HiOutlineSearch, HiSparkles } from 'react-icons/hi';
 import { HiOutlineUserGroup } from 'react-icons/hi2';
 import { IoIosColorPalette } from 'react-icons/io';
 import { PiPaletteLight, PiPaintBrushHouseholdLight } from 'react-icons/pi';
-import { FaPaintBrush, FaHeart } from 'react-icons/fa';
+import { FaPaintBrush, FaHeart, FaUserCircle } from 'react-icons/fa';
 import { BiTargetLock } from 'react-icons/bi';
+import { BsStars } from 'react-icons/bs';
 import Header from '../../components/Layout/Header';
 import Footer from '../../components/Layout/Footer';
 import './landing.css';
@@ -127,12 +128,12 @@ const About: React.FC = () => {
             </h1>
             <div className="about-hero-divider"></div>
             <p className="about-hero-subheading">
-              Where creativity finds its people.
+              Original paintings. Custom commissions. Real artists.
             </p>
             <p className="about-hero-intro">
-              Kalarang is a creative platform built to help original work get the attention it deserves—<span className="highlight-text">without being influenced by
-                trends, or algorithms.</span> We connect creators and art lovers in one place, making it easier to share,
-              discover, and support creativity without barriers.
+              Kalarang is where you go to find art that's made for you—<span className="highlight-text">not mass-produced,
+                not algorithm-picked.</span> Browse original paintings, request custom portraits, and buy directly from
+              talented artists who pour real craft into every piece.
             </p>
           </div>
 
@@ -146,12 +147,12 @@ const About: React.FC = () => {
               {HiOutlineUserGroup({ size: 40 })}
             </div>
             <h2 className="about-section-heading">
-              <span className="gradient-text">Who We Are </span>
+              <span className="gradient-text">Art Made for You</span>
             </h2>
             <p className="about-section-text">
-              We are a <span className="highlight-text">community-driven platform</span> created for people who believe creativity
-              should be seen, valued, and supported. Kalarang brings together artists, creators,
-              and art lovers to form a space where original work can thrive and reach the right audience.
+              Kalarang is a <span className="highlight-text">buyer-first art marketplace</span> that connects you directly with skilled,
+              independent artists. Whether you're looking for a one-of-a-kind original painting for your home,
+              a heartfelt portrait as a gift, or a fully custom piece built around your vision—this is where you find it.
             </p>
           </section>
 
@@ -161,22 +162,22 @@ const About: React.FC = () => {
             data-section="what"
             ref={(el) => { sectionRefs.current.what = el; }}
           >
-            <h2 className="gradient-text">What We Do</h2>
+            <h2 className="gradient-text">What You Can Do Here</h2>
             <div className="about-cards-grid">
               <div className="about-card">
                 <div className="about-card-icon">
                   {MdPalette({ size: 28 })}
                 </div>
                 <p className="about-card-text">
-                  Give creators a simple and beautiful space to showcase original work
+                  Browse and buy original paintings—handcrafted, one-of-a-kind pieces you won't find anywhere else
                 </p>
               </div>
               <div className="about-card">
                 <div className="about-card-icon">
-                  {HiOutlineSearch({ size: 28 })}
+                  {HiSparkles({ size: 28 })}
                 </div>
                 <p className="about-card-text">
-                  Help buyers and art lovers discover unique pieces from independent creators
+                  Commission custom paintings built around your idea—portraits, pet art, gifts, home decor, and more
                 </p>
               </div>
               <div className="about-card">
@@ -184,7 +185,7 @@ const About: React.FC = () => {
                   {HiOutlineUserGroup({ size: 28 })}
                 </div>
                 <p className="about-card-text">
-                  Enable commission artwork requests so buyers can collaborate directly with creators on custom pieces
+                  Connect directly with talented artists—no middlemen, no markups, just you and the person who made it
                 </p>
               </div>
             </div>
@@ -200,12 +201,12 @@ const About: React.FC = () => {
               {BiTargetLock({ size: 40 })}
             </div>
             <h2 className="about-section-heading">
-              <span className="gradient-text">Why We Exist</span>
+              <span className="gradient-text">Why Buy on Kalarang</span>
             </h2>
             <p className="about-section-text">
-              Too much great creative work goes unnoticed—not because it lacks quality, but because it doesn’t fit trends or algorithms.
-              We built Kalarang to change that. Our mission is to remove the gap between creators and people who appreciate creativity,
-              so ideas, stories, and art can reach the audiences they deserve.
+              Finding genuine, handmade art online is harder than it should be. Most platforms are flooded with prints and mass-produced work
+              with no direct way to reach the artist. Kalarang exists to change that—giving you a <span className="highlight-text">direct line to real artists</span>,
+              so every purchase carries meaning and every commission feels personal.
             </p>
           </section>
 
@@ -219,13 +220,12 @@ const About: React.FC = () => {
               {HiSparkles({ size: 40 })}
             </div>
             <h2 className="about-section-heading">
-              <span className="gradient-text">Why We're Different</span>
+              <span className="gradient-text">Portraits & Custom Work</span>
             </h2>
             <p className="about-section-text">
-              Kalarang is not driven by trends, algorithms, or virality.
-              We don’t treat artists as content creators or push them to chase visibility through reel creation, formats, styles, or popularity.
-              Instead, we focus on <span className="highlight-text">originality, intent, and meaningful creative work</span>—giving every artist a fair space to be discovered
-              for what they create, not how well it performs.
+              Want a portrait of yourself, a loved one, or even your pet? Our artists specialize in bringing personal moments to life on canvas.
+              Share your reference, describe your vision, and <span className="highlight-text">collaborate directly with the artist</span> through every step of the process.
+              Custom commissions mean you get exactly what you imagined—painted by hand, made with care.
             </p>
           </section>
 
@@ -239,15 +239,16 @@ const About: React.FC = () => {
               {MdAutoAwesome({ size: 40 })}
             </div>
             <h2 className="about-section-heading">
-              <span className="gradient-text">Our Vision </span>
+              <span className="gradient-text">Our Promise to Buyers</span>
             </h2>
             <div className="about-vision-box">
               <div className="about-vision-icon">
                 {FaHeart({ size: 24 })}
               </div>
               <p className="about-section-text">
-                To become a <span className="highlight-text">global home for original creativity</span>—where creators feel empowered
-                to share their work and people can discover art that truly resonates with them.
+                Every piece on Kalarang is made by a real artist. When you buy here, your money goes directly to them—
+                and you walk away with <span className="highlight-text">something truly original</span>, not a print off a factory line.
+                Art worth owning. Artists worth supporting.
               </p>
             </div>
           </section>
@@ -258,10 +259,10 @@ const About: React.FC = () => {
             data-section="cta"
             ref={(el) => { sectionRefs.current.cta = el; }}
           >
-            <h2 className="about-cta-heading">Be Part of the Creative Community</h2>
+            <h2 className="about-cta-heading">Find Your Next Favorite Piece</h2>
             <p className="about-cta-description">
-              Whether you create or collect, Kalarang is a place for you. Join a growing
-              community that celebrates originality, expression, and meaningful connection.
+              Original paintings, custom portraits, and direct access to talented artists—all in one place.
+              Start exploring and commission something made just for you.
             </p>
             <div className="about-cta-buttons">
 

@@ -211,7 +211,7 @@ const SetNewPassword: React.FC = () => {
             alt="Kalarang Logo"
             className="login-mobile-logo"
           />
-          <h1 className="login-mobile-headline">Where Art Meets Its People</h1>
+          <h1 className="login-mobile-headline">Get your paintings customized</h1>
           <p className="login-mobile-subtext">Secure your account with a new password.</p>
         </div>
 

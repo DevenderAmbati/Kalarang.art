@@ -26,6 +26,12 @@ export interface ChatContact {
 /** Cache participant profiles so we don't refetch every time the drawer opens. */
 const profileCache: Record<string, ChatContact> = {};
 
+/** Detects phone numbers in a string. Matches Indian mobile numbers and generic 10+ digit sequences. */
+const containsPhoneNumber = (text: string): boolean => {
+  const phoneRegex = /(\+?91[\s.\-]?)?[6-9]\d{9}|\b\d(?:[\s\-.]?\d){9,}\b/;
+  return phoneRegex.test(text);
+};
+
 function avatarSrc(avatar?: string): string {
   return avatar || '/artist.png';
 }
@@ -208,6 +214,7 @@ const ChatView: React.FC<{
   }, [appUser?.uid, contact.uid, lastMsgId]);
 
   const [inputText, setInputText] = useState(initialMessage || '');
+  const [phoneWarning, setPhoneWarning] = useState(false);
   const [pendingImage, setPendingImage] = useState<File | null>(null);
   const [imageDownloadBusy, setImageDownloadBusy] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -426,10 +433,11 @@ const ChatView: React.FC<{
   const handleSend = async () => {
     const text = inputText.trim();
     if (!text && !pendingImage) return;
-    
+    if (phoneWarning) return;
+
     // eslint-disable-next-line no-console
     console.log('handleSend called', { text, ready, loading, sending });
-    
+
     if (!ready) {
       // eslint-disable-next-line no-console
       console.warn('Cannot send: chat not ready');
@@ -988,13 +996,25 @@ const ChatView: React.FC<{
             />
           </div>
         )}
+        {phoneWarning && (
+          <div className="cd-phone-warning">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Please don't share phone numbers for your safety.
+          </div>
+        )}
         <div className="cd-chat-input-row">
           <textarea
             ref={inputRef}
             className="cd-chat-input"
             placeholder="Type a message..."
             value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
+            onChange={(e) => {
+              setInputText(e.target.value);
+              setPhoneWarning(containsPhoneNumber(e.target.value));
+            }}
             onKeyDown={handleKeyDown}
             disabled={sending || !ready}
             autoFocus
@@ -1032,7 +1052,7 @@ const ChatView: React.FC<{
           <button
             className="cd-chat-send"
             onClick={handleSend}
-            disabled={(!inputText.trim() && !pendingImage) || sending || !ready}
+            disabled={(!inputText.trim() && !pendingImage) || sending || !ready || phoneWarning}
             aria-label="Send message"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

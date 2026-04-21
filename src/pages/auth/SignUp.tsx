@@ -123,9 +123,12 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
         
         // All validations passed, now signup
         await signup(formData.fullName, formData.email, formData.password, userType);
-        
+
         // Dismiss all toasts after successful signup
         toast.dismiss();
+        if (userType === 'buyer') {
+          sessionStorage.setItem('buyer_new_signup', '1');
+        }
         onSignUp();
       } catch (error: unknown) {
         setIsLoading(false);
@@ -177,6 +180,9 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
       
       // Dismiss all toasts after successful signup
       toast.dismiss();
+      if (userType === 'buyer') {
+        sessionStorage.setItem('buyer_new_signup', '1');
+      }
     } catch (err: any) {
       setIsLoading(false);
       setRandomAnimation(null);
@@ -317,7 +323,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
             alt="Kalarang Logo"
             className="login-mobile-logo"
           />
-          <h1 className="login-mobile-headline">Where Art Meets Its People</h1>
+          <h1 className="login-mobile-headline">Get your paintings customized</h1>
           <p className="login-mobile-subtext">Discover and share original art with the world.</p>
         </div>
 

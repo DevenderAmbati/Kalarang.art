@@ -184,14 +184,15 @@ const CardDetail: React.FC = () => {
   };
 
   const handleShare = (artworkId: number) => {
+    const shareUrl = `${window.location.origin}/og/${id}`;
     if (navigator.share && artwork) {
       navigator.share({
         title: artwork.title,
         text: `Check out this artwork: ${artwork.title}`,
-        url: window.location.href,
+        url: shareUrl,
       }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(shareUrl);
       toast.success('Link copied to clipboard!');
     }
   };

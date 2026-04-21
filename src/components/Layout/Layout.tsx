@@ -11,6 +11,7 @@ import { IoMdNotifications } from 'react-icons/io';
 import { PiChatsBold } from 'react-icons/pi';
 import NotificationModal from '../Modals/NotificationModal';
 import ChatDrawer from '../Chat/ChatDrawer';
+import BuyingFlowInfoModal from '../Modals/BuyingFlowInfoModal';
 import { subscribeToUnreadCount } from '../../services/notificationService';
 import { useChatContext } from '../../context/ChatContext';
 import InstallBanner from '../Common/InstallPrompt';
@@ -48,6 +49,7 @@ const Layout: React.FC<LayoutProps> = ({
   const location = useLocation();
   const [, forceUpdate] = useState({});
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [isBuyingFlowInfoOpen, setIsBuyingFlowInfoOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const { unreadCount: unreadChatCount, isChatDrawerOpen, setIsChatDrawerOpen } = useChatContext();
   const headerRef = useRef<HTMLDivElement>(null);
@@ -217,18 +219,42 @@ const Layout: React.FC<LayoutProps> = ({
                 </div>
               )}
               {appUser && (
-                <div
-                  onClick={() => setIsChatDrawerOpen(true)}
-                  style={{...styles.notificationIcon, position: 'relative'}}
-                  className="layout-notification-icon"
-                  aria-label="Messages"
-                >
-                  {PiChatsBold({ size: 26 })}
-                  {unreadChatCount > 0 && (
-                    <div style={styles.unreadBadge}>
-                      {unreadChatCount > 99 ? '99+' : unreadChatCount}
-                    </div>
-                  )}
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsBuyingFlowInfoOpen(true)}
+                    aria-label="How buying works"
+                    title="How buying works"
+                    style={styles.buyingInfoIconBtn}
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="16" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                  </button>
+                  <div
+                    onClick={() => setIsChatDrawerOpen(true)}
+                    style={{...styles.notificationIcon, position: 'relative'}}
+                    className="layout-notification-icon"
+                    aria-label="Messages"
+                  >
+                    {PiChatsBold({ size: 26 })}
+                    {unreadChatCount > 0 && (
+                      <div style={styles.unreadBadge}>
+                        {unreadChatCount > 99 ? '99+' : unreadChatCount}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
               {appUser && (
@@ -378,6 +404,15 @@ const Layout: React.FC<LayoutProps> = ({
           isOpen={isChatDrawerOpen}
           onClose={() => setIsChatDrawerOpen(false)}
         />
+
+        {/* Buying flow info modal */}
+        {appUser && (
+          <BuyingFlowInfoModal
+            isOpen={isBuyingFlowInfoOpen}
+            onClose={() => setIsBuyingFlowInfoOpen(false)}
+            userRole={appUser.role as 'artist' | 'buyer'}
+          />
+        )}
       </main>
       {!hideAppNav && <BottomNav />}
     </div>
@@ -496,6 +531,19 @@ const styles = {
     fontSize: '0.9rem',
     fontWeight: 600,
     padding: '0.45rem 1rem',
+  } as React.CSSProperties,
+  buyingInfoIconBtn: {
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '6px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '50%',
+    color: 'var(--color-text-secondary)',
+    transition: 'all 0.2s ease',
+    marginRight: '0.25rem',
   } as React.CSSProperties,
   unreadBadge: {
     position: 'absolute',

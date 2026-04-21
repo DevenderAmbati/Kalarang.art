@@ -262,10 +262,10 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
       navigator.share({
         title: artwork.title,
         text: `Check out "${artwork.title}" by ${artwork.artistName}`,
-        url: `${window.location.origin}/card/${id}`,
+        url: `${window.location.origin}/og/${id}`,
       }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(`${window.location.origin}/card/${id}`);
+      navigator.clipboard.writeText(`${window.location.origin}/og/${id}`);
       toast.success('Link copied to clipboard!');
     }
   };

@@ -616,7 +616,7 @@ const Explore: React.FC = () => {
                       <ArtworkGrid
                         artworks={virtualizedArtworks.map(a => ({ id: a.id, title: a.title, artworkImage: a.images[0], artistName: a.artistName, artistAvatar: a.artistAvatar || '/artist.png', artistId: a.artistId, price: a.price, sold: a.sold }))}
                         viewType="discover"
-                        onArtworkClick={goToLogin}
+                        onArtworkClick={(id) => { sessionStorage.setItem('artworkSourceRoute', '/explore'); navigate(`/card/${id}`); }}
                         onArtistClick={goToLogin}
                         onSave={goToLogin}
                         savedArtworks={savedArtworks}

@@ -92,16 +92,7 @@ const Header: React.FC = () => {
       </div>
 
       {/* Right Section: Founding Artists + Explore + Sign In */}
-      <div className="home-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        {/* Founding Artists Program Button */}
-        <button
-          onClick={() => navigate('/founding-artists')}
-          className="home-header-join-btn"
-        >
-          <span>Founding Artists Program</span>
-          {MdArrowForward({ size: 13 })}
-        </button>
-
+      <div className="home-header-right home-header-right-desktop" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         {/* Explore Art Button */}
         <button
           onClick={handleExploreClick}

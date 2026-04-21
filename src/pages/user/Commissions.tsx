@@ -61,6 +61,7 @@ import {
   submitArtistReply,
 } from '../../services/reviewService';
 import { downloadImageFromUrl, suggestedChatImageFilename } from '../../utils/downloadImage';
+import { savePublicShare } from '../../services/publicShareService';
 import EmptyState from '../../components/State/EmptyState';
 import LoadingState from '../../components/State/LoadingState';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
@@ -72,6 +73,12 @@ import artPostLoaderAnimation from '../../animations/Line art (1).json';
 import CommissionFlowInfoModal from '../../components/Modals/CommissionFlowInfoModal';
 import '../../components/Modals/ConfirmModal.css';
 import './Commissions.css';
+
+/** Detects phone numbers in a string. Matches Indian mobile numbers and generic 10+ digit sequences. */
+const containsPhoneNumber = (text: string): boolean => {
+  const phoneRegex = /(\+?91[\s.\-]?)?[6-9]\d{9}|\b\d(?:[\s\-.]?\d){9,}\b/;
+  return phoneRegex.test(text);
+};
 
 /** Form (`mode="form"`) and board (`mode="list"`) are separate mounts in `App.tsx`; the list instance must refetch when a request is created from the post tab. */
 const COMMISSION_LISTS_UPDATED_EVENT = 'kalarang:commission-lists-updated';
@@ -247,6 +254,7 @@ const CommissionChatModal: React.FC<{
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [inputText, setInputText] = useState('');
+  const [phoneWarning, setPhoneWarning] = useState(false);
   const [pendingImage, setPendingImage] = useState<File | null>(null);
   const [imageDownloadBusy, setImageDownloadBusy] = useState<string | null>(null);
   const [metaSent, setMetaSent] = useState(false);
@@ -493,6 +501,7 @@ const CommissionChatModal: React.FC<{
     if (!currentUserId || !chatId || !metadata) return;
     const text = inputText.trim();
     if (!text && !pendingImage) return;
+    if (phoneWarning) return;
     const imageToSend = pendingImage;
     setInputText('');
     setPendingImage(null);
@@ -934,12 +943,24 @@ const CommissionChatModal: React.FC<{
                   </button>
                 </div>
               )}
+              {phoneWarning && (
+                <div className="cd-phone-warning">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  Please don't share phone numbers for your safety.
+                </div>
+              )}
               <div className="commission-chat-input-row">
               <textarea
                 ref={inputRef}
                 className="commission-chat-input"
                 value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+                onChange={(e) => {
+                  setInputText(e.target.value);
+                  setPhoneWarning(containsPhoneNumber(e.target.value));
+                }}
                 placeholder="Type a message..."
                 rows={1}
                 disabled={sending || chatClosed}
@@ -961,7 +982,7 @@ const CommissionChatModal: React.FC<{
                 type="button"
                 className={`commission-chat-send${sending ? ' commission-chat-send--busy' : ''}`}
                 onClick={handleSend}
-                disabled={(!inputText.trim() && !pendingImage) || sending || chatClosed}
+                disabled={(!inputText.trim() && !pendingImage) || sending || chatClosed || phoneWarning}
                 aria-label={sending ? 'Sending message' : 'Send message'}
               >
                 {sending ? (
@@ -1365,6 +1386,11 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
   const [replyOpenId, setReplyOpenId] = useState<string | null>(null);
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
   const [replySubmitting, setReplySubmitting] = useState<string | null>(null);
+  const [shareToPublicItem, setShareToPublicItem] = useState<CommissionRequest | null>(null);
+  const [shareToPublicImage, setShareToPublicImage] = useState<File | null>(null);
+  const [shareToPublicImagePreview, setShareToPublicImagePreview] = useState<string | null>(null);
+  const [shareToPublicText, setShareToPublicText] = useState('');
+  const [shareToPublicBusy, setShareToPublicBusy] = useState(false);
   const reviewsLoadedRef = useRef(false);
   const [artistActionBusy, setArtistActionBusy] = useState<{
     commissionId: string;
@@ -3402,7 +3428,33 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
               </div>
               <div className="commission-main-tabs-spacer" />
 
-              {activeMainTab === 'commissions' && (
+              {activeMainTab === 'commissions' && appUser?.role === 'buyer' && (
+                <div className="commission-search-container commission-create-request-container">
+                  <button
+                    type="button"
+                    className="commission-create-request-btn"
+                    onClick={() => navigate('/post')}
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Create your commission request
+                  </button>
+                </div>
+              )}
+
+              {activeMainTab === 'commissions' && appUser?.role !== 'buyer' && (
                 <div className="commission-search-container">
                   <div className="commission-search-bar">
                     <div className="commission-search-field">
@@ -3554,43 +3606,13 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                           <div className="commission-posted-content">
                             <div className="commission-posted-header">
                               <h4>{item.title}</h4>
-                              {appUser?.role === 'buyer' &&
-                              activeMainTab === 'my-applications' &&
-                              activeBuyerSubTab === 'inprogress' &&
-                              isCommissionInProgress(item.status) ? (
-                                <div className="commission-buyer-inprogress-actions">
-                                  <span
-                                    className={`commission-posted-status commission-status-${commissionStatusBadgeClassSuffix(
-                                      item.status,
-                                    )}`}
-                                  >
-                                    {formatCommissionStatus(item.status)}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    className="commission-mark-completed-link"
-                                    disabled={markingCompletedId === item.id}
-                                    onClick={() => setCompleteConfirmItem(item)}
-                                  >
-                                    {markingCompletedId === item.id ? (
-                                      <span className="commission-mark-completed-link-inner">
-                                        <span className="commission-inline-spinner commission-inline-spinner--muted" aria-hidden />
-                                        Updating…
-                                      </span>
-                                    ) : (
-                                      'Mark as completed'
-                                    )}
-                                  </button>
-                                </div>
-                              ) : (
-                                <span
-                                  className={`commission-posted-status commission-status-${commissionStatusBadgeClassSuffix(
-                                    item.status,
-                                  )}`}
-                                >
-                                  {formatCommissionStatus(item.status)}
-                                </span>
-                              )}
+                              <span
+                                className={`commission-posted-status commission-status-${commissionStatusBadgeClassSuffix(
+                                  item.status,
+                                )}`}
+                              >
+                                {formatCommissionStatus(item.status)}
+                              </span>
                             </div>
                             <p className="commission-posted-text">{item.description}</p>
                             <div className="commission-posted-meta">
@@ -3611,7 +3633,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                               {item.cityOrPincode?.trim() && (
                                 <span>Delivery: {item.cityOrPincode}</span>
                               )}
-                              {isCommissionInProgress(item.status) && (
+                              {activeMainTab === 'my-applications' && isCommissionInProgress(item.status) && (
                                 <button
                                   type="button"
                                   className="commission-view-address-btn"
@@ -3621,7 +3643,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                                 </button>
                               )}
                             </div>
-                            {addressTooltipId === item.id && (
+                            {activeMainTab === 'my-applications' && addressTooltipId === item.id && (
                               <div className="commission-address-inline">
                                 {item.buyerAddress || 'No delivery address provided.'}
                               </div>
@@ -3702,9 +3724,12 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
 
                         {/* Chips + action button row above chat strip */}
                         {(() => {
-                          const showActionBtn = activeMainTab === 'my-applications' && isCommissionInProgress(item.status) && (
-                            appUser?.role === 'artist' ||
-                            (appUser?.role === 'buyer' && Boolean(item.readyToShipImageUrl) && !item.fullPaymentDone)
+                          const showActionBtn = activeMainTab === 'my-applications' && (
+                            (isCommissionInProgress(item.status) && (
+                              appUser?.role === 'artist' ||
+                              (appUser?.role === 'buyer' && Boolean(item.readyToShipImageUrl) && !item.fullPaymentDone)
+                            )) ||
+                            (item.status === 'completed' && appUser?.role === 'buyer' && activeBuyerSubTab === 'completed')
                           );
                           const hasChips = item.type || item.style.length > 0 || item.subject.length > 0;
                           if (!hasChips && !showActionBtn) return null;
@@ -3739,6 +3764,19 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                                         Ready to ship
                                       </button>
                                     )
+                                  ) : item.status === 'completed' && activeBuyerSubTab === 'completed' ? (
+                                    <button
+                                      type="button"
+                                      className="commission-card-action-btn"
+                                      onClick={() => {
+                                        setShareToPublicItem(item);
+                                        setShareToPublicImage(null);
+                                        setShareToPublicImagePreview(item.readyToShipImageUrl ?? null);
+                                        setShareToPublicText('');
+                                      }}
+                                    >
+                                      Share to Public
+                                    </button>
                                   ) : (
                                     <button
                                       type="button"
@@ -3772,10 +3810,18 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                           );
                         })()}
 
-                        {activeMainTab !== 'commissions' && getCommissionChats(item.id).length > 0 && (
+                        {activeMainTab !== 'commissions' && (() => {
+                          const visibleChats = getCommissionChats(item.id).filter((chat) => {
+                            if (appUser?.role !== 'buyer' || !item.hiredArtistId) return true;
+                            const otherUid = appUser?.uid
+                              ? chat.participants.find((uid) => uid !== appUser.uid)
+                              : undefined;
+                            return otherUid === item.hiredArtistId;
+                          });
+                          return visibleChats.length > 0 && (
                         <div className="commission-chat-list">
                           <div className="commission-chat-items commission-chat-items-headers">
-                            {getCommissionChats(item.id).map((chat) => {
+                            {visibleChats.map((chat) => {
                               const otherUid = appUser?.uid
                                 ? chat.participants.find((uid) => uid !== appUser.uid)
                                 : undefined;
@@ -3818,7 +3864,8 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                             })}
                           </div>
                         </div>
-                      )}
+                          );
+                        })()}
 
                         {/* Review section — buyer: write a review; artist: read review + reply */}
                         {item.status === 'completed' && activeMainTab === 'my-applications' && (() => {
@@ -4703,6 +4750,141 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           </div>,
           document.body,
         )}
+
+      {shareToPublicItem && createPortal(
+        <div
+          className="confirm-modal-overlay"
+          role="presentation"
+          onClick={() => { setShareToPublicItem(null); setShareToPublicImage(null); setShareToPublicImagePreview(null); setShareToPublicText(''); }}
+        >
+          <div
+            className="confirm-modal-content commission-share-public-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="share-public-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="commission-accept-offer-close"
+              aria-label="Close"
+              onClick={() => { setShareToPublicItem(null); setShareToPublicImage(null); setShareToPublicImagePreview(null); setShareToPublicText(''); }}
+            >
+              ×
+            </button>
+            <h2 id="share-public-title" className="confirm-modal-title">Share to Public</h2>
+            <p className="confirm-modal-message">Show off your commission! Share the artwork and your experience with the community.</p>
+
+            <label className="commission-share-public-upload-area">
+              {shareToPublicImagePreview ? (
+                <div className="commission-share-public-preview-wrap">
+                  <img src={shareToPublicImagePreview} alt="Preview" className="commission-share-public-preview-img" />
+                  {!shareToPublicImage && shareToPublicItem?.readyToShipImageUrl && (
+                    <span className="commission-share-public-preview-badge">Artist's photo · tap to replace</span>
+                  )}
+                  <button
+                    type="button"
+                    className="commission-share-public-preview-remove"
+                    onClick={(e) => { e.preventDefault(); setShareToPublicImage(null); setShareToPublicImagePreview(null); }}
+                    aria-label="Remove image"
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <div className="commission-share-public-upload-placeholder">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  <span>Upload artwork photo</span>
+                  <span className="commission-share-public-upload-hint">Tap to choose an image</span>
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!file?.type.startsWith('image/')) return;
+                  setShareToPublicImage(file);
+                  setShareToPublicImagePreview(URL.createObjectURL(file));
+                }}
+              />
+            </label>
+
+            <div className="commission-share-public-experience">
+              <label className="commission-share-public-experience-label" htmlFor="share-public-text">
+                Share your experience
+              </label>
+              <textarea
+                id="share-public-text"
+                className="commission-share-public-textarea"
+                placeholder="Tell the community about your experience with this commission — what you loved, how it turned out…"
+                rows={4}
+                value={shareToPublicText}
+                onChange={(e) => setShareToPublicText(e.target.value)}
+              />
+            </div>
+
+            <div className="confirm-modal-actions confirm-modal-actions--row">
+              <button
+                type="button"
+                className="confirm-modal-btn confirm-modal-btn-cancel"
+                disabled={shareToPublicBusy}
+                onClick={() => { setShareToPublicItem(null); setShareToPublicImage(null); setShareToPublicImagePreview(null); setShareToPublicText(''); }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                disabled={shareToPublicBusy || (!shareToPublicText.trim() && !shareToPublicImage)}
+                onClick={async () => {
+                  if (!appUser || !shareToPublicItem) return;
+                  setShareToPublicBusy(true);
+                  try {
+                    let imageUrl = shareToPublicImagePreview ?? '';
+                    if (shareToPublicImage) {
+                      const { uploadChatMessageImage } = await import('../../services/chatImageUpload');
+                      imageUrl = await uploadChatMessageImage(appUser.uid, 'chats', `publicShares_${Date.now()}`, shareToPublicImage);
+                    }
+                    await savePublicShare({
+                      buyerId: appUser.uid,
+                      buyerName: appUser.name || 'Buyer',
+                      buyerAvatar: appUser.avatar,
+                      artistId: shareToPublicItem.hiredArtistId ?? '',
+                      artistName: chatContactsByUid[shareToPublicItem.hiredArtistId ?? '']?.name ?? 'Artist',
+                      commissionId: shareToPublicItem.id,
+                      commissionTitle: shareToPublicItem.title,
+                      imageUrl,
+                      description: shareToPublicText.trim(),
+                    });
+                    toast.success('Shared to public!');
+                    setShareToPublicItem(null);
+                    setShareToPublicImage(null);
+                    setShareToPublicImagePreview(null);
+                    setShareToPublicText('');
+                  } catch {
+                    toast.error('Could not share. Please try again.');
+                  } finally {
+                    setShareToPublicBusy(false);
+                  }
+                }}
+              >
+                <span className="commission-hire-tooltip-confirm-inner">
+                  {shareToPublicBusy && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
+                  {shareToPublicBusy ? 'Sharing…' : 'Share'}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       <CommissionChatModal
         isOpen={commissionChatOpen}

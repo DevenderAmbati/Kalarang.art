@@ -1227,3 +1227,104 @@ exports.recomputeArtworkScores = onSchedule(
     logger.info("Batch score recompute complete", {totalUpdated});
   }
 );
+
+/**
+ * artworkOgRenderer — serves dynamic Open Graph meta tags for artwork share links.
+ *
+ * Share URL pattern: /og/:artworkId
+ * - Social media crawlers (WhatsApp, Telegram, Twitter, etc.) get an HTML page with
+ *   og:image set to the actual painting, so the painting shows as the link preview.
+ * - Regular browsers receive a 301 redirect straight to /card/:artworkId (the SPA page).
+ *
+ * firebase.json must have a rewrite: { source: "/og/**", function: "artworkOgRenderer" }
+ */
+exports.artworkOgRenderer = onRequest(
+  {
+    invoker: "public",
+    cors: false,
+    memory: "256MiB",
+    timeoutSeconds: 30,
+  },
+  async (req, res) => {
+    // Path is /og/:artworkId — extract the last segment
+    const pathParts = req.path.split("/").filter(Boolean);
+    const artworkId = pathParts[pathParts.length - 1];
+
+    if (!artworkId) {
+      res.redirect(302, "/");
+      return;
+    }
+
+    const userAgent = req.headers["user-agent"] || "";
+    // Detect link-preview scrapers. WhatsApp's bot UA contains "WhatsApp/2." (not
+    // the in-app browser, which uses a plain Chrome/Safari UA). Telegram's bot is
+    // "TelegramBot". Facebook/Instagram Messenger uses "facebookexternalhit".
+    const isCrawler = /WhatsApp\/\d|facebookexternalhit|twitterbot|TelegramBot|linkedinbot|slackbot|discordbot|googlebot|bingbot|applebot|pinterestbot|vkshare/i.test(userAgent);
+
+    if (!isCrawler) {
+      // Regular browsers: send them straight to the SPA artwork page
+      res.redirect(301, `/card/${artworkId}`);
+      return;
+    }
+
+    try {
+      const artworkDoc = await db.collection("artworks").doc(artworkId).get();
+
+      if (!artworkDoc.exists) {
+        res.redirect(302, "/");
+        return;
+      }
+
+      const artwork = artworkDoc.data();
+      const title = artwork.title || "Artwork on Kalarang";
+      const rawDesc = artwork.description || "";
+      const shortDesc = rawDesc.length > 160
+        ? rawDesc.substring(0, 157) + "..."
+        : rawDesc;
+      const description = shortDesc
+        ? `${shortDesc} — by ${artwork.artistName || "Artist"} on Kalarang`
+        : `by ${artwork.artistName || "Artist"} on Kalarang`;
+      const imageUrl = (artwork.images && artwork.images[0]) || "https://kalarang-eff3c.web.app/logo1.png";
+      const canonicalUrl = `https://kalarang.art/card/${artworkId}`;
+
+      // Basic HTML-escaping to prevent injection in meta attributes
+      const esc = (s) => String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${esc(title)} | Kalarang</title>
+  <meta name="description" content="${esc(description)}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="${esc(canonicalUrl)}" />
+  <meta property="og:title" content="${esc(title)}" />
+  <meta property="og:description" content="${esc(description)}" />
+  <meta property="og:image" content="${esc(imageUrl)}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name" content="Kalarang" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${esc(title)}" />
+  <meta name="twitter:description" content="${esc(description)}" />
+  <meta name="twitter:image" content="${esc(imageUrl)}" />
+  <!-- Fallback redirect for any browser that lands here -->
+  <meta http-equiv="refresh" content="0; url=${esc(canonicalUrl)}" />
+  <script>window.location.replace("${esc(canonicalUrl)}");</script>
+</head>
+<body>
+  <p><a href="${esc(canonicalUrl)}">${esc(title)}</a> by ${esc(artwork.artistName || "Artist")} on Kalarang</p>
+</body>
+</html>`);
+    } catch (error) {
+      logger.error("artworkOgRenderer error", {error, artworkId});
+      res.redirect(302, "/");
+    }
+  }
+);

@@ -174,9 +174,15 @@
 
 /* Mobile Styles */
 @media (max-width: 639px) {
+  .confirm-modal-overlay {
+    padding: 40px 16px 24px;
+    align-items: flex-start;
+  }
+
   .confirm-modal-content {
     padding: 24px;
-    max-width: 340px;
+    max-width: 100%;
+    width: 100%;
   }
 
   .confirm-modal-icon {

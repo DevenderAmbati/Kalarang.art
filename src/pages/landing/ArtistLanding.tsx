@@ -212,7 +212,7 @@ export default function ArtistLanding() {
             Artists are not content creators, and their work is not meant to compete for attention.
           </p>
           <p className="vision-text">
-            We have created a platform where artists have full control, transparent
+            We have created a platform Get your paintings ists have full control, transparent
             pricing, and direct connection with collectors who value original art.
           </p>
         </div>

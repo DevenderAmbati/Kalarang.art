@@ -202,7 +202,7 @@ const ArtworkGridCard: React.FC<ArtworkGridCardProps> = ({
           </div>
         )}
         
-        {!isOwner && artwork.artistId !== currentUserId && (
+        {!isOwner && artwork.artistId !== currentUserId && viewType !== 'discover' && (
           <button
             className={`artwork-grid-card-heart ${saved ? 'liked' : ''} ${isAnimating ? 'animating' : ''}`}
             onClick={handleSaveClick}

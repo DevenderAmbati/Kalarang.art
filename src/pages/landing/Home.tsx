@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoIosColorPalette } from 'react-icons/io';
 import { PiPaletteLight, PiPaintBrushHouseholdLight } from 'react-icons/pi';
@@ -9,12 +9,26 @@ import { HiOutlineSearch } from 'react-icons/hi';
 import { HiOutlineUserGroup } from 'react-icons/hi2';
 import Header from '../../components/Layout/Header';
 import Footer from '../../components/Layout/Footer';
+import { getPublishedArtworks } from '../../services/artworkService';
 import '../auth/login.css';
 import './landing.css';
 import './home.css';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const [tapeImages, setTapeImages] = useState<string[]>([]);
+
+  useEffect(() => {
+    getPublishedArtworks(30).then((artworks) => {
+      const imgs = artworks
+        .map((a) => a.images?.[0])
+        .filter(Boolean) as string[];
+      setTapeImages(imgs);
+    }).catch(() => {});
+  }, []);
+
+  // Duplicate for seamless loop
+  const loopedImages = tapeImages.length > 0 ? [...tapeImages, ...tapeImages] : [];
 
   return (
     <div className="login-left-section home-container landing-page">
@@ -52,34 +66,61 @@ const Home: React.FC = () => {
       <div className="home-icon-bg-4">
         {FaPaintBrush({})}
       </div>
-      
+
 
       {/* Main content */}
       <div className="login-left-content">
         <div className="login-brand-section">
-          <div className="login-logo-glow">
-            <div className="login-logo-mark">
-              <img
-                src="/logo1.png"
-                alt="Kalarang Logo"
-                className="login-logo-image"
-              />
+
+          {/* Desktop: scrolling painting tape replaces centre logo */}
+          {loopedImages.length > 0 ? (
+            <button
+              className="home-centre-tape-btn"
+              onClick={() => navigate('/explore')}
+              aria-label="Explore artworks"
+            >
+              <div className="home-centre-tape-wrap">
+                <div className="home-centre-tape-track">
+                  {loopedImages.map((src, i) => (
+                    <img
+                      key={i}
+                      src={src}
+                      alt=""
+                      className="home-centre-tape-frame"
+                      draggable={false}
+                    />
+                  ))}
+                </div>
+                <span className="home-centre-tape-hint">Tap to explore →</span>
+              </div>
+            </button>
+          ) : (
+            /* Fallback: original logo while images load (or on mobile) */
+            <div className="login-logo-glow">
+              <div className="login-logo-mark">
+                <img
+                  src="/logo1.png"
+                  alt="Kalarang Logo"
+                  className="login-logo-image"
+                />
+              </div>
             </div>
-          </div>
+          )}
+
           <h3 className="login-hero-headline home-hero-headline">
-            <span className="gradient-text">Where Art </span> Meets Its People.
+            <span className="gradient-text">Get your paintings  </span> Customized.
           </h3>
-          <p className="login-hero-subtext">Discover and share original art with the world.</p>
+          <p className="login-hero-subtext">✦ Portraits &nbsp;✦ Customized Art &nbsp;✦ Original Art</p>
         </div>
 
         <div className="login-feature-list">
           <div className="login-feature-item feature-card">
             <div className="login-feature-icon">
-              {MdPalette({ size: 24 })}
+              {HiOutlineUserGroup({ size: 24 })}
             </div>
             <div>
-              <h3 className="login-feature-title">Showcase Original Art</h3>
-              <p className="login-feature-desc">For artists to share creations</p>
+              <h3 className="login-feature-title">Commission Custom Artwork</h3>
+              <p className="login-feature-desc">Connect with artists for custom commissions</p>
             </div>
           </div>
           <div className="login-feature-item feature-card">
@@ -88,16 +129,16 @@ const Home: React.FC = () => {
             </div>
             <div>
               <h3 className="login-feature-title">Discover Unique Works</h3>
-              <p className="login-feature-desc">For buyers to explore art</p>
+              <p className="login-feature-desc">For buyers to explore original art, buy directly from real artists</p>
             </div>
           </div>
           <div className="login-feature-item feature-card">
             <div className="login-feature-icon">
-              {HiOutlineUserGroup({ size: 24 })}
+              {MdPalette({ size: 24 })}
             </div>
             <div>
-              <h3 className="login-feature-title">Commission Custom Artwork</h3>
-              <p className="login-feature-desc">Hire artists or get hired for personalized art</p>
+              <h3 className="login-feature-title">Showcase Original Art</h3>
+              <p className="login-feature-desc">For artists to share creations and reach buyers</p>
             </div>
           </div>
         </div>
@@ -108,14 +149,20 @@ const Home: React.FC = () => {
             Join Kalarang
           </h2>
           <div className="home-cta-buttons">
-          <button 
-            onClick={() => navigate('/signup')}
-            className="login-button primary-cta home-cta-button"
-          >
-            <span>Sign Up Free</span>
-            {MdArrowForward({ size: 12 })}
-          </button>
-      
+            <button
+              onClick={() => navigate('/signup')}
+              className="login-button primary-cta home-cta-button"
+            >
+              <span>Sign Up</span>
+              {MdArrowForward({ size: 12 })}
+            </button>
+            <button
+              onClick={() => navigate('/login')}
+              className="login-button home-cta-button home-cta-signin-btn"
+            >
+              <span>Sign In</span>
+              {MdArrowForward({ size: 12 })}
+            </button>
           </div>
         </div>
       </div>

@@ -1,5 +1,136 @@
 /* Home Page Styles */
 
+/* ── Centre painting tape (replaces logo on desktop) ── */
+@keyframes centre-tape-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.home-centre-tape-btn {
+  display: flex; /* shown on all screen sizes */
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 0 auto 0.75rem;
+  width: 100%;
+}
+
+.home-centre-tape-btn:focus-visible .home-centre-tape-wrap {
+  box-shadow: 0 0 0 3px var(--color-focus-glow);
+}
+
+/* Mobile-first base sizes */
+.home-centre-tape-wrap {
+  width: 100%;
+  max-width: 380px;
+  height: 106px;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 2px solid rgba(95, 209, 216, 0.35);
+  box-shadow: 0 8px 32px rgba(11, 31, 42, 0.28), 0 0 0 1px rgba(47,164,169,0.12);
+  background: linear-gradient(135deg, #0B1F2A 0%, #142F3A 55%, #1F7F8B 100%);
+  position: relative;
+}
+
+/* fade edges */
+.home-centre-tape-wrap::before,
+.home-centre-tape-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  z-index: 2;
+  pointer-events: none;
+}
+.home-centre-tape-wrap::before {
+  left: 0;
+  background: linear-gradient(to right, #0B1F2A, transparent);
+}
+.home-centre-tape-wrap::after {
+  right: 0;
+  background: linear-gradient(to left, #0B1F2A, transparent);
+}
+
+.home-centre-tape-track {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  height: 100%;
+  width: max-content;
+  animation: centre-tape-scroll 22s linear infinite;
+}
+
+.home-centre-tape-btn:hover .home-centre-tape-track,
+.home-centre-tape-btn:active .home-centre-tape-track {
+  animation-play-state: paused;
+}
+
+/* Mobile-first frame size */
+.home-centre-tape-frame {
+  width: 86px;
+  height: 86px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: block;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  border: 1.5px solid rgba(95, 209, 216, 0.2);
+}
+
+.home-centre-tape-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: #ffffff;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.7);
+  background: none;
+  border-radius: inherit;
+  opacity: 1;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Desktop: larger tape */
+@media (min-width: 640px) {
+  .home-centre-tape-btn {
+    gap: 10px;
+    margin-bottom: 1rem;
+  }
+  .home-centre-tape-wrap {
+    max-width: 540px;
+    height: 128px;
+    border-radius: 18px;
+  }
+  .home-centre-tape-wrap::before,
+  .home-centre-tape-wrap::after {
+    width: 40px;
+  }
+  .home-centre-tape-track {
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  .home-centre-tape-frame {
+    width: 106px;
+    height: 106px;
+    border-radius: 11px;
+  }
+  .home-centre-tape-hint {
+    font-size: 0.75rem;
+  }
+}
+
 .home-container {
   min-height: 100vh;
   min-height: 100dvh;
@@ -25,10 +156,11 @@
 
 .home-hero-headline {
   margin-top: 1.5rem;
-  font-family: 'Pacifico', 'Comic Sans MS', 'Marker Felt', cursive;
+  font-family: 'Caveat', cursive;
   font-weight: 800;
   letter-spacing: 0.03em;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
 }
 
 /* Gradient Text Effect */
@@ -39,7 +171,7 @@
   background-clip: text;
   position: relative;
   animation: shimmer 3s ease-in-out infinite;
-  font-family: 'Pacifico', 'Comic Sans MS', 'Marker Felt', cursive;
+  font-family: 'Caveat', cursive;
 }
 
 /* Header join CTA (desktop) */
@@ -124,14 +256,34 @@
 }
 
 .home-cta-button {
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-  cursor: pointer;
-  border: none;
-  border-radius: 50px;
-  display: inline-flex;
+  width: auto !important;
+  padding: 0.5rem 1.25rem !important;
+  font-size: 0.75rem !important;
+  border-radius: 50px !important;
+  display: inline-flex !important;
   align-items: center;
   gap: 0.3rem;
+  white-space: nowrap;
+}
+
+.home-cta-signin-btn {
+  background: var(--color-primary) !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 12px rgba(47, 164, 169, 0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+.home-cta-signin-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(47, 164, 169, 0.4) !important;
+}
+
+@media (min-width: 640px) {
+  .home-cta-signin-btn {
+    display: none !important;
+  }
 }
 
 /* Decorative Icon Elements */
@@ -257,7 +409,11 @@
 
   .home-explore-btn,
   .home-signin-btn {
-    order: 1;
+    display: none !important;
+  }
+
+  .home-header-right-desktop {
+    display: none !important;
   }
 
   .home-icon-bg-1,
@@ -296,7 +452,8 @@
 /* Extra small screens - reduce heading sizes */
 @media (max-width: 465px) {
   .login-brand-section .home-hero-headline {
-    font-size: 1.25rem !important;
+    font-size: 2.2rem !important;
+    white-space: normal;
   }
   
   .login-brand-section .login-hero-subtext {
@@ -307,10 +464,31 @@
 /* Extra extra small screens - reduce even more */
 @media (max-width: 403px) {
   .login-brand-section .home-hero-headline {
-    font-size: 1.1rem !important;
+    font-size: 2.0rem !important;
   }
-  
+
   .login-brand-section .login-hero-subtext {
     font-size: 0.75rem !important;
+  }
+}
+
+/* Scroller responsiveness for very small screens */
+@media (max-width: 413px) {
+  .home-centre-tape-wrap {
+    max-width: calc(100vw - 2rem);
+    height: 90px;
+    border-radius: 12px;
+  }
+  .home-centre-tape-frame {
+    width: 72px;
+    height: 72px;
+  }
+  .home-centre-tape-track {
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  .home-centre-tape-wrap::before,
+  .home-centre-tape-wrap::after {
+    width: 24px;
   }
 }

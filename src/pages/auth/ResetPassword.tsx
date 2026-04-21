@@ -35,9 +35,10 @@ const ResetPassword: React.FC = () => {
       // Use environment-based config
 
 
+      const baseUrl = process.env.REACT_APP_BASE_URL || window.location.origin;
       await sendPasswordResetEmail(auth, email, {
-        url: `${process.env.REACT_APP_BASE_URL}/reset-password`,
-        handleCodeInApp: true
+        url: `${baseUrl}/login`,
+        handleCodeInApp: false
       });
       
       setIsSubmitted(true);
@@ -100,7 +101,7 @@ const ResetPassword: React.FC = () => {
               alt="Kalarang Logo"
               className="login-mobile-logo"
             />
-            <h1 className="login-mobile-headline">Where Art Meets Its People</h1>
+            <h1 className="login-mobile-headline">Get your paintings customized</h1>
             <p className="login-mobile-subtext">Recover your account and get back to creating.</p>
           </div>
 

@@ -874,3 +874,111 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* ── Customized feed ── */
+.homefeed-customized-feed {
+  padding: 0.25rem 0 1rem;
+}
+
+.homefeed-customized-load-more {
+  display: block;
+  margin: 1rem auto 0;
+  padding: 0.55rem 1.5rem;
+  border-radius: 99px;
+  border: 1.5px solid var(--color-primary, #6366f1);
+  background: transparent;
+  color: var(--color-primary, #6366f1);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.homefeed-customized-load-more:hover {
+  background: var(--primary-alpha-10, rgba(99,102,241,0.08));
+}
+
+/* ── Customized card ── */
+.customized-card {
+  background: var(--color-bg-white, #fff);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(11, 31, 42, 0.08);
+  transition: box-shadow 0.18s;
+}
+
+.customized-card:hover {
+  box-shadow: 0 6px 20px rgba(11, 31, 42, 0.13);
+}
+
+.customized-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 10px 12px 8px;
+}
+
+.customized-card-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid var(--color-border, #e5e7eb);
+}
+
+.customized-card-buyer-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #111);
+  line-height: 1.2;
+}
+
+.customized-card-image-wrap {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--color-bg-surface, #f5f5f5);
+}
+
+.customized-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.customized-card-body {
+  padding: 10px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.customized-card-artist-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-primary, #6366f1);
+  text-align: left;
+  line-height: 1.3;
+  transition: opacity 0.15s;
+}
+
+.customized-card-artist-link:hover {
+  opacity: 0.75;
+}
+
+.customized-card-description {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary, #555);
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

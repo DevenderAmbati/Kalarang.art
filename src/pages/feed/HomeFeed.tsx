@@ -24,6 +24,8 @@ import { getActiveStories, getActiveStoriesFromFollowing, Story as StoryType, gr
 import { getFollowingArtistIds } from '../../services/userService';
 import { getInitialHomeFeedSnapshot, getNextDiscoverPage } from '../../services/homeFeedService';
 import { markPostSeen, seedSeenPostIds } from '../../services/postViewService';
+import { useScrollDirection } from '../../hooks/useScrollDirection';
+import { getPublicShares, PublicShare } from '../../services/publicShareService';
 import { usePostSeen } from '../../hooks/usePostSeen';
 import ConfirmModal from '../../components/Modals/ConfirmModal';
 import ArtworkCommentModal from '../../components/Artwork/ArtworkCommentModal';
@@ -125,6 +127,39 @@ const SeenAwareArtworkCard: React.FC<SeenAwareArtworkCardProps> = ({
   );
 };
 
+const CustomizedCard: React.FC<{ post: PublicShare; navigate: ReturnType<typeof useNavigate> }> = ({ post, navigate }) => (
+  <div className="customized-card">
+    <div className="customized-card-header">
+      <img
+        src={post.buyerAvatar || '/artist.png'}
+        alt={post.buyerName}
+        className="customized-card-avatar"
+      />
+      <span className="customized-card-buyer-name">{post.buyerName}</span>
+    </div>
+    {post.imageUrl && (
+      <div className="customized-card-image-wrap">
+        <img src={post.imageUrl} alt={post.commissionTitle} className="customized-card-image" loading="lazy" />
+      </div>
+    )}
+    <div className="customized-card-body">
+      <button
+        type="button"
+        className="customized-card-artist-link"
+        onClick={() => {
+          sessionStorage.setItem('artworkSourceRoute', '/home');
+          navigate(`/portfolio/${post.artistId}`);
+        }}
+      >
+        Artist : {post.artistName}
+      </button>
+      {post.description && (
+        <p className="customized-card-description">{post.description}</p>
+      )}
+    </div>
+  </div>
+);
+
 const HomeFeed: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -176,6 +211,63 @@ const HomeFeed: React.FC = () => {
   const [virtualSliceEnd, setVirtualSliceEnd] = useState(VIRTUAL_BATCH_SIZE);
 
   const isArtist = appUser?.role === 'artist';
+
+  // Feed tab: Curated Art vs Customized
+  const { hidden: tabsHidden, anchorRef: tabsAnchorRef } = useScrollDirection();
+  const [activeFeedTab, setActiveFeedTab] = useState<'curated' | 'customized'>('curated');
+  const [customizedPosts, setCustomizedPosts] = useState<PublicShare[]>([]);
+  const [customizedLoading, setCustomizedLoading] = useState(false);
+  const [customizedLastVisible, setCustomizedLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [customizedHasMore, setCustomizedHasMore] = useState(true);
+  const [customizedLoadingMore, setCustomizedLoadingMore] = useState(false);
+
+  useEffect(() => {
+    if (activeFeedTab !== 'customized') return;
+    if (customizedPosts.length > 0) return;
+    setCustomizedLoading(true);
+    getPublicShares()
+      .then(({ shares, lastVisible: lv, hasMore }) => {
+        setCustomizedPosts(shares);
+        setCustomizedLastVisible(lv);
+        setCustomizedHasMore(hasMore);
+      })
+      .catch(() => {})
+      .finally(() => setCustomizedLoading(false));
+  }, [activeFeedTab]);
+
+  const loadMoreCustomized = useCallback(async () => {
+    if (!customizedHasMore || customizedLoadingMore) return;
+    setCustomizedLoadingMore(true);
+    try {
+      const { shares, lastVisible: lv, hasMore } = await getPublicShares(customizedLastVisible);
+      setCustomizedPosts((prev) => [...prev, ...shares]);
+      setCustomizedLastVisible(lv);
+      setCustomizedHasMore(hasMore);
+    } catch {
+      // ignore
+    } finally {
+      setCustomizedLoadingMore(false);
+    }
+  }, [customizedHasMore, customizedLoadingMore, customizedLastVisible]);
+
+  // Buyer intent modal - shown once for new buyers
+  const [showBuyerIntentModal, setShowBuyerIntentModal] = useState(false);
+
+  useEffect(() => {
+    if (!appUser || appUser.role !== 'buyer') return;
+    const key = `buyer_intent_seen_${appUser.uid}`;
+    const isNewSignup = sessionStorage.getItem('buyer_new_signup') === '1';
+    if (isNewSignup && !localStorage.getItem(key)) {
+      sessionStorage.removeItem('buyer_new_signup');
+      localStorage.setItem(key, '1');
+      setShowBuyerIntentModal(true);
+    }
+  }, [appUser]);
+
+  const handleBuyerIntent = (destination: 'discover' | 'commissions') => {
+    setShowBuyerIntentModal(false);
+    navigate(`/${destination}`);
+  };
 
   // Check if artist has published artworks but no UPI ID - show reminder once per session
   useEffect(() => {
@@ -1151,10 +1243,10 @@ const HomeFeed: React.FC = () => {
       navigator.share({
         title: artwork.title,
         text: `Check out "${artwork.title}" by ${artwork.artistName}`,
-        url: `${window.location.origin}/card/${id}`,
+        url: `${window.location.origin}/og/${id}`,
       }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(`${window.location.origin}/card/${id}`);
+      navigator.clipboard.writeText(`${window.location.origin}/og/${id}`);
       toast.success('Link copied to clipboard!');
     }
   };
@@ -1363,8 +1455,61 @@ const HomeFeed: React.FC = () => {
           </div>
         )}
 
-        {/* Following feed */}
-        {loading ? (
+        {/* Feed tab switcher */}
+        <div ref={tabsAnchorRef} className={`commission-main-tabs-fixed${tabsHidden ? ' pill-tabs-hidden' : ''}`}>
+          <div className="commission-main-tabs">
+            <button
+              type="button"
+              className={`commission-tab${activeFeedTab === 'curated' ? ' active' : ''}`}
+              onClick={() => setActiveFeedTab('curated')}
+            >
+              Curated Art
+            </button>
+            <button
+              type="button"
+              className={`commission-tab${activeFeedTab === 'customized' ? ' active' : ''}`}
+              onClick={() => setActiveFeedTab('customized')}
+            >
+              Customized
+            </button>
+          </div>
+        </div>
+        <div className="commission-main-tabs-spacer" />
+
+        {/* Customized tab */}
+        {activeFeedTab === 'customized' && (
+          <div className="homefeed-customized-feed">
+            {customizedLoading ? (
+              <LoadingState animation={africanArtAnimation} message="Loading shared works…" fullHeight />
+            ) : customizedPosts.length === 0 ? (
+              <EmptyState
+                animation={artAnimation}
+                title="Nothing shared yet"
+                description="When buyers share completed commissions, they'll appear here."
+              />
+            ) : (
+              <>
+                <div className="homefeed-artwork-grid">
+                  {customizedPosts.map((post) => (
+                    <CustomizedCard key={post.id} post={post} navigate={navigate} />
+                  ))}
+                </div>
+                {customizedHasMore && (
+                  <button
+                    className="homefeed-customized-load-more"
+                    onClick={loadMoreCustomized}
+                    disabled={customizedLoadingMore}
+                  >
+                    {customizedLoadingMore ? 'Loading…' : 'Load more'}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Curated Art feed */}
+        {activeFeedTab === 'curated' && (loading ? (
           <LoadingState
             animation={africanArtAnimation}
             message="Discovering amazing artworks..."
@@ -1421,7 +1566,7 @@ const HomeFeed: React.FC = () => {
               </div>
             )}
           </>
-        )}
+        ))}
       </div>
 
       {/* Fullscreen Story Modal - Rendered via portal to escape layout stacking context */}
@@ -1647,6 +1792,102 @@ const HomeFeed: React.FC = () => {
                 style={{ flex: 1 }}
               >
                 Later
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Buyer Intent Modal */}
+      {showBuyerIntentModal && ReactDOM.createPortal(
+        <div
+          onClick={() => setShowBuyerIntentModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--color-bg-white, #fff)',
+              borderRadius: '20px',
+              padding: '2rem 1.5rem',
+              maxWidth: '420px',
+              width: '90%',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+              textAlign: 'center',
+            }}
+          >
+            <h2 style={{
+              margin: '0 0 1.5rem',
+              fontSize: '1.3rem',
+              fontWeight: 700,
+              color: 'var(--color-royal)',
+            }}>
+              What brings you here?
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '0.75rem' }}>
+              <button
+                onClick={() => handleBuyerIntent('discover')}
+                style={{
+                  flex: 1,
+                  padding: '1rem 0.75rem',
+                  border: '2px solid var(--color-primary, #6366f1)',
+                  borderRadius: '12px',
+                  background: 'var(--primary-alpha-10, rgba(99,102,241,0.08))',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  textAlign: 'center',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--primary-alpha-20, rgba(99,102,241,0.15))'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--primary-alpha-10, rgba(99,102,241,0.08))'; }}
+              >
+                <span style={{ fontWeight: 700, color: 'var(--color-primary, #6366f1)', fontSize: '0.9rem' }}>
+                  Buy original art
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary, #888)' }}>
+                  Explore artworks from talented artists
+                </span>
+              </button>
+              <button
+                onClick={() => handleBuyerIntent('commissions')}
+                style={{
+                  flex: 1,
+                  padding: '1rem 0.75rem',
+                  border: '2px solid var(--color-primary, #6366f1)',
+                  borderRadius: '12px',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  textAlign: 'center',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--primary-alpha-10, rgba(99,102,241,0.08))'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                <span style={{ fontWeight: 700, color: 'var(--color-primary, #6366f1)', fontSize: '0.9rem' }}>
+                  Get Custom art
+                </span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary, #888)' }}>
+                  Post a commission request to artists
+                </span>
               </button>
             </div>
           </div>

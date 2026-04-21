@@ -1,5 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import { useEffect, useMemo, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useParams } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './toastStyles.css';
@@ -39,6 +39,12 @@ import FoundingArtistsPage from "./pages/landing/FoundingArtistsPage";
 import BuyerLanding from "./pages/landing/BuyerLanding";
 import { ScrollToTop } from "./components/Common/ScrollToTop";
 import PwaUpdatePrompt from "./components/PwaUpdatePrompt";
+
+/** Fallback: if /og/:id reaches the SPA (function rewrite miss), redirect to /card/:id */
+const OgRedirect: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/card/${id}`} replace />;
+};
 
 // Module-level cache for post-auth redirect to handle StrictMode double-render
 // This ensures both render calls see the same value
@@ -262,6 +268,9 @@ function App() {
               <Route path="/privacy" element={<PrivacyPolicy />} />
 
               <Route path="/explore" element={<Explore />} />
+
+              {/* Fallback: if /og/:id reaches the SPA (function rewrite miss), send to artwork page */}
+              <Route path="/og/:id" element={<OgRedirect />} />
 
               <Route path="/founding-artists" element={<FoundingArtistsPage />} />
 
