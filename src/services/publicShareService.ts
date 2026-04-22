@@ -30,10 +30,12 @@ const COLLECTION = 'publicShares';
 const PAGE_SIZE = 20;
 
 export async function savePublicShare(data: Omit<PublicShare, 'id' | 'createdAt'>): Promise<string> {
-  const ref = await addDoc(collection(db, COLLECTION), {
-    ...data,
-    createdAt: serverTimestamp(),
-  });
+  // Firestore rejects undefined values — strip them before writing
+  const clean: Record<string, unknown> = { createdAt: serverTimestamp() };
+  for (const [k, v] of Object.entries(data)) {
+    if (v !== undefined) clean[k] = v;
+  }
+  const ref = await addDoc(collection(db, COLLECTION), clean);
   return ref.id;
 }
 

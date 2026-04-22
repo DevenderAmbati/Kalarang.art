@@ -62,6 +62,8 @@ export interface CommissionRequest {
   totalAmountPaid?: string;
   /** Tracking ID provided by artist when marking shipment */
   trackingId?: string;
+  /** Set when buyer shares this completed commission to the public feed */
+  sharedToPublic?: boolean;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -263,6 +265,11 @@ export async function markFullPaymentDone(commissionId: string, totalAmountPaid:
 export async function saveReadyToShipImage(commissionId: string, imageUrl: string): Promise<void> {
   const ref = doc(db, "commissions", commissionId);
   await updateDoc(ref, { readyToShipImageUrl: imageUrl, updatedAt: serverTimestamp() });
+}
+
+export async function markCommissionSharedToPublic(commissionId: string): Promise<void> {
+  const ref = doc(db, "commissions", commissionId);
+  await updateDoc(ref, { sharedToPublic: true, updatedAt: serverTimestamp() });
 }
 
 export async function markAdvancePaid(

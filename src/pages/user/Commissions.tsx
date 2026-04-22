@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { MdContentCopy } from 'react-icons/md';
-import { Timestamp, QueryDocumentSnapshot, DocumentData, onSnapshot, doc as firestoreDoc } from 'firebase/firestore';
+import { Timestamp, QueryDocumentSnapshot, DocumentData, onSnapshot, doc as firestoreDoc, query, collection, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -22,6 +22,7 @@ import {
   acceptCommissionOfferFromChat,
   markAdvancePaid,
   saveReadyToShipImage,
+  markCommissionSharedToPublic,
   markFullPaymentDone,
   markShipped,
   markCommissionCompletedByBuyer,
@@ -61,6 +62,7 @@ import {
   submitArtistReply,
 } from '../../services/reviewService';
 import { downloadImageFromUrl, suggestedChatImageFilename } from '../../utils/downloadImage';
+import ChatImageModal from '../../components/Modals/ChatImageModal';
 import { savePublicShare } from '../../services/publicShareService';
 import EmptyState from '../../components/State/EmptyState';
 import LoadingState from '../../components/State/LoadingState';
@@ -256,7 +258,9 @@ const CommissionChatModal: React.FC<{
   const [inputText, setInputText] = useState('');
   const [phoneWarning, setPhoneWarning] = useState(false);
   const [pendingImage, setPendingImage] = useState<File | null>(null);
+  const [sendHD, setSendHD] = useState(false);
   const [imageDownloadBusy, setImageDownloadBusy] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ url: string; hd?: boolean; msgId: string } | null>(null);
   const [metaSent, setMetaSent] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -482,6 +486,7 @@ const CommissionChatModal: React.FC<{
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file?.type.startsWith('image/')) return;
+    setSendHD(false);
     setPendingImage(file);
   };
 
@@ -503,13 +508,15 @@ const CommissionChatModal: React.FC<{
     if (!text && !pendingImage) return;
     if (phoneWarning) return;
     const imageToSend = pendingImage;
+    const isHD = sendHD;
     setInputText('');
     setPendingImage(null);
+    setSendHD(false);
     setSending(true);
     try {
       let imageUrl: string | undefined;
       if (imageToSend) {
-        imageUrl = await uploadChatMessageImage(currentUserId, 'commissionChats', chatId, imageToSend);
+        imageUrl = await uploadChatMessageImage(currentUserId, 'commissionChats', chatId, imageToSend, isHD);
       }
       await sendCommissionMessage(
         chatId,
@@ -519,6 +526,7 @@ const CommissionChatModal: React.FC<{
         metadata.artworkTitle,
         metadata.artworkImage,
         imageUrl,
+        isHD && !!imageToSend,
       );
       if (metadata && !metaSent) setMetaSent(true);
     } catch {
@@ -877,25 +885,16 @@ const CommissionChatModal: React.FC<{
                       ) : (
                         <>
                           {msg.imageUrl && (
-                            <div className="commission-chat-attachment">
+                            <div
+                              className="commission-chat-attachment commission-chat-attachment--clickable"
+                              onClick={() => setPreviewImage({ url: msg.imageUrl!, hd: msg.imageHd, msgId: msg.id })}
+                              role="button"
+                              tabIndex={0}
+                              aria-label="View image"
+                              onKeyDown={(e) => e.key === 'Enter' && setPreviewImage({ url: msg.imageUrl!, hd: msg.imageHd, msgId: msg.id })}
+                            >
+                              {msg.imageHd && <span className="commission-chat-hd-badge">HD</span>}
                               <img src={msg.imageUrl} alt="" className="commission-chat-attachment-img" loading="lazy" />
-                              <button
-                                type="button"
-                                className="commission-chat-attachment-download"
-                                onClick={() => handleDownloadCommissionImage(msg.imageUrl!, msg.id)}
-                                disabled={imageDownloadBusy === msg.id}
-                                aria-label="Download full image"
-                              >
-                                {imageDownloadBusy === msg.id ? (
-                                  '…'
-                                ) : (
-                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                    <polyline points="7 10 12 15 17 10" />
-                                    <line x1="12" y1="15" x2="12" y2="3" />
-                                  </svg>
-                                )}
-                              </button>
                             </div>
                           )}
                           {Boolean(msg.text?.trim()) && <p>{msg.text}</p>}
@@ -936,10 +935,19 @@ const CommissionChatModal: React.FC<{
                   <button
                     type="button"
                     className="commission-chat-pending-remove"
-                    onClick={() => setPendingImage(null)}
+                    onClick={() => { setPendingImage(null); setSendHD(false); }}
                     aria-label="Remove image"
                   >
                     ×
+                  </button>
+                  <button
+                    type="button"
+                    className={`commission-chat-hd-toggle${sendHD ? ' commission-chat-hd-toggle--active' : ''}`}
+                    onClick={() => setSendHD((v) => !v)}
+                    aria-label={sendHD ? 'Sending as HD — tap to switch to standard' : 'Send as HD'}
+                    title={sendHD ? 'HD on — tap to switch to standard' : 'Send as HD'}
+                  >
+                    HD
                   </button>
                 </div>
               )}
@@ -1000,6 +1008,15 @@ const CommissionChatModal: React.FC<{
         </footer>
       </div>
     </div>
+    {previewImage && (
+      <ChatImageModal
+        url={previewImage.url}
+        isHd={previewImage.hd}
+        downloading={imageDownloadBusy === previewImage.msgId}
+        onDownload={() => handleDownloadCommissionImage(previewImage.url, previewImage.msgId)}
+        onClose={() => setPreviewImage(null)}
+      />
+    )}
     {offerAcceptConfirmMessageId && onAcceptOffer && (() => {
       const UPI_ID = artistUpiId || null;
       const upiUri = UPI_ID ? `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art${offerAcceptConfirmAdvance ? `&am=${offerAcceptConfirmAdvance}` : ''}&cu=INR` : '';
@@ -1377,7 +1394,10 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
   const [makePaymentCommissionTitle, setMakePaymentCommissionTitle] = useState<string | null>(null);
   const [makeShipmentItem, setMakeShipmentItem] = useState<CommissionRequest | null>(null);
   const [trackingInput, setTrackingInput] = useState('');
+  const [shipmentReceiptFile, setShipmentReceiptFile] = useState<File | null>(null);
+  const [shipmentReceiptPreview, setShipmentReceiptPreview] = useState<string | null>(null);
   const [makeShipmentBusy, setMakeShipmentBusy] = useState(false);
+  const shipmentReceiptInputRef = useRef<HTMLInputElement>(null);
   const [reviewsMap, setReviewsMap] = useState<Record<string, CommissionReview | null>>({});
   const [reviewOpenId, setReviewOpenId] = useState<string | null>(null);
   const [reviewInputs, setReviewInputs] = useState<Record<string, string>>({});
@@ -1953,6 +1973,15 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
         if (prev.readyToShipImageUrl === data.readyToShipImageUrl && prev.fullPaymentDone === data.fullPaymentDone) return prev;
         return { ...prev, readyToShipImageUrl: data.readyToShipImageUrl, fullPaymentDone: data.fullPaymentDone };
       });
+      // Sync back to buyerRequests so card list + next chat open reflect latest data
+      setBuyerRequests((prev) =>
+        prev.map((r) =>
+          r.id === snap.id &&
+          (r.readyToShipImageUrl !== data.readyToShipImageUrl || r.fullPaymentDone !== data.fullPaymentDone)
+            ? { ...r, readyToShipImageUrl: data.readyToShipImageUrl, fullPaymentDone: data.fullPaymentDone }
+            : r
+        )
+      );
     });
     return () => unsub();
   }, [commissionChatOpen, commissionChatMetadata?.artworkId]);
@@ -1971,6 +2000,41 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       setReviewsMap(map);
     }).catch(() => {});
   }, [appUser?.uid, appUser?.role, activeMainTab]);
+
+  // Live-sync status, readyToShipImageUrl, fullPaymentDone, trackingId for all buyer commissions
+  useEffect(() => {
+    if (!appUser?.uid || appUser.role !== 'buyer') return;
+    const q = query(
+      collection(db, 'commissions'),
+      where('buyerId', '==', appUser.uid)
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      snap.docChanges().forEach((change) => {
+        if (change.type === 'removed') return;
+        const data = change.doc.data();
+        const id = change.doc.id;
+        setBuyerRequests((prev) =>
+          prev.map((r) => {
+            if (r.id !== id) return r;
+            if (
+              r.status === data.status &&
+              r.readyToShipImageUrl === data.readyToShipImageUrl &&
+              r.fullPaymentDone === data.fullPaymentDone &&
+              r.trackingId === data.trackingId
+            ) return r;
+            return {
+              ...r,
+              status: data.status ?? r.status,
+              readyToShipImageUrl: data.readyToShipImageUrl,
+              fullPaymentDone: data.fullPaymentDone,
+              trackingId: data.trackingId,
+            };
+          })
+        );
+      });
+    });
+    return () => unsub();
+  }, [appUser?.uid, appUser?.role]);
 
   useEffect(() => {
     if (!appUser?.uid || appUser.role !== 'artist') return;
@@ -3729,7 +3793,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                               appUser?.role === 'artist' ||
                               (appUser?.role === 'buyer' && Boolean(item.readyToShipImageUrl) && !item.fullPaymentDone)
                             )) ||
-                            (item.status === 'completed' && appUser?.role === 'buyer' && activeBuyerSubTab === 'completed')
+                            (item.status === 'completed' && appUser?.role === 'buyer' && activeBuyerSubTab === 'completed' && !item.sharedToPublic)
                           );
                           const hasChips = item.type || item.style.length > 0 || item.subject.length > 0;
                           if (!hasChips && !showActionBtn) return null;
@@ -3764,7 +3828,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                                         Ready to ship
                                       </button>
                                     )
-                                  ) : item.status === 'completed' && activeBuyerSubTab === 'completed' ? (
+                                  ) : item.status === 'completed' && activeBuyerSubTab === 'completed' && !item.sharedToPublic ? (
                                     <button
                                       type="button"
                                       className="commission-card-action-btn"
@@ -4537,12 +4601,22 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                 ×
               </button>
               <h2 id="ready-to-ship-title" className="confirm-modal-title">Ready to ship</h2>
-              <p className="confirm-modal-message">Upload a photo of the artwork so the buyer can see it's ready.</p>
+              <p className="confirm-modal-message">
+                Upload a photo of the artwork so the buyer can see it's ready.
+              </p>
+              <p className="confirm-modal-message" style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary, #888)', marginTop: '-0.5rem' }}>
+                This photo will also be used for display when the buyer shares the commission publicly.
+              </p>
               <label className="commission-ready-to-ship-upload-area">
                 {readyToShipPreview ? (
                   <img src={readyToShipPreview} alt="Preview" className="commission-ready-to-ship-preview" />
                 ) : readyToShipItem.readyToShipImageUrl ? (
-                  <img src={readyToShipItem.readyToShipImageUrl} alt="Current ship photo" className="commission-ready-to-ship-preview" />
+                  <div className="commission-ready-to-ship-preview-wrap">
+                    <img src={readyToShipItem.readyToShipImageUrl} alt="Current ship photo" className="commission-ready-to-ship-preview" />
+                    <div className="commission-ready-to-ship-replace-overlay">
+                      <span>📷 Tap to replace</span>
+                    </div>
+                  </div>
                 ) : (
                   <div className="commission-ready-to-ship-placeholder">
                     <span className="commission-ready-to-ship-placeholder-icon">📷</span>
@@ -4663,7 +4737,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
               </button>
               <h2 id="make-shipment-title" className="confirm-modal-title">Make Shipment</h2>
               <p className="confirm-modal-message">
-                Enter the tracking ID for <strong>{makeShipmentItem.title}</strong>.
+                Enter the tracking ID and upload the shipment receipt for <strong>{makeShipmentItem.title}</strong>.
               </p>
               <input
                 type="text"
@@ -4674,25 +4748,65 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                 onChange={(e) => setTrackingInput(e.target.value)}
                 style={{ marginTop: '0.75rem' }}
               />
+              <input
+                ref={shipmentReceiptInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!file?.type.startsWith('image/')) return;
+                  setShipmentReceiptFile(file);
+                  setShipmentReceiptPreview(URL.createObjectURL(file));
+                }}
+                aria-hidden
+                tabIndex={-1}
+              />
+              {shipmentReceiptPreview ? (
+                <div className="cd-shipment-receipt-preview">
+                  <img src={shipmentReceiptPreview} alt="Receipt preview" />
+                  <button
+                    type="button"
+                    className="cd-shipment-receipt-remove"
+                    onClick={() => { setShipmentReceiptFile(null); setShipmentReceiptPreview(null); }}
+                    aria-label="Remove receipt"
+                    disabled={makeShipmentBusy}
+                  >×</button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="cd-shipment-receipt-upload"
+                  onClick={() => shipmentReceiptInputRef.current?.click()}
+                  disabled={makeShipmentBusy}
+                >
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  Upload shipment receipt
+                </button>
+              )}
               <div className="confirm-modal-actions confirm-modal-actions--row" style={{ marginTop: '1.25rem' }}>
                 <button
                   type="button"
                   className="confirm-modal-btn confirm-modal-btn-cancel"
                   disabled={makeShipmentBusy}
-                  onClick={() => setMakeShipmentItem(null)}
+                  onClick={() => { setMakeShipmentItem(null); setShipmentReceiptFile(null); setShipmentReceiptPreview(null); }}
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-                  disabled={makeShipmentBusy || !trackingInput.trim()}
+                  disabled={makeShipmentBusy || !trackingInput.trim() || !shipmentReceiptFile}
                   onClick={async () => {
-                    if (!makeShipmentItem || !appUser?.uid || !trackingInput.trim()) return;
+                    if (!makeShipmentItem || !appUser?.uid || !trackingInput.trim() || !shipmentReceiptFile) return;
                     setMakeShipmentBusy(true);
                     try {
                       await markShipped(makeShipmentItem.id, appUser.uid, trackingInput.trim());
-                      // Send chat message to buyer
                       const shipChat = commissionChats.find(
                         (c) => c.commissionId === makeShipmentItem.id && c.participants.includes(appUser.uid),
                       );
@@ -4705,8 +4819,19 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                           makeShipmentItem.title,
                           makeShipmentItem.referenceImages?.[0],
                         ).catch(() => {});
+                        // Upload and send receipt image
+                        const { uploadChatMessageImage } = await import('../../services/chatImageUpload');
+                        const receiptUrl = await uploadChatMessageImage(appUser.uid, 'commissionChats', shipChat.id, shipmentReceiptFile);
+                        await sendCommissionMessage(
+                          shipChat.id,
+                          appUser.uid,
+                          '',
+                          makeShipmentItem.id,
+                          makeShipmentItem.title,
+                          makeShipmentItem.referenceImages?.[0],
+                          receiptUrl,
+                        ).catch(() => {});
                       }
-                      // Notify buyer
                       createNotification(
                         makeShipmentItem.buyerId,
                         'commission_shipped',
@@ -4718,7 +4843,6 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                         makeShipmentItem.title,
                         trackingInput.trim(),
                       ).catch(() => {});
-                      // Update local state — move to completed
                       const completed = { ...makeShipmentItem, status: 'completed' as const, trackingId: trackingInput.trim() };
                       setHiredArtistCommissions((prev) => prev.map((c) => c.id === completed.id ? completed : c));
                       setBuyerRequests((prev) => prev.map((c) => c.id === completed.id ? completed : c));
@@ -4731,7 +4855,8 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                         setCommissionChatClosedReason('commission_completed');
                         setCommissionStatusForChat('completed');
                       }
-                  
+                      setShipmentReceiptFile(null);
+                      setShipmentReceiptPreview(null);
                       setMakeShipmentItem(null);
                     } catch {
                       toast.error('Could not update commission. Please try again.');
@@ -4820,14 +4945,24 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
               <label className="commission-share-public-experience-label" htmlFor="share-public-text">
                 Share your experience
               </label>
-              <textarea
-                id="share-public-text"
-                className="commission-share-public-textarea"
-                placeholder="Tell the community about your experience with this commission — what you loved, how it turned out…"
-                rows={4}
-                value={shareToPublicText}
-                onChange={(e) => setShareToPublicText(e.target.value)}
-              />
+              <div className="commission-share-public-textarea-wrap">
+                <textarea
+                  id="share-public-text"
+                  className="commission-share-public-textarea"
+                  placeholder="Tell the community about your experience with this commission — what you loved, how it turned out…"
+                  rows={4}
+                  maxLength={200}
+                  value={shareToPublicText}
+                  onChange={(e) => {
+                    const lines = e.target.value.split('\n');
+                    if (lines.length > 4) return;
+                    setShareToPublicText(e.target.value);
+                  }}
+                />
+                <span className="commission-share-public-char-count">
+                  {shareToPublicText.length} / 200
+                </span>
+              </div>
             </div>
 
             <div className="confirm-modal-actions confirm-modal-actions--row">
@@ -4855,19 +4990,25 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                     await savePublicShare({
                       buyerId: appUser.uid,
                       buyerName: appUser.name || 'Buyer',
-                      buyerAvatar: appUser.avatar,
+                      ...(appUser.avatar ? { buyerAvatar: appUser.avatar } : {}),
                       artistId: shareToPublicItem.hiredArtistId ?? '',
                       artistName: chatContactsByUid[shareToPublicItem.hiredArtistId ?? '']?.name ?? 'Artist',
                       commissionId: shareToPublicItem.id,
                       commissionTitle: shareToPublicItem.title,
-                      imageUrl,
+                      imageUrl: imageUrl || '',
                       description: shareToPublicText.trim(),
                     });
+                    const sharedId = shareToPublicItem.id;
+                    void markCommissionSharedToPublic(sharedId).catch(() => {});
+                    setBuyerRequests((prev) =>
+                      prev.map((r) => r.id === sharedId ? { ...r, sharedToPublic: true } : r)
+                    );
                     toast.success('Shared to public!');
                     setShareToPublicItem(null);
                     setShareToPublicImage(null);
                     setShareToPublicImagePreview(null);
                     setShareToPublicText('');
+                    navigate('/home', { state: { feedTab: 'customized' } });
                   } catch {
                     toast.error('Could not share. Please try again.');
                   } finally {

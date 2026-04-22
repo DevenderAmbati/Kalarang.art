@@ -32,7 +32,8 @@ export type NotificationType =
   | 'commission_shipped'      // Buyer: artist shipped the artwork
   | 'review_received'         // Artist: buyer left a review
   | 'review_reply'            // Buyer: artist replied to their review
-  | 'payment_failed_no_upi';  // Artist: buyer tried to pay but UPI ID not set
+  | 'payment_failed_no_upi'   // Artist: buyer tried to pay but UPI ID not set
+  | 'new_commission_posted';  // Artist: a new commission request was posted
 
 export interface Notification {
   id: string;

@@ -1,0 +1,124 @@
+.cim-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: cimFadeIn 0.18s ease;
+  padding: 16px;
+}
+
+@keyframes cimFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.cim-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: min(90vw, 860px);
+  max-height: 90vh;
+  gap: 12px;
+}
+
+.cim-close {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1;
+  transition: background 0.15s;
+}
+
+.cim-close:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.cim-image-wrap {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  max-height: calc(90vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cim-image {
+  display: block;
+  max-width: 100%;
+  max-height: calc(90vh - 80px);
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.cim-hd-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cim-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.cim-download-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 10px;
+  border: none;
+  background: var(--color-primary, #6c63ff);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.cim-download-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.cim-download-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.cim-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: cimSpin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes cimSpin {
+  to { transform: rotate(360deg); }
+}

@@ -32,6 +32,7 @@ import ArtworkCommentModal from '../../components/Artwork/ArtworkCommentModal';
 import ChatDrawer, { ChatContact, ReachOutMetadata } from '../../components/Chat/ChatDrawer';
 import './homeFeed.css';
 import '../user/Commissions.css';
+import '../../components/Artwork/ArtworkDetail.css';
 
 interface Story {
   id: string;
@@ -127,38 +128,143 @@ const SeenAwareArtworkCard: React.FC<SeenAwareArtworkCardProps> = ({
   );
 };
 
-const CustomizedCard: React.FC<{ post: PublicShare; navigate: ReturnType<typeof useNavigate> }> = ({ post, navigate }) => (
-  <div className="customized-card">
-    <div className="customized-card-header">
-      <img
-        src={post.buyerAvatar || '/artist.png'}
-        alt={post.buyerName}
-        className="customized-card-avatar"
-      />
-      <span className="customized-card-buyer-name">{post.buyerName}</span>
-    </div>
-    {post.imageUrl && (
-      <div className="customized-card-image-wrap">
-        <img src={post.imageUrl} alt={post.commissionTitle} className="customized-card-image" loading="lazy" />
+const CustomizedCard: React.FC<{ post: PublicShare; navigate: ReturnType<typeof useNavigate> }> = ({ post, navigate }) => {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const lastTouchDistance = useRef<number | null>(null);
+  const isTouchPanning = useRef(false);
+  const lastTouchCenter = useRef<{ x: number; y: number } | null>(null);
+
+  const closePreview = () => { setPreviewOpen(false); setZoomLevel(1); setPosition({ x: 0, y: 0 }); };
+  const zoomIn = () => setZoomLevel((p) => Math.min(p + 0.5, 4));
+  const zoomOut = () => setZoomLevel((p) => { const n = Math.max(p - 0.5, 1); if (n === 1) setPosition({ x: 0, y: 0 }); return n; });
+  const resetZoom = () => { setZoomLevel(1); setPosition({ x: 0, y: 0 }); };
+
+  const handleWheel = (e: React.WheelEvent) => { e.preventDefault(); e.deltaY < 0 ? zoomIn() : zoomOut(); };
+  const handleMouseDown = (e: React.MouseEvent) => { if (zoomLevel > 1) { setIsDragging(true); setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y }); } };
+  const handleMouseMove = (e: React.MouseEvent) => { if (isDragging && zoomLevel > 1) setPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y }); };
+  const handleMouseUp = () => setIsDragging(false);
+
+  const getTouchDistance = (touches: React.TouchList) => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+  const getTouchCenter = (touches: React.TouchList) =>
+    touches.length === 1
+      ? { x: touches[0].clientX, y: touches[0].clientY }
+      : { x: (touches[0].clientX + touches[1].clientX) / 2, y: (touches[0].clientY + touches[1].clientY) / 2 };
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation();
+    if (e.touches.length === 2) { lastTouchDistance.current = getTouchDistance(e.touches); lastTouchCenter.current = getTouchCenter(e.touches); }
+    else if (e.touches.length === 1 && zoomLevel > 1) { isTouchPanning.current = true; lastTouchCenter.current = getTouchCenter(e.touches); }
+  }, [zoomLevel]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation(); e.preventDefault();
+    if (e.touches.length === 2 && lastTouchDistance.current !== null) {
+      const scale = getTouchDistance(e.touches) / lastTouchDistance.current;
+      setZoomLevel((p) => { const n = Math.min(Math.max(p * scale, 1), 4); if (n === 1) setPosition({ x: 0, y: 0 }); return n; });
+      lastTouchDistance.current = getTouchDistance(e.touches);
+    } else if (e.touches.length === 1 && isTouchPanning.current && lastTouchCenter.current && zoomLevel > 1) {
+      const c = getTouchCenter(e.touches);
+      setPosition((p) => ({ x: p.x + c.x - lastTouchCenter.current!.x, y: p.y + c.y - lastTouchCenter.current!.y }));
+      lastTouchCenter.current = c;
+    }
+  }, [zoomLevel]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation();
+    if (e.touches.length < 2) lastTouchDistance.current = null;
+    if (e.touches.length === 0) { isTouchPanning.current = false; lastTouchCenter.current = null; }
+  }, []);
+
+  return (
+    <>
+      <div className="artwork-card" style={{ cursor: 'default' }}>
+        <div className="artwork-card-header">
+          <div className="artist-avatar">
+            <img src={post.buyerAvatar || '/artist.png'} alt={post.buyerName} />
+          </div>
+          <div className="artwork-card-header-text">
+            <span className="artist-name">{post.buyerName}</span>
+          </div>
+        </div>
+        {post.imageUrl && (
+          <div className="artwork-image-container" style={{ cursor: 'zoom-in' }} onClick={() => setPreviewOpen(true)}>
+            <img src={post.imageUrl} alt={post.commissionTitle} className="artwork-image" loading="lazy" />
+          </div>
+        )}
+        <div className="artwork-description">
+          <button
+            type="button"
+            className="artwork-title customized-artist-btn"
+            onClick={(e) => { e.stopPropagation(); sessionStorage.setItem('artworkSourceRoute', '/home'); navigate(`/portfolio/${post.artistId}`); }}
+          >
+            Artist : {post.artistName}
+          </button>
+          {post.description && <p>{post.description}</p>}
+        </div>
       </div>
-    )}
-    <div className="customized-card-body">
-      <button
-        type="button"
-        className="customized-card-artist-link"
-        onClick={() => {
-          sessionStorage.setItem('artworkSourceRoute', '/home');
-          navigate(`/portfolio/${post.artistId}`);
-        }}
-      >
-        Artist : {post.artistName}
-      </button>
-      {post.description && (
-        <p className="customized-card-description">{post.description}</p>
+
+      {previewOpen && ReactDOM.createPortal(
+        <div className="artwork-preview-overlay" onClick={(e) => { if (e.target === e.currentTarget) closePreview(); }}>
+          <button className="preview-close-btn" onClick={closePreview}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          <div className="preview-zoom-controls">
+            <button className="zoom-control-btn" onClick={zoomIn} disabled={zoomLevel >= 4} title="Zoom In">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" />
+              </svg>
+            </button>
+            <span className="zoom-level-display">{Math.round(zoomLevel * 100)}%</span>
+            <button className="zoom-control-btn" onClick={zoomOut} disabled={zoomLevel <= 1} title="Zoom Out">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /><line x1="8" y1="11" x2="14" y2="11" />
+              </svg>
+            </button>
+            {zoomLevel > 1 && (
+              <button className="zoom-control-btn zoom-reset" onClick={resetZoom} title="Reset Zoom">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M1 4v6h6" /><path d="M23 20v-6h-6" /><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
+                </svg>
+              </button>
+            )}
+          </div>
+          <div
+            className="artwork-preview-content"
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{ cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default', touchAction: 'none' }}
+          >
+            <img
+              src={post.imageUrl}
+              alt={post.commissionTitle}
+              className="artwork-preview-image"
+              style={{ transform: `scale(${zoomLevel}) translate(${position.x / zoomLevel}px, ${position.y / zoomLevel}px)`, transition: isDragging ? 'none' : 'transform 0.2s ease' }}
+              draggable={false}
+            />
+          </div>
+        </div>,
+        document.body
       )}
-    </div>
-  </div>
-);
+    </>
+  );
+};
 
 const HomeFeed: React.FC = () => {
   const navigate = useNavigate();
@@ -215,14 +321,36 @@ const HomeFeed: React.FC = () => {
   // Feed tab: Curated Art vs Customized
   const { hidden: tabsHidden, anchorRef: tabsAnchorRef } = useScrollDirection();
   const [activeFeedTab, setActiveFeedTab] = useState<'curated' | 'customized'>('curated');
+
+  useEffect(() => {
+    const state = location.state as { feedTab?: string } | null;
+    if (state?.feedTab === 'customized') {
+      setActiveFeedTab('customized');
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
+
   const [customizedPosts, setCustomizedPosts] = useState<PublicShare[]>([]);
   const [customizedLoading, setCustomizedLoading] = useState(false);
   const [customizedLastVisible, setCustomizedLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [customizedHasMore, setCustomizedHasMore] = useState(true);
   const [customizedLoadingMore, setCustomizedLoadingMore] = useState(false);
+  const [customizedVirtualEnd, setCustomizedVirtualEnd] = useState(VIRTUAL_BATCH_SIZE);
+  const customizedSentinelRef = useRef<HTMLDivElement | null>(null);
+
+  const CUSTOMIZED_CACHE_KEY = 'public-shares-page1';
 
   useEffect(() => {
     if (activeFeedTab !== 'customized') return;
+
+    // Serve fresh data from cache — skip Firestore round-trip
+    const cached = cache.get<{ posts: PublicShare[]; hasMore: boolean }>(CUSTOMIZED_CACHE_KEY);
+    if (cached.exists && !cached.isStale && cached.data) {
+      setCustomizedPosts(cached.data.posts);
+      setCustomizedHasMore(cached.data.hasMore);
+      return;
+    }
+
     if (customizedPosts.length > 0) return;
     setCustomizedLoading(true);
     getPublicShares()
@@ -230,6 +358,7 @@ const HomeFeed: React.FC = () => {
         setCustomizedPosts(shares);
         setCustomizedLastVisible(lv);
         setCustomizedHasMore(hasMore);
+        cache.set(CUSTOMIZED_CACHE_KEY, { posts: shares, hasMore }, 5 * 60 * 1000, 10 * 60 * 1000);
       })
       .catch(() => {})
       .finally(() => setCustomizedLoading(false));
@@ -249,6 +378,42 @@ const HomeFeed: React.FC = () => {
       setCustomizedLoadingMore(false);
     }
   }, [customizedHasMore, customizedLoadingMore, customizedLastVisible]);
+
+  // Virtual slice — only render VIRTUAL_BATCH_SIZE posts at a time
+  const visibleCustomizedPosts = useMemo(
+    () => customizedPosts.slice(0, customizedVirtualEnd),
+    [customizedPosts, customizedVirtualEnd],
+  );
+
+  // IntersectionObserver advances virtual slice as user scrolls (same pattern as curated feed)
+  useEffect(() => {
+    const sentinel = customizedSentinelRef.current;
+    if (!sentinel || activeFeedTab !== 'customized') return;
+    const scrollRoot = (document.querySelector('.layout-main-content') as HTMLElement) || null;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setCustomizedVirtualEnd((prev) => Math.min(prev + VIRTUAL_BATCH_SIZE, customizedPosts.length));
+        }
+      },
+      { root: scrollRoot, rootMargin: '600px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [activeFeedTab, customizedPosts.length]);
+
+  // Scroll-based Firestore fetch at 80% depth (same as curated feed)
+  useEffect(() => {
+    if (activeFeedTab !== 'customized') return;
+    const handleScroll = () => {
+      if (!customizedHasMore || customizedLoadingMore) return;
+      const el = document.querySelector('.layout-main-content');
+      if (!el) return;
+      if ((el.scrollTop + el.clientHeight) / el.scrollHeight > 0.8) void loadMoreCustomized();
+    };
+    const el = document.querySelector('.layout-main-content');
+    if (el) { el.addEventListener('scroll', handleScroll); return () => el.removeEventListener('scroll', handleScroll); }
+  }, [activeFeedTab, customizedHasMore, customizedLoadingMore, loadMoreCustomized]);
 
   // Buyer intent modal - shown once for new buyers
   const [showBuyerIntentModal, setShowBuyerIntentModal] = useState(false);
@@ -1390,7 +1555,7 @@ const HomeFeed: React.FC = () => {
 
 
         {/* Stories Section */}
-        {!loadingStories && (
+        {!loadingStories && activeFeedTab === 'curated' && (
           <div className="stories-section">
             <div className="stories-container">
               {groupedStories.length === 0 ? (
@@ -1456,29 +1621,55 @@ const HomeFeed: React.FC = () => {
         )}
 
         {/* Feed tab switcher */}
-        <div ref={tabsAnchorRef} className={`commission-main-tabs-fixed${tabsHidden ? ' pill-tabs-hidden' : ''}`}>
-          <div className="commission-main-tabs">
+        <div ref={tabsAnchorRef} className={`homefeed-tabs-fixed${tabsHidden ? ' pill-tabs-hidden' : ''}`}>
+          <div className="homefeed-tabs">
             <button
               type="button"
-              className={`commission-tab${activeFeedTab === 'curated' ? ' active' : ''}`}
+              className={`homefeed-tab${activeFeedTab === 'curated' ? ' active' : ''}`}
               onClick={() => setActiveFeedTab('curated')}
             >
               Curated Art
             </button>
             <button
               type="button"
-              className={`commission-tab${activeFeedTab === 'customized' ? ' active' : ''}`}
+              className={`homefeed-tab${activeFeedTab === 'customized' ? ' active' : ''}`}
               onClick={() => setActiveFeedTab('customized')}
             >
               Customized
             </button>
           </div>
         </div>
-        <div className="commission-main-tabs-spacer" />
+        <div className="homefeed-tabs-spacer" />
 
         {/* Customized tab */}
         {activeFeedTab === 'customized' && (
           <div className="homefeed-customized-feed">
+            {appUser?.role !== 'buyer' && <div className="homefeed-customized-artist-gap" />}
+            {appUser?.role === 'buyer' && (
+              <div className="homefeed-create-request-container">
+                <button
+                  type="button"
+                  className="homefeed-create-request-btn"
+                  onClick={() => navigate('/post')}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  Create your commission request
+                </button>
+              </div>
+            )}
             {customizedLoading ? (
               <LoadingState animation={africanArtAnimation} message="Loading shared works…" fullHeight />
             ) : customizedPosts.length === 0 ? (
@@ -1490,18 +1681,22 @@ const HomeFeed: React.FC = () => {
             ) : (
               <>
                 <div className="homefeed-artwork-grid">
-                  {customizedPosts.map((post) => (
+                  {visibleCustomizedPosts.map((post) => (
                     <CustomizedCard key={post.id} post={post} navigate={navigate} />
                   ))}
                 </div>
-                {customizedHasMore && (
-                  <button
-                    className="homefeed-customized-load-more"
-                    onClick={loadMoreCustomized}
-                    disabled={customizedLoadingMore}
-                  >
-                    {customizedLoadingMore ? 'Loading…' : 'Load more'}
-                  </button>
+                {customizedVirtualEnd < customizedPosts.length && (
+                  <div ref={customizedSentinelRef} style={{ height: '1px', width: '100%' }} />
+                )}
+                {customizedLoadingMore && (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
+                    <div style={{ border: '3px solid var(--primary-alpha-20)', borderTop: '3px solid var(--primary)', borderRadius: '50%', width: '40px', height: '40px', animation: 'spin 1s linear infinite' }} />
+                  </div>
+                )}
+                {!customizedHasMore && customizedPosts.length > 0 && customizedVirtualEnd >= customizedPosts.length && (
+                  <div style={{ textAlign: 'center', padding: '5px', color: 'var(--color-royal)', fontSize: '14px' }}>
+                    You've reached the end.
+                  </div>
                 )}
               </>
             )}

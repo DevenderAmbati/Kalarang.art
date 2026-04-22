@@ -1085,6 +1085,72 @@
 .commission-accept-address-input:focus { border-color: var(--color-primary, #2fa4a9); }
 .commission-accept-address-input:disabled { opacity: 0.6; }
 
+.cd-shipment-receipt-upload {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 10px 14px;
+  border: 1.5px dashed var(--color-border-light, #ccc);
+  border-radius: 10px;
+  background: var(--color-bg-light, #f7f7f7);
+  color: var(--color-text-muted, #888);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.cd-shipment-receipt-upload:hover:not(:disabled) {
+  border-color: var(--color-primary, #2fa4a9);
+  color: var(--color-primary, #2fa4a9);
+}
+
+.cd-shipment-receipt-upload:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cd-required {
+  color: #e53;
+  margin-left: 2px;
+}
+
+.cd-shipment-receipt-preview {
+  position: relative;
+  margin-top: 0.75rem;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-light, #ccc);
+  max-height: 160px;
+  background: var(--color-bg-light, #f7f7f7);
+}
+
+.cd-shipment-receipt-preview img {
+  display: block;
+  width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+}
+
+.cd-shipment-receipt-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .commission-accept-address-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1405,6 +1471,10 @@
   max-width: min(280px, 72vw);
 }
 
+.cd-chat-attachment--clickable {
+  cursor: zoom-in;
+}
+
 .cd-chat-attachment-img {
   display: block;
   width: 100%;
@@ -1438,6 +1508,44 @@
 .cd-chat-attachment-download:disabled {
   opacity: 0.7;
   cursor: wait;
+}
+
+.cd-pending-image .commission-chat-hd-toggle {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  padding: 2px 8px;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.cd-pending-image .commission-chat-hd-toggle--active {
+  background: var(--color-primary, #6c63ff);
+  border-color: var(--color-primary, #6c63ff);
+}
+
+.cd-chat-attachment .commission-chat-hd-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* ================================================

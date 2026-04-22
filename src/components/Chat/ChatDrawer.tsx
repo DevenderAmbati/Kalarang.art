@@ -14,6 +14,7 @@ import { createNotification } from '../../services/notificationService';
 import { notifyServiceWorkerActiveChatId } from '../../services/fcmService';
 import { toast } from 'react-toastify';
 import { downloadImageFromUrl, suggestedChatImageFilename } from '../../utils/downloadImage';
+import ChatImageModal from '../Modals/ChatImageModal';
 import '../../components/Modals/ConfirmModal.css';
 import './ChatDrawer.css';
 
@@ -216,7 +217,9 @@ const ChatView: React.FC<{
   const [inputText, setInputText] = useState(initialMessage || '');
   const [phoneWarning, setPhoneWarning] = useState(false);
   const [pendingImage, setPendingImage] = useState<File | null>(null);
+  const [sendHD, setSendHD] = useState(false);
   const [imageDownloadBusy, setImageDownloadBusy] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ url: string; hd?: boolean; msgId: string } | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [artworkSent, setArtworkSent] = useState(false);
   // Collapsible artwork cards drawer
@@ -228,7 +231,10 @@ const ChatView: React.FC<{
   const [sendingOfferArtworkId, setSendingOfferArtworkId] = useState<string | null>(null);
   const [makeShipmentCard, setMakeShipmentCard] = useState<ReachOutMetadata | null>(null);
   const [trackingInput, setTrackingInput] = useState('');
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [makeShipmentBusy, setMakeShipmentBusy] = useState(false);
+  const receiptInputRef = useRef<HTMLInputElement>(null);
   const [offerAcceptMsgId, setOfferAcceptMsgId] = useState<string | null>(null);
   const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
   const [showPaymentConfirm, setShowPaymentConfirm] = useState(false);
@@ -414,10 +420,11 @@ const ChatView: React.FC<{
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file?.type.startsWith('image/')) return;
+    setSendHD(false);
     setPendingImage(file);
   };
 
-  const clearPendingImage = () => setPendingImage(null);
+  const clearPendingImage = () => { setPendingImage(null); setSendHD(false); };
 
   const handleDownloadChatImage = async (url: string, messageId: string) => {
     setImageDownloadBusy(messageId);
@@ -445,8 +452,10 @@ const ChatView: React.FC<{
     }
     
     const imageToSend = pendingImage;
+    const isHD = sendHD;
     setInputText('');
     setPendingImage(null);
+    setSendHD(false);
     try {
       // Pass artwork metadata if it exists and hasn't been sent yet
       // Only include artworkPrice if it's defined to avoid Firestore errors
@@ -464,7 +473,7 @@ const ChatView: React.FC<{
       // eslint-disable-next-line no-console
       console.log('ChatDrawer - metadata to send:', metadata);
       
-      await sendMessage(text, metadata, imageToSend || undefined);
+      await sendMessage(text, metadata, imageToSend || undefined, isHD);
       
       if (metadata) {
         setArtworkSent(true);
@@ -591,13 +600,24 @@ const ChatView: React.FC<{
   const handleMakeShipment = (card: ReachOutMetadata) => {
     setMakeShipmentCard(card);
     setTrackingInput('');
+    setReceiptFile(null);
+    setReceiptPreview(null);
+  };
+
+  const handleReceiptSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file?.type.startsWith('image/')) return;
+    setReceiptFile(file);
+    setReceiptPreview(URL.createObjectURL(file));
   };
 
   const handleConfirmShipment = async () => {
-    if (!appUser || !makeShipmentCard || !trackingInput.trim()) return;
+    if (!appUser || !makeShipmentCard || !trackingInput.trim() || !receiptFile) return;
     setMakeShipmentBusy(true);
     try {
       await sendMessage(`📦 "${makeShipmentCard.artworkTitle}" has been shipped! Tracking ID: ${trackingInput.trim()}`);
+      await sendMessage('', undefined, receiptFile);
       createNotification(
         contact.uid,
         'commission_shipped',
@@ -607,14 +627,15 @@ const ChatView: React.FC<{
         makeShipmentCard.artworkId,
         makeShipmentCard.artworkTitle,
         makeShipmentCard.artworkImage,
-        undefined,       // contactMethod
-        undefined,       // commissionId
-        undefined,       // commissionTitle
-        trackingInput.trim(), // commentSnippet — used as tracking ID
+        undefined,
+        undefined,
+        undefined,
+        trackingInput.trim(),
       ).catch(() => {});
       if (chatId) await markArtworkShipped(chatId, makeShipmentCard.artworkId, trackingInput.trim());
+      setReceiptFile(null);
+      setReceiptPreview(null);
       setMakeShipmentCard(null);
-      
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('Failed to confirm shipment:', err);
@@ -917,25 +938,16 @@ const ChatView: React.FC<{
                         </div>
                       )}
                       {msg.imageUrl && (
-                        <div className="cd-chat-attachment">
+                        <div
+                          className="cd-chat-attachment cd-chat-attachment--clickable"
+                          onClick={() => setPreviewImage({ url: msg.imageUrl!, hd: msg.imageHd, msgId: msg.id })}
+                          role="button"
+                          tabIndex={0}
+                          aria-label="View image"
+                          onKeyDown={(e) => e.key === 'Enter' && setPreviewImage({ url: msg.imageUrl!, hd: msg.imageHd, msgId: msg.id })}
+                        >
+                          {msg.imageHd && <span className="commission-chat-hd-badge">HD</span>}
                           <img src={msg.imageUrl} alt="" className="cd-chat-attachment-img" loading="lazy" />
-                          <button
-                            type="button"
-                            className="cd-chat-attachment-download"
-                            onClick={() => handleDownloadChatImage(msg.imageUrl!, msg.id)}
-                            disabled={imageDownloadBusy === msg.id}
-                            aria-label="Download full image"
-                          >
-                            {imageDownloadBusy === msg.id ? (
-                              '…'
-                            ) : (
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                <polyline points="7 10 12 15 17 10" />
-                                <line x1="12" y1="15" x2="12" y2="3" />
-                              </svg>
-                            )}
-                          </button>
                         </div>
                       )}
                       {Boolean(msg.text?.trim()) && msg.messageType !== 'reachout_offer' && msg.messageType !== 'address_card' && (
@@ -971,6 +983,15 @@ const ChatView: React.FC<{
             <img src={pendingImagePreview} alt="" />
             <button type="button" className="cd-pending-image-remove" onClick={clearPendingImage} aria-label="Remove image">
               ×
+            </button>
+            <button
+              type="button"
+              className={`commission-chat-hd-toggle${sendHD ? ' commission-chat-hd-toggle--active' : ''}`}
+              onClick={() => setSendHD((v) => !v)}
+              aria-label={sendHD ? 'Sending as HD — tap to switch to standard' : 'Send as HD'}
+              title={sendHD ? 'HD on — tap to switch to standard' : 'Send as HD'}
+            >
+              HD
             </button>
           </div>
         )}
@@ -1234,7 +1255,7 @@ const ChatView: React.FC<{
             </button>
             <h2 id="cd-make-shipment-title" className="confirm-modal-title">Make Shipment</h2>
             <p className="confirm-modal-message">
-              Enter the tracking ID for <strong>{makeShipmentCard.artworkTitle}</strong>.
+              Enter the tracking ID and upload the shipment receipt for <strong>{makeShipmentCard.artworkTitle}</strong>.
             </p>
             <input
               type="text"
@@ -1245,6 +1266,43 @@ const ChatView: React.FC<{
               onChange={(e) => setTrackingInput(e.target.value)}
               style={{ marginTop: '0.75rem' }}
             />
+            <input
+              ref={receiptInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleReceiptSelected}
+              aria-hidden
+              tabIndex={-1}
+            />
+            {receiptPreview ? (
+              <div className="cd-shipment-receipt-preview">
+                <img src={receiptPreview} alt="Receipt preview" />
+                <button
+                  type="button"
+                  className="cd-shipment-receipt-remove"
+                  onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
+                  aria-label="Remove receipt"
+                  disabled={makeShipmentBusy}
+                >
+                  ×
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="cd-shipment-receipt-upload"
+                onClick={() => receiptInputRef.current?.click()}
+                disabled={makeShipmentBusy}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                Upload shipment receipt <span className="cd-required">*</span>
+              </button>
+            )}
             <div className="confirm-modal-actions confirm-modal-actions--row" style={{ marginTop: '1.25rem' }}>
               <button
                 type="button"
@@ -1257,7 +1315,7 @@ const ChatView: React.FC<{
               <button
                 type="button"
                 className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-                disabled={makeShipmentBusy || !trackingInput.trim()}
+                disabled={makeShipmentBusy || !trackingInput.trim() || !receiptFile}
                 onClick={() => void handleConfirmShipment()}
               >
                 <span className="commission-hire-tooltip-confirm-inner">
@@ -1269,6 +1327,15 @@ const ChatView: React.FC<{
           </div>
         </div>,
         document.body
+      )}
+      {previewImage && (
+        <ChatImageModal
+          url={previewImage.url}
+          isHd={previewImage.hd}
+          downloading={imageDownloadBusy === previewImage.msgId}
+          onDownload={() => handleDownloadChatImage(previewImage.url, previewImage.msgId)}
+          onClose={() => setPreviewImage(null)}
+        />
       )}
     </div>
   );

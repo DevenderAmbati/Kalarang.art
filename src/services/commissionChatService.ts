@@ -55,6 +55,8 @@ export interface CommissionChatMessage {
   commissionImage?: string;
   /** Uploaded chat image (Storage URL) */
   imageUrl?: string;
+  /** True if the image was sent in HD quality */
+  imageHd?: boolean;
   /** Artist-sent commission offer (structured card in chat) */
   messageType?: 'commission_offer' | 'address_card' | string;
   offerStatus?: CommissionOfferStatus;
@@ -153,6 +155,7 @@ export function subscribeCommissionMessages(
         commissionTitle: data.commissionTitle,
         commissionImage: data.commissionImage,
         imageUrl: data.imageUrl,
+        imageHd: data.imageHd,
         messageType: data.messageType,
         offerStatus: data.offerStatus,
         offerFinalPrice: data.offerFinalPrice,
@@ -179,6 +182,7 @@ export async function sendCommissionMessage(
   commissionTitle?: string,
   commissionImage?: string,
   imageUrl?: string,
+  imageHd?: boolean,
 ): Promise<void> {
   const trimmed = text.trim();
   if (!trimmed && !imageUrl) {
@@ -203,6 +207,7 @@ export async function sendCommissionMessage(
   };
   if (imageUrl) {
     payload.imageUrl = imageUrl;
+    if (imageHd) payload.imageHd = true;
   }
 
   await addDoc(collection(db, 'commissionChats', chatId, 'messages'), payload as DocumentData);

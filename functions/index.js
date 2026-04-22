@@ -910,11 +910,17 @@ exports.onNotificationCreated = onDocumentCreated(
         ? `Your commission "${commissionTitle}" has been marked as completed`
         : "Your commission has been marked as completed";
       break;
+    case "new_commission_posted":
+      title = "New Commission Request";
+      body = commissionTitle
+        ? `A buyer is looking for an artist for "${commissionTitle}" — apply now!`
+        : "A new commission request is open — apply now!";
+      break;
     default:
       body = `${actorName || "Someone"} interacted with your profile`;
     }
 
-    const isCommissionType = ["commission_application", "commission_offer", "commission_offer_accepted", "commission_completed"].includes(type);
+    const isCommissionType = ["commission_application", "commission_offer", "commission_offer_accepted", "commission_completed", "new_commission_posted"].includes(type);
     const artworkDeepLinkTypes = ["like", "comment", "comment_reply", "favourite", "reachout"];
     let pushUrl = "/home";
     if (isCommissionType) {
@@ -1055,6 +1061,127 @@ exports.onCommissionChatMessageCreated = onDocumentCreated(
       {type: "chat", chatId, url: "/home"},
       `chat_${chatId}`
     );
+  }
+);
+
+// ---------------------------------------------------------------------------
+// New Commission Posted — notify all artists
+// ---------------------------------------------------------------------------
+
+/**
+ * Trigger: new document in "commissions" collection with status "open".
+ * Sends an FCM push to every artist so they can apply.
+ * Intentionally does NOT create per-artist notification documents to avoid
+ * polluting every artist's notification feed with broadcast noise.
+ */
+exports.onCommissionCreated = onDocumentCreated(
+  {
+    document: "commissions/{commissionId}",
+    region: "us-central1",
+    memory: "512MiB",
+    maxInstances: 10,
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const commission = snap.data();
+    if (commission.status !== "open") return;
+
+    const title = "New Commission Request";
+    const commissionTitle = commission.title || "a new commission";
+    const buyerName = commission.buyerName || "A buyer";
+    const body = `${buyerName} is looking for an artist for "${commissionTitle}" — apply now!`;
+
+    // Fetch all FCM tokens belonging to artists in batches of 500
+    const tokensSnapshot = await db
+      .collection("userTokens")
+      .get();
+
+    if (tokensSnapshot.empty) {
+      logger.info("onCommissionCreated: no FCM tokens found");
+      return;
+    }
+
+    // Collect artist user IDs first
+    const artistsSnapshot = await db
+      .collection("users")
+      .where("role", "==", "artist")
+      .get();
+
+    if (artistsSnapshot.empty) {
+      logger.info("onCommissionCreated: no artists found");
+      return;
+    }
+
+    const artistIds = new Set(artistsSnapshot.docs.map((d) => d.id));
+    // Exclude the buyer themselves
+    artistIds.delete(commission.buyerId);
+
+    // Collect tokens for all artists
+    const artistTokens = tokensSnapshot.docs
+      .filter((d) => artistIds.has(d.data().userId))
+      .map((d) => ({id: d.id, token: d.data().token}));
+
+    if (artistTokens.length === 0) {
+      logger.info("onCommissionCreated: no artist FCM tokens found");
+      return;
+    }
+
+    const fcmData = {
+      title,
+      body,
+      type: "new_commission_posted",
+      url: "/commissions",
+      commissionId: snap.id,
+    };
+
+    // Send in batches of 500 (Firebase Admin limit for multicast)
+    const BATCH_SIZE = 500;
+    let totalSent = 0;
+    let totalFailed = 0;
+
+    for (let i = 0; i < artistTokens.length; i += BATCH_SIZE) {
+      const batch = artistTokens.slice(i, i + BATCH_SIZE);
+      const tokens = batch.map((t) => t.token);
+
+      const response = await messaging.sendEachForMulticast({
+        tokens,
+        data: fcmData,
+        webpush: {headers: {Topic: "new_commission"}},
+      });
+
+      // Remove stale tokens
+      const staleDeletes = [];
+      response.responses.forEach((res, idx) => {
+        if (!res.success) {
+          const errCode = res.error && res.error.code;
+          if (
+            errCode === "messaging/invalid-registration-token" ||
+            errCode === "messaging/registration-token-not-registered"
+          ) {
+            staleDeletes.push(
+              db.collection("userTokens").doc(batch[idx].id).delete()
+            );
+          }
+          totalFailed++;
+        } else {
+          totalSent++;
+        }
+      });
+
+      if (staleDeletes.length > 0) {
+        await Promise.allSettled(staleDeletes);
+        logger.info("onCommissionCreated: removed stale tokens", {count: staleDeletes.length});
+      }
+    }
+
+    logger.info("onCommissionCreated: push sent to artists", {
+      commissionId: snap.id,
+      totalArtists: artistIds.size,
+      tokensSent: totalSent,
+      tokensFailed: totalFailed,
+    });
   }
 );
 
@@ -1325,6 +1452,71 @@ exports.artworkOgRenderer = onRequest(
     } catch (error) {
       logger.error("artworkOgRenderer error", {error, artworkId});
       res.redirect(302, "/");
+    }
+  }
+);
+
+/**
+ * Firestore trigger — when a commission transitions to "completed", automatically
+ * publish the ready-to-ship photo to the artist's gallery with isCommissioned: true.
+ * Uses Admin SDK so it bypasses client security rules.
+ */
+exports.onCommissionCompleted = onDocumentWritten(
+  {
+    document: "commissions/{commissionId}",
+    region: "us-central1",
+  },
+  async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+
+    // Only proceed on status transition to "completed"
+    if (!after || after.status !== "completed" || (before && before.status === "completed")) return;
+
+    const { hiredArtistId, readyToShipImageUrl, title, description, type, commissionArtworkCreated } = after;
+
+    // Idempotency guard — don't create a duplicate if trigger fires again
+    if (!hiredArtistId || !readyToShipImageUrl || commissionArtworkCreated) return;
+
+    try {
+      // Fetch artist profile for name + avatar
+      const artistSnap = await db.collection("users").doc(hiredArtistId).get();
+      const artist = artistSnap.exists ? artistSnap.data() : {};
+      const artistName = artist.name || artist.displayName || "Artist";
+      const artistAvatar = artist.avatar || artist.photoURL || "";
+
+      // Create artwork document in artist's gallery
+      const artworkRef = db.collection("artworks").doc();
+      await artworkRef.set({
+        artistId: hiredArtistId,
+        artistName,
+        artistAvatar,
+        title: title ? `${title} (Commission)` : "Commission Artwork",
+        description: description || "",
+        images: [readyToShipImageUrl],
+        category: type || "Commission",
+        medium: "",
+        width: "",
+        height: "",
+        price: 0,
+        isCommissioned: true,
+        published: false,
+        createdDate: "",
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        views: 0,
+        likes: 0,
+        favorites: 0,
+        comments: 0,
+        reachOutClicks: 0,
+      });
+
+      // Mark commission so this trigger doesn't run twice
+      await event.data.after.ref.update({ commissionArtworkCreated: true });
+
+      logger.info("Commission artwork auto-published", { commissionId: event.params.commissionId, artworkId: artworkRef.id });
+    } catch (err) {
+      logger.error("onCommissionCompleted: failed to publish artwork", { err, commissionId: event.params.commissionId });
     }
   }
 );

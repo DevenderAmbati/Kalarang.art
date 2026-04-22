@@ -41,6 +41,7 @@ interface UseChatReturn {
     text: string,
     artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number },
     imageFile?: File,
+    hd?: boolean,
   ) => Promise<void>;
   loadMore: () => Promise<void>;
 }
@@ -152,6 +153,7 @@ export function useChat(
             artworkImage: data.artworkImage,
             artworkPrice: data.artworkPrice,
             imageUrl: data.imageUrl,
+            imageHd: data.imageHd,
             messageType: data.messageType,
             offerFinalPrice: data.offerFinalPrice,
             offerDeliveryDate: data.offerDeliveryDate,
@@ -221,6 +223,7 @@ export function useChat(
       text: string,
       artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number },
       imageFile?: File,
+      hd?: boolean,
     ) => {
       if (!chatId || !currentUserId) {
         throw new Error('Cannot send message: missing required data');
@@ -234,9 +237,9 @@ export function useChat(
       try {
         let imageUrl: string | undefined;
         if (imageFile) {
-          imageUrl = await uploadChatMessageImage(currentUserId, 'chats', chatId, imageFile);
+          imageUrl = await uploadChatMessageImage(currentUserId, 'chats', chatId, imageFile, hd);
         }
-        await sendChatMessage(chatId, currentUserId, trimmed, otherUserId, artworkMetadata, imageUrl);
+        await sendChatMessage(chatId, currentUserId, trimmed, otherUserId, artworkMetadata, imageUrl, hd && !!imageFile);
       } catch (error) {
         throw error;
       } finally {

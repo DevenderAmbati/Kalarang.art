@@ -62,17 +62,18 @@ export async function compressImages(
   return Promise.all(files.map(file => compressImage(file, options)));
 }
 
-/**
- * Chat attachments: high max dimension and size so downloads stay sharp;
- * JPEG output for broad compatibility (browser-image-compression).
- */
-export async function compressChatImage(file: File): Promise<File> {
-  return compressImage(file, {
-    maxSizeMB: 8,
-    maxWidthOrHeight: 4096,
-    useWebWorker: true,
-    fileType: 'image/jpeg',
-  });
+export async function compressChatImage(file: File, hd = false): Promise<File> {
+  // HD: preserve full resolution up to 4096px, high quality JPEG
+  // Standard: cap at 1280px, 0.6 quality WebP — always noticeably smaller
+  const opts = hd
+    ? { maxSizeMB: 10, maxWidthOrHeight: 4096, initialQuality: 0.92, fileType: 'image/jpeg' }
+    : { maxSizeMB: 10, maxWidthOrHeight: 1280, initialQuality: 0.75, fileType: 'image/webp' };
+
+  try {
+    return await imageCompression(file, { ...opts, useWebWorker: true });
+  } catch {
+    return file;
+  }
 }
 
 /**

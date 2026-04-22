@@ -169,12 +169,13 @@ const Layout: React.FC<LayoutProps> = ({
         ) : (
           <Sidebar onLogout={onLogout} />
         ))}
-      <main 
+      <main
         className="layout-main-content"
         style={{
           ...styles.main,
           marginLeft: hideAppNav ? 0 : isCollapsed ? '80px' : '260px',
-        }}
+          '--header-height': `${headerHeight}px`,
+        } as React.CSSProperties}
       >
         {/* Header with Page Title */}
         <div ref={headerRef} className="layout-header" style={styles.header}>

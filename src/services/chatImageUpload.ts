@@ -13,6 +13,7 @@ export async function uploadChatMessageImage(
   scope: 'chats' | 'commissionChats',
   chatId: string,
   file: File,
+  hd = false,
 ): Promise<string> {
   if (!file.type.startsWith('image/')) {
     throw new Error('Only image files are allowed.');
@@ -21,7 +22,7 @@ export async function uploadChatMessageImage(
     throw new Error('Image is too large (max 12 MB).');
   }
 
-  const processed = await compressChatImage(file);
+  const processed = await compressChatImage(file, hd);
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 10);
   const ext = processed.name.match(/\.([^.]+)$/)?.[1]?.toLowerCase() || 'jpg';

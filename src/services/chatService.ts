@@ -34,6 +34,7 @@ export interface ChatMessage {
   artworkPrice?: number;
   /** Firebase Storage download URL (full quality for display + download) */
   imageUrl?: string;
+  imageHd?: boolean;
   messageType?: 'reachout_offer' | 'address_card';
   offerFinalPrice?: string;
   offerDeliveryDate?: string;
@@ -161,6 +162,7 @@ export async function sendMessage(
   otherUserId?: string,
   artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number },
   imageUrl?: string,
+  imageHd?: boolean,
 ): Promise<void> {
   const messagesRef = collection(db, 'chats', chatId, 'messages');
   const trimmed = text.trim();
@@ -177,6 +179,7 @@ export async function sendMessage(
 
     if (imageUrl) {
       messageData.imageUrl = imageUrl;
+      if (imageHd) messageData.imageHd = true;
     }
     
     if (artworkMetadata?.artworkId) {
@@ -367,6 +370,7 @@ export async function getMessages(
     artworkImage: d.data().artworkImage,
     artworkPrice: d.data().artworkPrice,
     imageUrl: d.data().imageUrl,
+    imageHd: d.data().imageHd,
     messageType: d.data().messageType,
     offerFinalPrice: d.data().offerFinalPrice,
     offerDeliveryDate: d.data().offerDeliveryDate,
