@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
@@ -9,6 +9,7 @@ import ChatDrawer, { ChatContact } from '../../components/Chat/ChatDrawer';
 import { useAuth } from '../../context/AuthContext';
 import { getArtwork, incrementArtworkViews, incrementArtworkReachOutClicks } from '../../services/artworkService';
 import { processBuyNow } from '../../services/chatService';
+import { uploadPaymentScreenshot } from '../../services/chatImageUpload';
 import { createNotification } from '../../services/notificationService';
 import { getUserProfile } from '../../services/userService';
 import { useFavorites } from '../../hooks/useCachedData';
@@ -22,7 +23,6 @@ import {
   isFollowingArtist
 } from '../../services/interactionService';
 import { toast } from 'react-toastify';
-import lineArt1Animation from '../../animations/Line art (1).json';
 import '../../components/Modals/ConfirmModal.css';
 import '../../pages/user/Commissions.css';
 
@@ -43,6 +43,9 @@ const CardDetail: React.FC = () => {
   const [buyNowAddress, setBuyNowAddress] = useState({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
   const [artistUpiId, setArtistUpiId] = useState<string | null>(null);
   const [fetchingUpiId, setFetchingUpiId] = useState(false);
+  const [paymentScreenshotFile, setPaymentScreenshotFile] = useState<File | null>(null);
+  const [paymentScreenshotPreview, setPaymentScreenshotPreview] = useState<string | null>(null);
+  const paymentScreenshotInputRef = useRef<HTMLInputElement>(null);
   
   const { data: favoriteIds, updateCache: updateFavoritesCache, refetch: refetchFavorites } = useFavorites(appUser?.uid);
 
@@ -239,6 +242,10 @@ const CardDetail: React.FC = () => {
     if (!appUser || !artwork || !artist || !id) return;
     setBuyNowBusy(true);
     try {
+      let screenshotUrl: string | undefined;
+      if (paymentScreenshotFile) {
+        screenshotUrl = await uploadPaymentScreenshot(appUser.uid, paymentScreenshotFile);
+      }
       await processBuyNow(
         appUser.uid,
         artist.id,
@@ -247,6 +254,7 @@ const CardDetail: React.FC = () => {
         artwork.artworkImage,
         String(artwork.price),
         buyNowAddress,
+        screenshotUrl,
       );
       createNotification(
         artist.id,
@@ -263,11 +271,11 @@ const CardDetail: React.FC = () => {
         'payment_done',
       ).catch(() => {});
       setBuyNowOpen(false);
-      setBuyNowConfirm(false);
       setBuyNowAddress({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
+      setPaymentScreenshotFile(null);
+      setPaymentScreenshotPreview(null);
       setArtwork((prev) => prev ? { ...prev, sold: true } : prev);
       window.dispatchEvent(new CustomEvent('artwork-sold', { detail: { artworkId: id } }));
-      // Invalidate all artwork listing caches so sold badge appears everywhere
       cache.invalidate(cacheKeys.homeFeedPaginated(appUser.uid));
       cache.invalidate(cacheKeys.homeFeedPaginated());
       cache.invalidate(cacheKeys.discoverPaginated('featured'));
@@ -357,7 +365,7 @@ const CardDetail: React.FC = () => {
   if (loading || !artwork || !artist) {
     return (
       <LoadingState 
-        animation={lineArt1Animation}
+        variant="artwork-detail"
         message="Loading artwork details..." 
         fullHeight 
       />
@@ -386,7 +394,7 @@ const CardDetail: React.FC = () => {
           className="confirm-modal-overlay"
           role="presentation"
           style={{ zIndex: 10002 }}
-          onClick={() => { if (!buyNowBusy) { setBuyNowOpen(false); setBuyNowConfirm(false); } }}
+          onClick={() => { if (!buyNowBusy) { setBuyNowOpen(false); } }}
         >
           <div
             className="confirm-modal-content commission-accept-offer-modal"
@@ -399,7 +407,7 @@ const CardDetail: React.FC = () => {
               className="commission-accept-offer-close"
               aria-label="Close"
               disabled={buyNowBusy}
-              onClick={() => { setBuyNowOpen(false); setBuyNowConfirm(false); }}
+              onClick={() => { setBuyNowOpen(false); }}
             >×</button>
             <h2 className="confirm-modal-title">Buy Now</h2>
             <p className="confirm-modal-message">
@@ -482,37 +490,67 @@ const CardDetail: React.FC = () => {
                       <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
                     </div>
                     <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>💡 You are directly paying to the artist</p>
+
+                    <input
+                      ref={paymentScreenshotInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (!file?.type.startsWith('image/')) return;
+                        setPaymentScreenshotFile(file);
+                        setPaymentScreenshotPreview(URL.createObjectURL(file));
+                      }}
+                      aria-hidden
+                      tabIndex={-1}
+                    />
+                    {paymentScreenshotPreview ? (
+                      <div className="cd-shipment-receipt-preview">
+                        <img src={paymentScreenshotPreview} alt="Payment screenshot" />
+                        <button
+                          type="button"
+                          className="cd-shipment-receipt-remove"
+                          onClick={() => { setPaymentScreenshotFile(null); setPaymentScreenshotPreview(null); }}
+                          aria-label="Remove screenshot"
+                          disabled={buyNowBusy}
+                        >×</button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="cd-shipment-receipt-upload"
+                        onClick={() => paymentScreenshotInputRef.current?.click()}
+                        disabled={buyNowBusy}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <rect x="3" y="3" width="18" height="18" rx="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <polyline points="21 15 16 10 5 21" />
+                        </svg>
+                        Upload payment screenshot <span className="cd-required">*</span>
+                      </button>
+                    )}
                   </div>
 
                   {!addressComplete && (
                     <p className="commission-accept-address-required-hint">* Fill in all address fields to continue</p>
                   )}
 
-                  {buyNowConfirm ? (
-                    <div className="commission-make-payment-confirm-block">
-                      <p className="commission-payment-confirm-tooltip-q">Have you made the payment?</p>
-                      <div className="confirm-modal-actions confirm-modal-actions--row">
-                        <button type="button" className="confirm-modal-btn confirm-modal-btn-cancel"
-                          disabled={buyNowBusy} onClick={() => setBuyNowConfirm(false)}>No</button>
-                        <button type="button" className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-                          disabled={buyNowBusy || !UPI_ID} onClick={() => void handleConfirmBuyNow()}>
-                          <span className="commission-hire-tooltip-confirm-inner">
-                            {buyNowBusy && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
-                            {buyNowBusy ? 'Please wait…' : 'Yes'}
-                          </span>
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="confirm-modal-actions confirm-modal-actions--row">
-                      <button type="button" className="confirm-modal-btn confirm-modal-btn-cancel"
-                        disabled={buyNowBusy} onClick={() => { setBuyNowOpen(false); setBuyNowConfirm(false); }}>Cancel</button>
-                      <button type="button" className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-                        disabled={buyNowBusy || !addressComplete || !UPI_ID}
-                        title={!addressComplete ? 'Please fill in all address fields' : !UPI_ID ? 'Artist UPI ID not available' : undefined}
-                        onClick={() => setBuyNowConfirm(true)}>Confirm Purchase</button>
-                    </div>
-                  )}
+                  <div className="confirm-modal-actions confirm-modal-actions--row">
+                    <button type="button" className="confirm-modal-btn confirm-modal-btn-cancel"
+                      disabled={buyNowBusy} onClick={() => { setBuyNowOpen(false); setPaymentScreenshotFile(null); setPaymentScreenshotPreview(null); }}>Cancel</button>
+                    <button type="button" className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                      disabled={buyNowBusy || !addressComplete || !UPI_ID || !paymentScreenshotFile}
+                      title={!addressComplete ? 'Please fill in all address fields' : !UPI_ID ? 'Artist UPI ID not available' : !paymentScreenshotFile ? 'Please upload payment screenshot' : undefined}
+                      onClick={() => void handleConfirmBuyNow()}>
+                      <span className="commission-hire-tooltip-confirm-inner">
+                        {buyNowBusy && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
+                        {buyNowBusy ? 'Please wait…' : 'Confirm Purchase'}
+                      </span>
+                    </button>
+                  </div>
                 </>
               );
             })()}

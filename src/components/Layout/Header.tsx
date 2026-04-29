@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineSearch } from 'react-icons/hi';
 import { MdArrowForward } from 'react-icons/md';
@@ -6,21 +6,64 @@ import { FaUserCircle } from 'react-icons/fa';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
+  const [hideOnMobileScrollDown, setHideOnMobileScrollDown] = useState(false);
+  const lastScrollY = useRef(0);
+  const accumulated = useRef(0);
+
+  useEffect(() => {
+    const getScrollY = () =>
+      window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+
+    const onScroll = () => {
+      if (window.innerWidth > 639) {
+        setHideOnMobileScrollDown(false);
+        return;
+      }
+
+      const currentY = getScrollY();
+      const delta = currentY - lastScrollY.current;
+      lastScrollY.current = currentY;
+
+      if (currentY <= 10) {
+        setHideOnMobileScrollDown(false);
+        accumulated.current = 0;
+        return;
+      }
+
+      if ((delta > 0 && accumulated.current < 0) || (delta < 0 && accumulated.current > 0)) {
+        accumulated.current = 0;
+      }
+      accumulated.current += delta;
+
+      if (accumulated.current > 6) {
+        setHideOnMobileScrollDown(true);
+        accumulated.current = 0;
+      } else if (accumulated.current < -6) {
+        setHideOnMobileScrollDown(false);
+        accumulated.current = 0;
+      }
+    };
+
+    lastScrollY.current = getScrollY();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('scroll', onScroll, { passive: true, capture: true });
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      document.removeEventListener('scroll', onScroll, { capture: true });
+    };
+  }, []);
+
   const handleExploreClick = () => {
     navigate('/explore');
   };
 
   return (
-    <header className="home-header" style={{
-      position: 'absolute',
-      top: '0.5rem',
-      left: '0.5rem',
-      right: '2rem',
-      padding: '0.5rem 0',
+    <header className={`home-header ${hideOnMobileScrollDown ? 'home-header-mobile-hidden' : ''}`} style={{
+      padding: '0.5rem 1rem',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      zIndex: 100
     }}>
       {/* Left Section: Logo and Navigation */}
       <div className="home-header-left" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
@@ -87,6 +130,27 @@ const Header: React.FC = () => {
             }}
           >
             About
+          </button>
+
+          {/* Mobile-only Sign In — inline with Home/About */}
+          <button
+            className="home-nav-signin-mobile"
+            onClick={() => navigate('/login')}
+            style={{
+              background: 'transparent',
+              border: '1.2px solid var(--color-primary)',
+              color: 'var(--color-primary)',
+              fontSize: '0.58rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              padding: '0.18rem 0.55rem',
+              borderRadius: '50px',
+              transition: 'all 0.3s ease',
+              whiteSpace: 'nowrap',
+              marginLeft: 'auto',
+            }}
+          >
+            Sign In
           </button>
         </div>
       </div>

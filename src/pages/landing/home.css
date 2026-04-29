@@ -134,12 +134,35 @@
 .home-container {
   min-height: 100vh;
   min-height: 100dvh;
-  max-height: 100vh;
-  max-height: 100dvh;
+  height: auto !important;
+  max-height: none !important;
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
+  overflow: visible !important;
+  padding: 0 !important;
+}
+
+/* Mobile-only sign in button — hide on tablet+ where desktop header shows */
+.home-nav-signin-mobile {
+  display: none;
+}
+@media (max-width: 639px) {
+  .home-nav-signin-mobile {
+    display: inline-flex !important;
+  }
+}
+
+.home-container .home-header {
+  position: sticky !important;
+  top: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  z-index: 100;
+  background: rgba(11, 20, 28, 0.85) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-bottom: 1px solid rgba(95, 209, 216, 0.08);
 }
 
 /* Reduce space above feature cards */
@@ -148,10 +171,13 @@
 }
 
 .home-main-content {
-  flex: 1;
+  flex: none;
+  min-height: calc(100dvh - 5rem);
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  overflow: visible !important;
 }
 
 .home-hero-headline {
@@ -213,6 +239,99 @@
   }
   50% {
     filter: brightness(1.3);
+  }
+}
+
+/* ── Truck-road perks animation ── */
+.home-truck-road {
+  position: relative;
+  overflow: visible;
+  margin: 0.4rem auto 0;
+  width: 100%;
+  max-width: 420px;
+  height: 3rem;
+  background: transparent;
+  border: none;
+}
+
+.home-truck-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 3rem;
+  pointer-events: none;
+}
+
+.home-truck-label-1 {
+  color: #ffffff;
+  animation: truck-text1 8s linear infinite;
+}
+
+.home-truck-label-2 {
+  color: #5fd1d8;
+  animation: truck-text2 8s linear infinite;
+}
+
+.home-truck-icon {
+  position: absolute;
+  top: 50%;
+  z-index: 4;
+  color: #5fd1d8;
+  animation: truck-pos 8s linear infinite, truck-bounce 0.4s ease-in-out infinite;
+  will-change: left, transform;
+  line-height: 0;
+  font-size: 0;
+}
+
+/* Truck center synced with text clip: both use 0%→100% over the same range */
+@keyframes truck-pos {
+  0%      { left: 0%;   transform: translate(-50%, -50%); }
+  48%     { left: 100%; transform: translate(-50%, -50%); }
+  48.01%  { left: 0%;   transform: translate(-50%, -50%); }
+  100%    { left: 100%; transform: translate(-50%, -50%); }
+}
+
+/* Subtle bounce */
+@keyframes truck-bounce {
+  0%, 100% { margin-top: 0; }
+  50%      { margin-top: -1px; }
+}
+
+/* Pass 1 (0→48%): text1 clips from left as truck passes, pass 2 restores it */
+@keyframes truck-text1 {
+  0%       { clip-path: inset(0 0 0 0); }
+  48%      { clip-path: inset(0 0 0 100%); }
+  48.01%   { clip-path: inset(0 100% 0 0); }
+  100%     { clip-path: inset(0 0 0 0); }
+}
+
+/* Pass 1 (0→48%): text2 reveals from left, pass 2 hides it */
+@keyframes truck-text2 {
+  0%       { clip-path: inset(0 100% 0 0); }
+  48%      { clip-path: inset(0 0 0 0); }
+  48.01%   { clip-path: inset(0 0 0 0); }
+  100%     { clip-path: inset(0 0 0 100%); }
+}
+
+@media (max-width: 413px) {
+  .home-truck-road {
+    max-width: 300px;
+  }
+  .home-truck-label {
+    font-size: 0.84rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-content-left .home-truck-road {
+    margin-left: 0;
+    margin-right: auto;
   }
 }
 
@@ -286,7 +405,15 @@
   }
 }
 
-/* Decorative Icon Elements */
+/* Decorative Icon Elements — purely visual, never intercept clicks */
+.home-icon-bg-1,
+.home-icon-bg-2,
+.home-icon-bg-3,
+.home-icon-bg-4,
+.home-icon-bg-5 {
+  pointer-events: none;
+}
+
 .home-icon-bg-1 {
   position: absolute;
   top: 25%;
@@ -416,6 +543,24 @@
     display: none !important;
   }
 
+  /* Centre Home/About, Sign In pushed to far right */
+  .home-nav-links {
+    flex: 1;
+    width: 100% !important;
+    justify-content: center !important;
+    position: relative;
+  }
+  .home-nav-signin-mobile {
+    position: absolute !important;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.5rem !important;
+    padding: 0.12rem 0.42rem !important;
+    line-height: 1.1 !important;
+    border-width: 1px !important;
+  }
+
   .home-icon-bg-1,
   .home-icon-bg-2,
   .home-icon-bg-3,
@@ -432,21 +577,17 @@
     max-width: 100%;
   }
 
+  /* Hide CTA in hero on mobile — shown after How It Works instead */
+  .home-content-left .home-cta-section {
+    display: none !important;
+  }
+  .home-cta-bottom {
+    display: flex !important;
+  }
+
   /* Move header down on mobile */
   .home-header {
     margin-top: 2rem !important;
-  }
-
-  /* Prevent scrolling - fit to screen (dvh accounts for mobile browser chrome) */
-  .home-container {
-    min-height: 100dvh;
-    max-height: 100dvh;
-    overflow: hidden;
-  }
-
-  .home-main-content {
-    flex: 1;
-    overflow-y: auto;
   }
 }
 /* Extra small screens - reduce heading sizes */
@@ -491,4 +632,671 @@
   .home-centre-tape-wrap::after {
     width: 24px;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   3D Painting Cube (desktop only)
+   ───────────────────────────────────────────────────────────── */
+
+/* Rings shown on all screens; on mobile/tablet they sit above the text. */
+.home-content-right {
+  display: flex;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  perspective: 1000px;
+  perspective-origin: 50% 45%;
+  margin: 0 auto 1.25rem;
+  order: -1;   /* mobile/tablet: rings above the text column */
+  width: 100%;
+  z-index: 1;  /* sit above background but below the sticky header (z:100) */
+}
+
+/* Strip scroller is replaced by the 3D rings on every screen size. */
+.home-centre-tape-btn { display: none !important; }
+
+/* Hide the fallback logo on all screens — the 3D rings are the focal point.
+   Prevents a flash of the logo on initial render before artwork images load
+   (was visible briefly when navigating from About → Home on tablet/desktop). */
+.home-content-left .login-logo-glow { display: none !important; }
+
+/* Mobile/tablet: stack vertically, rings on top */
+.login-left-content.home-desktop-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Mobile/tablet: top-align content so it scrolls naturally below the
+   sticky header instead of being pushed up under it. */
+@media (max-width: 1023px) {
+  .landing-page .home-main-content.landing-content {
+    align-items: flex-start;
+    padding-top: 0;
+    justify-content: center;
+  }
+  .home-container .home-content-right {
+    margin-top: 0;
+    margin-bottom: 0.25rem;
+  }
+}
+
+/* Tablet: centre rings + content cards in the available width */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .home-container .login-left-content.home-desktop-grid {
+    max-width: 720px;
+  }
+  .home-container .home-content-left {
+    width: 100%;
+    max-width: 620px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+  }
+  .home-container .home-content-left .login-brand-section,
+  .home-container .home-content-left .home-hero-headline {
+    text-align: center;
+  }
+  .home-container .home-content-left .home-hero-headline {
+    white-space: normal;
+  }
+  .home-container .home-content-left .home-cta-section,
+  .home-container .home-content-left .home-cta-buttons {
+    justify-content: center;
+    text-align: center;
+  }
+  .home-container .home-content-right {
+    width: 100%;
+  }
+}
+
+/* Mobile only: extra space below the "Tap to explore →" hint
+   + always-visible thin scrollbar on the right edge */
+@media (max-width: 639px) {
+  .home-container .home-content-right {
+    margin-bottom: 1.75rem;
+  }
+
+  .home-container .landing-content,
+  .home-container .home-main-content.landing-content {
+    overflow: visible !important;
+  }
+}
+
+/* Desktop: 2-column hero — left content, right 3D cube */
+@media (min-width: 1024px) {
+  /* Let main content use full width on desktop */
+  .landing-page .home-main-content.landing-content {
+    padding: 1rem 3rem 1rem;
+    align-items: stretch;
+  }
+
+  .login-left-content.home-desktop-grid {
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 2rem;
+    /* Cap height so 3D perspective doesn't push rings above the header band */
+    min-height: 0;
+    max-height: calc(100dvh - 12rem);
+  }
+
+  /* Left column: align text to the left, no centred margin */
+  .home-content-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: left;
+  }
+  .home-content-left .login-brand-section {
+    text-align: left;
+    margin-bottom: 2rem !important;
+  }
+  .home-content-left .login-hero-headline,
+  .home-content-left .home-hero-headline {
+    text-align: left;
+    font-size: 3.6rem;
+    margin-top: 0.5rem !important;
+    white-space: normal;
+  }
+  .home-content-left .login-hero-subtext {
+    text-align: center;
+  }
+  .home-content-left .home-cta-section {
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .home-content-left .home-cta-buttons {
+    justify-content: flex-start;
+  }
+
+  /* Hide horizontal painting tape on desktop — replaced by cube */
+  .home-content-left .home-centre-tape-btn {
+    display: none;
+  }
+
+  /* Hide background icon decorations on desktop so cube is the focal point */
+  .home-icon-bg-1,
+  .home-icon-bg-2,
+  .home-icon-bg-3,
+  .home-icon-bg-4,
+  .home-icon-bg-5 {
+    opacity: 0.35;
+  }
+
+  .home-content-right {
+    min-height: 540px;
+    perspective: 1400px;
+    perspective-origin: 50% 45%;
+    margin: 0;
+    order: 0;        /* desktop: natural grid order, rings on the right */
+    width: auto;
+  }
+}
+
+/* X-ring stage — two tilted painting reels intersecting in an X shape,
+   wrapping around a central glowing sphere */
+.x-stage {
+  /* Mobile-first base */
+  --ring-radius: 130px;
+  --ring-tilt: 70deg;     /* how flat each ring lays — bigger = thinner ellipse */
+  --ring-skew: 38deg;     /* diagonal angle for the X shape */
+  position: relative;
+  width: 320px;
+  height: 320px;
+  transform-style: preserve-3d;
+  cursor: pointer;
+  outline: none;
+}
+.x-stage:focus-visible {
+  box-shadow: 0 0 0 3px var(--color-focus-glow, rgba(95, 209, 216, 0.55));
+  border-radius: 50%;
+}
+
+@media (min-width: 640px) {
+  .x-stage { width: 400px; height: 400px; --ring-radius: 168px; }
+}
+@media (min-width: 1024px) {
+  .x-stage { width: 420px; height: 420px; --ring-radius: 175px; }
+}
+@media (min-width: 1280px) {
+  .x-stage { width: 490px; height: 490px; --ring-radius: 205px; }
+}
+@media (min-width: 1600px) {
+  .x-stage { width: 560px; height: 560px; --ring-radius: 235px; }
+}
+
+/* Inner rotor: parallax-tilts on mouse, defaults to identity.
+   pointer-events: none so the 3D ring items (which extend visually outside
+   the .x-stage box) don't intercept taps on UI elements below them
+   (e.g. Sign Up / Sign In CTA buttons on mobile). The stage itself remains
+   the click target for "tap to explore". */
+.x-rotor {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+  pointer-events: none;
+}
+
+/* The two ring wrappers — each tilted into one diagonal of the X */
+.x-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+}
+
+/* Ring 1: leans like the "/" stroke of the X — pushed forward so it
+   sits OUTSIDE Ring 2 at the intersection (only Ring 1 cards show there). */
+.x-ring-1 {
+  transform: translateZ(28px) rotateZ(var(--ring-skew)) rotateX(var(--ring-tilt));
+}
+/* Ring 2: leans like the "\" stroke of the X — pushed back the same amount
+   so the two rings never overlap at the cross. */
+.x-ring-2 {
+  transform: translateZ(-28px) rotateZ(calc(var(--ring-skew) * -1)) rotateX(var(--ring-tilt));
+}
+
+/* Inner track: spins around the ring's local Z axis (perpendicular to ring plane).
+   Combined with the parent tilt, items travel along the diagonal of the X. */
+.x-ring-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.x-ring-track-1 { animation: x-ring-spin 14s linear infinite; }
+.x-ring-track-2 { animation: x-ring-spin 16s linear infinite reverse; }
+
+/* While artworks are still loading, spin much faster as a loading indicator.
+   Once images arrive the .is-loading class is removed and the rings ease back
+   to the normal idle speed via the CSS transition on animation-duration. */
+.x-stage.is-loading .x-ring-track-1 { animation-duration: 1.6s; }
+.x-stage.is-loading .x-ring-track-2 { animation-duration: 1.8s; }
+.x-ring-track-1,
+.x-ring-track-2 {
+  transition: animation-duration 0.8s ease-out;
+}
+
+@keyframes x-ring-spin {
+  to { transform: rotateZ(360deg); }
+}
+
+/* Each painting card on the ring — placed at angle, then counter-rotated
+   so the card stays "upright" within the ring's local frame */
+.x-ring-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Mobile-first base */
+  width: 64px;
+  height: 80px;
+  margin: -40px 0 0 -32px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0B1F2A;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 0 0 2px rgba(95, 209, 216, 0.72),
+    0 0 7px rgba(16, 60, 64, 0.36),
+    0 0 14px rgba(12, 40, 46, 0.34),
+    0 0 22px rgba(42, 22, 62, 0.28);
+  /* Allow rear-facing cards to be visible too — full ring view */
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+  transform-style: preserve-3d;
+}
+
+/* Slight dim on the rear face so back cards read as "behind" */
+.x-ring-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 31, 42, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  /* Only shows on the back face of the card */
+  transform: rotateY(180deg);
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+}
+
+.x-ring-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: saturate(1.08) contrast(1.04);
+  transform: rotate(180deg);
+  animation: ring-img-fadein 0.6s ease-out both;
+}
+
+@keyframes ring-img-fadein {
+  from { opacity: 0; transform: rotate(180deg) scale(0.85); }
+  to   { opacity: 1; transform: rotate(180deg) scale(1); }
+}
+
+@media (min-width: 640px) {
+  .x-ring-item { width: 80px; height: 100px; margin: -50px 0 0 -40px; }
+}
+@media (min-width: 1024px) {
+  .x-ring-item { width: 84px; height: 104px; margin: -52px 0 0 -42px; }
+}
+@media (min-width: 1280px) {
+  .x-ring-item { width: 100px; height: 124px; margin: -62px 0 0 -50px; }
+}
+
+/* Hint label below the X */
+.home-3d-cube-hint {
+  position: absolute;
+  bottom: -0.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  color: var(--color-primary, #5fd1d8);
+  font-weight: 600;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+/* ── Explode animation on click ── */
+.x-stage.x-explode {
+  pointer-events: none;
+}
+
+.x-stage.x-explode .x-ring-track-1,
+.x-stage.x-explode .x-ring-track-2 {
+  animation-play-state: paused !important;
+}
+
+.x-stage.x-explode .x-ring-item {
+  animation: x-explode-card 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.x-stage.x-explode .x-ring-item:nth-child(odd) {
+  --x-dir: 1;
+}
+.x-stage.x-explode .x-ring-item:nth-child(even) {
+  --x-dir: -1;
+}
+
+.x-stage.x-explode .x-ring-item:nth-child(1)  { animation-delay: 0s; }
+.x-stage.x-explode .x-ring-item:nth-child(2)  { animation-delay: 0.02s; }
+.x-stage.x-explode .x-ring-item:nth-child(3)  { animation-delay: 0.04s; }
+.x-stage.x-explode .x-ring-item:nth-child(4)  { animation-delay: 0.06s; }
+.x-stage.x-explode .x-ring-item:nth-child(5)  { animation-delay: 0.08s; }
+.x-stage.x-explode .x-ring-item:nth-child(6)  { animation-delay: 0.03s; }
+.x-stage.x-explode .x-ring-item:nth-child(7)  { animation-delay: 0.05s; }
+.x-stage.x-explode .x-ring-item:nth-child(8)  { animation-delay: 0.07s; }
+.x-stage.x-explode .x-ring-item:nth-child(9)  { animation-delay: 0.01s; }
+.x-stage.x-explode .x-ring-item:nth-child(10) { animation-delay: 0.04s; }
+.x-stage.x-explode .x-ring-item:nth-child(11) { animation-delay: 0.06s; }
+.x-stage.x-explode .x-ring-item:nth-child(12) { animation-delay: 0.02s; }
+
+@keyframes x-explode-card {
+  0% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  40% {
+    opacity: 1;
+    filter: brightness(1.6);
+  }
+  100% {
+    opacity: 0;
+    filter: brightness(2);
+    translate: calc(var(--x-dir, 1) * 120px) -80px 200px;
+    scale: 1.3;
+    rotate: calc(var(--x-dir, 1) * 25deg);
+  }
+}
+
+.x-stage.x-explode .home-3d-cube-hint {
+  animation: x-explode-hint 0.3s ease-out forwards;
+}
+
+@keyframes x-explode-hint {
+  to { opacity: 0; transform: translateX(-50%) translateY(10px); }
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .x-ring-track-1,
+  .x-ring-track-2 {
+    animation: none !important;
+  }
+  .x-stage.x-explode .x-ring-item {
+    animation: none !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   How It Works — mobile-first, responsive
+   ───────────────────────────────────────────────────────────── */
+
+.home-hiw-section {
+  display: block;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+  position: relative;
+  z-index: 2;
+}
+
+.home-hiw-title {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-accent, #5fd1d8);
+  margin: 0 0 1.5rem;
+  letter-spacing: 0.02em;
+}
+
+.home-hiw-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.home-hiw-col {
+  background: rgba(11, 31, 42, 0.55);
+  border: 1px solid rgba(95, 209, 216, 0.14);
+  border-radius: 14px;
+  padding: 1.25rem 1.25rem 1.5rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.home-hiw-col-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary, #2fa4a9);
+  margin: 0 0 1rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(95, 209, 216, 0.12);
+  letter-spacing: 0.01em;
+}
+
+.home-hiw-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.home-hiw-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  position: relative;
+}
+
+/* Vertical connector line between steps */
+.home-hiw-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 36px;
+  bottom: -10px;
+  width: 1.5px;
+  background: linear-gradient(to bottom, rgba(95, 209, 216, 0.25), rgba(95, 209, 216, 0.06));
+}
+
+.home-hiw-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(47, 164, 169, 0.12);
+  color: var(--color-accent, #5fd1d8);
+  border: 1px solid rgba(95, 209, 216, 0.18);
+  position: relative;
+  z-index: 1;
+}
+
+.home-hiw-step h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e8f4f5;
+  margin: 0 0 0.15rem;
+  line-height: 1.3;
+}
+
+.home-hiw-step p {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #8fa6b3);
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Bottom CTA — hidden by default, shown on mobile */
+.home-cta-bottom {
+  display: none;
+  text-align: center;
+  padding: 0 1.25rem 3rem;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 0.6rem;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.home-cta-bottom .home-cta-heading {
+  margin: 0;
+  top: 0;
+}
+
+.home-cta-bottom-signup {
+  padding: 0.4rem 1rem !important;
+}
+
+/* Tablet: two-column grid */
+@media (min-width: 640px) {
+  .home-cta-bottom {
+    display: none !important;
+  }
+  .home-hiw-section {
+    padding: 2.5rem 2rem 4rem;
+    max-width: 900px;
+  }
+
+  .home-hiw-title {
+    font-size: 1.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .home-hiw-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .home-hiw-col {
+    border-radius: 16px;
+    padding: 1.5rem 1.75rem 1.75rem;
+  }
+
+  .home-hiw-col-heading {
+    font-size: 1.05rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .home-hiw-step h4 {
+    font-size: 0.88rem;
+  }
+
+  .home-hiw-step p {
+    font-size: 0.78rem;
+  }
+}
+
+/* Desktop: wider, more spacing */
+@media (min-width: 1024px) {
+  .home-hiw-section {
+    padding: 1.5rem 3rem 5rem;
+    max-width: 1200px;
+  }
+
+  .home-hiw-title {
+    font-size: 2rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .home-hiw-grid {
+    gap: 3rem;
+  }
+
+  .home-hiw-col {
+    border-radius: 18px;
+    padding: 2rem 2.25rem 2.25rem;
+  }
+
+  .home-hiw-col-heading {
+    font-size: 1.15rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .home-hiw-step {
+    gap: 1rem;
+  }
+
+  .home-hiw-step:not(:last-child)::after {
+    left: 17px;
+    top: 40px;
+    bottom: -14px;
+  }
+
+  .home-hiw-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .home-hiw-step h4 {
+    font-size: 0.92rem;
+  }
+
+  .home-hiw-step p {
+    font-size: 0.8rem;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Scroll-in animations for Home page sections
+   ───────────────────────────────────────────────────────────── */
+
+.home-hiw-section .home-hiw-title {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+}
+
+.home-hiw-section.animate-in .home-hiw-title {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.home-hiw-col {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+}
+
+.home-hiw-col.animate-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.home-hiw-col[data-section="hiw-right"] {
+  transition-delay: 0.08s;
+}
+
+.home-cta-bottom.animate-in {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
 }

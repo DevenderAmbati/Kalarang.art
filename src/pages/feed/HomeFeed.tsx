@@ -18,7 +18,6 @@ import { Artwork } from '../../types/artwork';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { toast } from 'react-toastify';
 import artAnimation from '../../animations/no content.json';
-import africanArtAnimation from '../../animations/African American Art.json';
 import { cache, cacheKeys } from '../../utils/cache';
 import { getActiveStories, getActiveStoriesFromFollowing, Story as StoryType, groupStoriesByUser, GroupedStory, getViewedStories, markStoriesAsViewed, deleteStory, subscribeToActiveStories, subscribeToFollowingStories } from '../../services/storyService';
 import { getFollowingArtistIds } from '../../services/userService';
@@ -305,6 +304,7 @@ const HomeFeed: React.FC = () => {
   const [remainingUnseenArtworks, setRemainingUnseenArtworks] = useState<Artwork[]>([]);
   const [discoverArtworks, setDiscoverArtworks] = useState<Artwork[]>([]);
   const [seenFollowedArtworks, setSeenFollowedArtworks] = useState<Artwork[]>([]);
+  const [seenDiscoverArtworks, setSeenDiscoverArtworks] = useState<Artwork[]>([]);
   const [seenPostIds, setSeenPostIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -524,6 +524,8 @@ const HomeFeed: React.FC = () => {
             setTopUnseenArtworks([]);
             setRemainingUnseenArtworks([]);
             setDiscoverArtworks([]);
+            setSeenFollowedArtworks([]);
+            setSeenDiscoverArtworks([]);
             setLastVisible(null);
             setHasMore(true);
             setSessionFollowedArtistIds(new Set());
@@ -572,6 +574,7 @@ const HomeFeed: React.FC = () => {
       setRemainingUnseenArtworks(markSold);
       setDiscoverArtworks(markSold);
       setSeenFollowedArtworks(markSold);
+      setSeenDiscoverArtworks(markSold);
     }) as EventListener;
     window.addEventListener('artwork-sold', handleArtworkSold);
     return () => window.removeEventListener('artwork-sold', handleArtworkSold);
@@ -607,6 +610,7 @@ const HomeFeed: React.FC = () => {
         setRemainingUnseenArtworks(snapshot.remainingUnseen);
         setDiscoverArtworks(snapshot.discover);
         setSeenFollowedArtworks(snapshot.seenFollowed);
+        setSeenDiscoverArtworks(snapshot.seenDiscover);
         setSeenPostIds(snapshot.seenPostIds);
         setLastVisible(snapshot.discoverLastVisible);
         setHasMore(snapshot.hasMoreDiscover);
@@ -639,9 +643,18 @@ const HomeFeed: React.FC = () => {
         ...topUnseenArtworks.map((a) => a.id),
         ...remainingUnseenArtworks.map((a) => a.id),
         ...discoverArtworks.map((a) => a.id),
+        ...seenDiscoverArtworks.map((a) => a.id),
       ]);
-      const next = await getNextDiscoverPage(appUser?.uid, lastVisible, excluded, 20, followingArtistIds ?? []);
+      const next = await getNextDiscoverPage(
+        appUser?.uid,
+        lastVisible,
+        excluded,
+        20,
+        followingArtistIds ?? [],
+        seenPostIds
+      );
       setDiscoverArtworks((prev) => [...prev, ...next.discover]);
+      setSeenDiscoverArtworks((prev) => [...prev, ...next.seenDiscover]);
       setLastVisible(next.lastVisible);
       setHasMore(next.hasMore);
     } catch (error) {
@@ -649,7 +662,7 @@ const HomeFeed: React.FC = () => {
     } finally {
       setLoadingMore(false);
     }
-  }, [hasMore, loadingMore, lastVisible, topUnseenArtworks, remainingUnseenArtworks, discoverArtworks, appUser?.uid, followingArtistIds]);
+  }, [hasMore, loadingMore, lastVisible, topUnseenArtworks, remainingUnseenArtworks, discoverArtworks, seenDiscoverArtworks, appUser?.uid, followingArtistIds, seenPostIds]);
 
   // Infinite scroll detection
   useEffect(() => {
@@ -884,6 +897,7 @@ const HomeFeed: React.FC = () => {
     const list: VirtualizedCardItem[] = [];
     const usedIds = new Set<string>();
 
+    // Phase 1: unseen artworks from followed artists (capped upstream at 12)
     if (hasFollowingArtists) {
       topUnseenArtworks.forEach((artwork, index) => {
         list.push({
@@ -895,7 +909,9 @@ const HomeFeed: React.FC = () => {
       });
     }
 
+    // Phase 2: discover (unseen non-followed) interleaved with remaining unseen-followed
     mixedDiscoverRows.forEach(({ artwork, showDiscoverFollow }, index) => {
+      if (usedIds.has(artwork.id)) return;
       list.push({
         key: `${artwork.id}-mixed-${index}`,
         artwork,
@@ -904,19 +920,29 @@ const HomeFeed: React.FC = () => {
       usedIds.add(artwork.id);
     });
 
-    if (!hasMore && seenFollowedArtworks.length > 0) {
-      seenFollowedArtworks.forEach((artwork, index) => {
+    // Phase 3: seen artworks from followed + non-followed, merged by score desc
+    if (seenFollowedArtworks.length > 0 || seenDiscoverArtworks.length > 0) {
+      const merged = [...seenFollowedArtworks, ...seenDiscoverArtworks].sort(
+        (a, b) => {
+          const scoreDiff = (b.score ?? 0) - (a.score ?? 0);
+          if (scoreDiff !== 0) return scoreDiff;
+          return b.createdAt.getTime() - a.createdAt.getTime();
+        }
+      );
+      merged.forEach((artwork, index) => {
         if (usedIds.has(artwork.id)) return;
+        const isFollowed = followingArtistIds?.includes(artwork.artistId) ?? false;
         list.push({
           key: `${artwork.id}-seen-${index}`,
           artwork,
-          showDiscoverFollow: false,
+          showDiscoverFollow: !isFollowed,
         });
+        usedIds.add(artwork.id);
       });
     }
 
     return list;
-  }, [hasFollowingArtists, topUnseenArtworks, mixedDiscoverRows, hasMore, seenFollowedArtworks]);
+  }, [hasFollowingArtists, topUnseenArtworks, mixedDiscoverRows, seenFollowedArtworks, seenDiscoverArtworks, followingArtistIds]);
 
   const visibleHomeFeedCards = useMemo(
     () => homeFeedCards.slice(0, virtualSliceEnd),
@@ -1397,12 +1423,14 @@ const HomeFeed: React.FC = () => {
       setTopUnseenArtworks((prev) => applyUpdate(prev));
       setRemainingUnseenArtworks((prev) => applyUpdate(prev));
       setDiscoverArtworks((prev) => applyUpdate(prev));
+      setSeenFollowedArtworks((prev) => applyUpdate(prev));
+      setSeenDiscoverArtworks((prev) => applyUpdate(prev));
     },
     []
   );
 
   const handleShare = (id: number | string) => {
-    const sourceList = [...topUnseenArtworks, ...remainingUnseenArtworks, ...discoverArtworks];
+    const sourceList = [...topUnseenArtworks, ...remainingUnseenArtworks, ...discoverArtworks, ...seenFollowedArtworks, ...seenDiscoverArtworks];
     const artwork = sourceList?.find((a) => a.id === id.toString());
     if (artwork && navigator.share) {
       navigator.share({
@@ -1635,7 +1663,7 @@ const HomeFeed: React.FC = () => {
               className={`homefeed-tab${activeFeedTab === 'customized' ? ' active' : ''}`}
               onClick={() => setActiveFeedTab('customized')}
             >
-              Customized
+              Community
             </button>
           </div>
         </div>
@@ -1671,7 +1699,7 @@ const HomeFeed: React.FC = () => {
               </div>
             )}
             {customizedLoading ? (
-              <LoadingState animation={africanArtAnimation} message="Loading shared works…" fullHeight />
+              <LoadingState variant="cards" cardsLayout="customized" message="Loading shared works..." fullHeight />
             ) : customizedPosts.length === 0 ? (
               <EmptyState
                 animation={artAnimation}
@@ -1706,7 +1734,8 @@ const HomeFeed: React.FC = () => {
         {/* Curated Art feed */}
         {activeFeedTab === 'curated' && (loading ? (
           <LoadingState
-            animation={africanArtAnimation}
+            variant="cards"
+            cardsLayout="homefeed"
             message="Discovering amazing artworks..."
             fullHeight
           />
@@ -1795,32 +1824,32 @@ const HomeFeed: React.FC = () => {
             {selectedStory.id === 'default-story' ? (
               <div className="default-story-content">
                 <div className="default-story-icon">
-                  <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 16v-4" />
-                    <path d="M12 8h.01" />
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="3" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
                   </svg>
                 </div>
-                <h2 className="default-story-title">Welcome to Stories!</h2>
+                <h2 className="default-story-title">Share Your Art as a Story</h2>
                 <p className="default-story-text">
-                  Stories are a great way to share your artwork with the community for 24 hours.
+                  Let the community discover your work — stories stay live for 24 hours.
                 </p>
-                <div className="default-story-features">
-                  <div className="default-story-feature">
-                    <span className="feature-emoji">📸</span>
-                    <p>Share your artworks as stories</p>
+                <div className="default-story-steps">
+                  <div className="default-story-step">
+                    <span className="default-story-step-num">1</span>
+                    <p>Go to your <strong>Portfolio</strong></p>
                   </div>
-                  <div className="default-story-feature">
-                    <span className="feature-emoji">⏰</span>
-                    <p>Stories last for 24 hours</p>
+                  <div className="default-story-step">
+                    <span className="default-story-step-num">2</span>
+                    <p>Open the <strong>Published</strong> tab</p>
                   </div>
-                  <div className="default-story-feature">
-                    <span className="feature-emoji">👥</span>
-                    <p>Follow artists to see their stories</p>
+                  <div className="default-story-step">
+                    <span className="default-story-step-num">3</span>
+                    <p>Tap <strong>⋯</strong> on any artwork and select <strong>Add to Story</strong></p>
                   </div>
                 </div>
-                <button className="default-story-btn" onClick={() => { handleCloseStory(); navigate('/discover'); }}>
-                  Discover Artists
+                <button className="default-story-btn" onClick={() => { handleCloseStory(); navigate('/portfolio'); }}>
+                  Go to Portfolio
                 </button>
               </div>
             ) : (

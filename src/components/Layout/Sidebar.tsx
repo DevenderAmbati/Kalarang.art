@@ -6,6 +6,7 @@ import { BiUpload } from 'react-icons/bi';
 import { IconType } from 'react-icons';
 import { useSidebar } from '../../context/SidebarContext';
 import { useAuth } from '../../context/AuthContext';
+import { useChatContext } from '../../context/ChatContext';
 import { canAccessRoute } from '../../utils/permissions';
 
 // Add keyframes animation
@@ -39,6 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { appUser } = useAuth();
+  const { hasCommissionUnread } = useChatContext();
   const [hoveredItem, setHoveredItem] = React.useState<string | null>(null);
   const { isCollapsed, toggleSidebar } = useSidebar();
 
@@ -167,8 +169,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
                 ...styles.iconWrapper,
                 ...(active ? styles.iconWrapperActive : {}),
                 ...(hovered && !active ? styles.iconWrapperHover : {}),
+                position: 'relative',
               }}>
                 <span style={styles.icon}>{React.createElement(item.Icon as any)}</span>
+                {item.path === '/commissions' && hasCommissionUnread && (
+                  <span style={styles.unreadDot} aria-label="Unread messages" />
+                )}
               </div>
               {!isCollapsed && <span style={styles.label}>{item.label}</span>}
               {active && !isCollapsed && <div style={styles.activeIndicator}></div>}
@@ -351,6 +357,17 @@ const styles: { [key: string]: CSSProperties } = {
     boxShadow: '0 0 8px rgba(95, 209, 216, 0.6)',
     position: 'absolute',
     right: '8px',
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: '4px',
+    right: '4px',
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    background: '#ef4444',
+    boxShadow: '0 0 0 2px rgba(0, 0, 0, 0.2)',
+    pointerEvents: 'none',
   },
   footer: {
     padding: '1.5rem',

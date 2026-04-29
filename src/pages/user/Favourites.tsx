@@ -7,7 +7,6 @@ import LoadingState from '../../components/State/LoadingState';
 import LazyImage from '../../components/Common/LazyImage';
 import { useFavoriteArtworks } from '../../hooks/useCachedData';
 import { removeArtworkFromFavorites } from '../../services/interactionService';
-import girlAnimation from '../../animations/African American Art.json';
 import noContentAnimation from '../../animations/no content.json';
 import { toast } from 'react-toastify';
 import { cache, cacheKeys } from '../../utils/cache';
@@ -221,7 +220,8 @@ const Favourites: React.FC = () => {
         <div className="discover-content favourites-content">
           {loading && !displayArtworks ? (
             <LoadingState 
-              animation={girlAnimation}
+              variant="cards"
+              cardsLayout="standard"
               message="Loading your favorites..." 
               fullHeight 
             />

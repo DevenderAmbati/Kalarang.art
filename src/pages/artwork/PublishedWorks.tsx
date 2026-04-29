@@ -19,7 +19,6 @@ import { toast } from 'react-toastify';
 import { usePublishedWorks, useFavorites, UseCachedDataResult } from '../../hooks/useCachedData';
 import { cache, cacheKeys } from '../../utils/cache';
 import noContentAnimation from '../../animations/no content.json';
-import lineArt2Animation from '../../animations/Line art (2).json';
 import './PublishedWorks.css';
 
 interface PublishedWorksProps {
@@ -317,7 +316,8 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
       <div className="published-works-wrapper">
         <div className="published-works-container">
           <LoadingState 
-            animation={lineArt2Animation}
+            variant="cards"
+            cardsLayout="published"
             message="Loading your published works..." 
             fullHeight 
           />

@@ -825,6 +825,8 @@
   box-shadow: var(--commission-card-shadow);
   min-width: 0;
   overflow: hidden;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 260px;
 }
 
 .commission-shortlist-dismiss {
@@ -1035,6 +1037,80 @@
   font-weight: 600;
 }
 
+.commission-posted-id-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  padding: 0.35rem 0.75rem 0.1rem;
+}
+
+.commission-card-agreed-offer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 100%;
+  margin: 0.6rem 0 0.55rem;
+  padding: 0.55rem 0.75rem;
+  background: linear-gradient(135deg, rgba(47, 164, 169, 0.06) 0%, rgba(31, 125, 130, 0.04) 100%);
+  border: 1px solid rgba(47, 164, 169, 0.18);
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.commission-card-agreed-offer--mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .commission-card-agreed-offer--inline {
+    display: none;
+  }
+  .commission-card-agreed-offer--mobile {
+    display: flex;
+  }
+}
+
+.commission-card-agreed-offer-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.commission-card-agreed-offer-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.commission-card-agreed-offer-grid > span {
+  font-weight: 500;
+}
+
+.commission-posted-orderid {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.commission-posted-orderid-label {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.commission-posted-orderid-value {
+  color: var(--color-primary);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
 .commission-artist-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1175,13 +1251,12 @@
 .commission-chat-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.42);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
   padding: 1rem;
-  backdrop-filter: blur(2px);
 }
 
 @keyframes commissionChatSlideUp {
@@ -2534,6 +2609,219 @@
   opacity: 0.8;
 }
 
+/* ── View Tracking button ── */
+.commission-tracking-btn-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0.4rem 0.75rem 0.2rem;
+}
+
+.commission-view-tracking-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: 1.5px solid var(--color-primary, #2fa4a9);
+  color: var(--color-primary, #2fa4a9);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.7rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.commission-view-tracking-btn:hover {
+  background: var(--color-primary, #2fa4a9);
+  color: #fff;
+}
+
+/* ── Tracking modal overlay (all viewports) ── */
+.commission-tracking-modal-overlay {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.commission-tracking-modal {
+  background: var(--color-surface, #fff);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 380px;
+  padding: 1.25rem 1.5rem 1.5rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  position: relative;
+}
+
+.commission-tracking-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.commission-tracking-modal-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text, #111827);
+}
+
+.commission-tracking-modal-subtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #9ca3af);
+  margin: 0 0 1rem;
+}
+
+/* ── Tracking panel ── */
+.commission-tracking-panel {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--color-border-light, #e5e7eb);
+  border-radius: 10px;
+  margin: 0.5rem 0.75rem 0.6rem;
+  overflow: hidden;
+  background: var(--color-surface-alt, #f9fafb);
+}
+
+.commission-tracking-col {
+  flex: 1;
+  padding: 0.85rem 1rem;
+}
+
+.commission-tracking-divider {
+  width: 1px;
+  background: var(--color-border-light, #e5e7eb);
+  flex-shrink: 0;
+}
+
+.commission-tracking-col-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary, #2fa4a9);
+  margin: 0 0 0.75rem;
+}
+
+.commission-tracking-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.commission-tracking-step {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.commission-tracking-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 20px;
+}
+
+.commission-tracking-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border-light, #d1d5db);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.commission-tracking-step.done .commission-tracking-dot {
+  border-color: var(--color-primary, #2fa4a9);
+  background: var(--color-primary, #2fa4a9);
+}
+
+.commission-tracking-dot-inner {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-border-light, #d1d5db);
+}
+
+.commission-tracking-line {
+  width: 2px;
+  flex: 1;
+  min-height: 12px;
+  background: var(--color-border-light, #d1d5db);
+}
+
+.commission-tracking-step.done .commission-tracking-line {
+  background: var(--color-primary, #2fa4a9);
+}
+
+.commission-tracking-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding-bottom: 1rem;
+}
+
+.commission-tracking-step:last-child .commission-tracking-content {
+  padding-bottom: 0;
+}
+
+.commission-tracking-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text, #111827);
+  line-height: 1.3;
+}
+
+.commission-tracking-step:not(.done) .commission-tracking-label {
+  color: var(--color-text-muted, #9ca3af);
+}
+
+.commission-tracking-sub {
+  font-size: 0.68rem;
+  color: var(--color-text-muted, #9ca3af);
+  line-height: 1.4;
+}
+
+.commission-tracking-sub strong {
+  color: var(--color-primary, #2fa4a9);
+  font-weight: 600;
+}
+
+.commission-tracking-milestone {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-top: 0.3rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  border: 1px solid var(--color-border-light, #d1d5db);
+  color: var(--color-text-muted, #9ca3af);
+  background: transparent;
+  width: fit-content;
+}
+
+.commission-tracking-milestone.achieved {
+  border-color: var(--color-primary, #2fa4a9);
+  color: var(--color-primary, #2fa4a9);
+  background: rgba(47, 164, 169, 0.08);
+}
+
 .commission-address-inline {
   padding: 0.6rem 0.75rem;
   margin-bottom: 0.6rem;
@@ -2703,7 +2991,7 @@
   display: block;
   width: 100%;
   max-height: 260px;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .commission-ready-to-ship-change-hint {
@@ -2818,20 +3106,45 @@
 }
 
 .commission-card-action-btn {
-  background: none;
-  border: 1.5px solid var(--color-primary, #2fa4a9);
-  color: var(--color-primary, #2fa4a9);
-  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary, #2fa4a9) 0%, var(--color-accent, #1f7d82) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 0.7rem;
   font-weight: 600;
-  padding: 0.25rem 0.7rem;
+  letter-spacing: 0.01em;
+  padding: 0.3rem 0.7rem;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  box-shadow: 0 1px 4px rgba(47, 164, 169, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  user-select: none;
 }
 
 .commission-card-action-btn:hover {
-  background: var(--color-primary, #2fa4a9);
-  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(47, 164, 169, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  filter: brightness(1.04);
+}
+
+.commission-card-action-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(47, 164, 169, 0.32), inset 0 1px 2px rgba(0, 0, 0, 0.08);
+  filter: brightness(0.98);
+}
+
+.commission-card-action-btn:focus-visible {
+  outline: 2px solid var(--color-focus, var(--color-primary, #2fa4a9));
+  outline-offset: 2px;
+}
+
+.commission-card-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 /* Review block */
@@ -2842,6 +3155,58 @@
 
 .commission-review-block--cta {
   padding: 0.6rem 1rem 0.75rem;
+}
+
+.commission-review-block--collapsible {
+  padding: 0;
+}
+
+.commission-review-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  gap: 0.5rem;
+}
+
+.commission-review-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.commission-review-toggle-stars {
+  display: flex;
+  gap: 1px;
+  font-size: 0.75rem;
+}
+
+.commission-review-toggle-chevron {
+  font-size: 1rem;
+  color: var(--color-primary, #2fa4a9);
+  transition: transform 0.2s;
+  transform: rotate(90deg);
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(47, 164, 169, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.commission-review-toggle-chevron.open {
+  transform: rotate(-90deg);
+}
+
+.commission-review-collapse-body {
+  padding: 0 1rem 0.75rem;
 }
 
 .commission-review-label {
@@ -3074,7 +3439,7 @@
   display: block;
   width: 100%;
   max-height: 220px;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .commission-share-public-preview-badge {

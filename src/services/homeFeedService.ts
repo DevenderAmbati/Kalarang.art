@@ -19,9 +19,12 @@ const IN_QUERY_BATCH = 30;
 export interface HomeFeedSnapshot {
   topUnseen: Artwork[];
   remainingUnseen: Artwork[];
+  /** Unseen non-followed artworks, sorted by score. Phase 2 mix. */
   discover: Artwork[];
-  /** Already-seen posts from followed artists, sorted by score. Shown after discover is exhausted. */
+  /** Already-seen posts from followed artists, sorted by score. Phase 3 (merged with seenDiscover). */
   seenFollowed: Artwork[];
+  /** Already-seen non-followed artworks, sorted by score. Phase 3 (merged with seenFollowed). */
+  seenDiscover: Artwork[];
   seenPostIds: Set<string>;
   followingArtistIds: string[];
   discoverLastVisible: QueryDocumentSnapshot<DocumentData> | null;
@@ -112,17 +115,23 @@ function selectDiscoverSlice(
   artworks: Artwork[],
   excludedIds: Set<string>,
   excludedArtistIds: Set<string>,
-  take: number
-): Artwork[] {
-  const picked: Artwork[] = [];
+  take: number,
+  seenPostIds?: Set<string>
+): { unseen: Artwork[]; seen: Artwork[] } {
+  const unseen: Artwork[] = [];
+  const seen: Artwork[] = [];
   for (const artwork of artworks) {
-    if (picked.length >= take) break;
+    if (unseen.length >= take) break;
     if (excludedIds.has(artwork.id)) continue;
     if (excludedArtistIds.has(artwork.artistId)) continue;
     excludedIds.add(artwork.id);
-    picked.push(artwork);
+    if (seenPostIds && seenPostIds.has(artwork.id)) {
+      seen.push(artwork);
+    } else {
+      unseen.push(artwork);
+    }
   }
-  return picked;
+  return { unseen, seen };
 }
 
 export async function getInitialHomeFeedSnapshot(
@@ -144,6 +153,7 @@ export async function getInitialHomeFeedSnapshot(
       remainingUnseen: [],
       discover: discoverPage.artworks,
       seenFollowed: [],
+      seenDiscover: [],
       seenPostIds: new Set<string>(),
       followingArtistIds: [],
       discoverLastVisible: discoverPage.lastVisible,
@@ -164,17 +174,19 @@ export async function getInitialHomeFeedSnapshot(
     const discoverPage = await safeDiscoverPage(discoverLimit * 2);
     const viewerExclude = new Set<string>();
     if (userId) viewerExclude.add(userId);
-    const discover = selectDiscoverSlice(
+    const { unseen, seen } = selectDiscoverSlice(
       discoverPage.artworks,
       new Set<string>(),
       viewerExclude,
-      discoverLimit
+      discoverLimit,
+      seenPostIds
     );
     return {
       topUnseen: [],
       remainingUnseen: [],
-      discover,
+      discover: unseen,
       seenFollowed: [],
+      seenDiscover: seen,
       seenPostIds,
       followingArtistIds,
       discoverLastVisible: discoverPage.lastVisible,
@@ -204,11 +216,12 @@ export async function getInitialHomeFeedSnapshot(
   if (userId) excludedArtistIds.add(userId);
 
   const discoverPage = await safeDiscoverPage(discoverLimit * 2);
-  const discover = selectDiscoverSlice(
+  const { unseen: discover, seen: seenDiscover } = selectDiscoverSlice(
     discoverPage.artworks,
     excludedIds,
     excludedArtistIds,
-    discoverLimit
+    discoverLimit,
+    seenPostIds
   );
 
   return {
@@ -216,6 +229,7 @@ export async function getInitialHomeFeedSnapshot(
     remainingUnseen,
     discover,
     seenFollowed,
+    seenDiscover,
     seenPostIds,
     followingArtistIds,
     discoverLastVisible: discoverPage.lastVisible,
@@ -228,9 +242,11 @@ export async function getNextDiscoverPage(
   lastVisible: QueryDocumentSnapshot<DocumentData> | null,
   excludedIds: Set<string>,
   limitCount: number = 20,
-  followingArtistIds: string[] = []
+  followingArtistIds: string[] = [],
+  seenPostIds?: Set<string>
 ): Promise<{
   discover: Artwork[];
+  seenDiscover: Artwork[];
   lastVisible: QueryDocumentSnapshot<DocumentData> | null;
   hasMore: boolean;
 }> {
@@ -238,8 +254,16 @@ export async function getNextDiscoverPage(
   if (viewerId) excludedArtistIds.add(viewerId);
 
   const page = await getPublishedArtworksPaginated(limitCount * 2, lastVisible);
+  const { unseen, seen } = selectDiscoverSlice(
+    page.artworks,
+    excludedIds,
+    excludedArtistIds,
+    limitCount,
+    seenPostIds
+  );
   return {
-    discover: selectDiscoverSlice(page.artworks, excludedIds, excludedArtistIds, limitCount),
+    discover: unseen,
+    seenDiscover: seen,
     lastVisible: page.lastVisible,
     hasMore: page.hasMore,
   };

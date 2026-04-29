@@ -64,8 +64,16 @@ export interface CommissionRequest {
   trackingId?: string;
   /** Set when buyer shares this completed commission to the public feed */
   sharedToPublic?: boolean;
+  /** Generated when buyer accepts the offer and advance is marked paid. */
+  orderId?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
+}
+
+function generateCommissionOrderId(): string {
+  const ts = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `KLR-${ts}-${rand}`;
 }
 
 export interface CreateCommissionPayload {
@@ -257,9 +265,11 @@ export async function acceptCommissionOfferFromChat(
   await fn({ chatId, messageId });
 }
 
-export async function markFullPaymentDone(commissionId: string, totalAmountPaid: string): Promise<void> {
+export async function markFullPaymentDone(commissionId: string, totalAmountPaid: string, paymentScreenshotUrl?: string): Promise<void> {
   const ref = doc(db, "commissions", commissionId);
-  await updateDoc(ref, { fullPaymentDone: true, totalAmountPaid, updatedAt: serverTimestamp() });
+  const patch: Record<string, unknown> = { fullPaymentDone: true, totalAmountPaid, updatedAt: serverTimestamp() };
+  if (paymentScreenshotUrl) patch.fullPaymentScreenshotUrl = paymentScreenshotUrl;
+  await updateDoc(ref, patch as any);
 }
 
 export async function saveReadyToShipImage(commissionId: string, imageUrl: string): Promise<void> {
@@ -276,10 +286,21 @@ export async function markAdvancePaid(
   commissionId: string,
   amount: string,
   buyerAddress?: string,
+  paymentScreenshotUrl?: string,
 ): Promise<void> {
   const ref = doc(db, "commissions", commissionId);
   const patch: Record<string, unknown> = { advancePaid: true, advanceAmount: amount, updatedAt: serverTimestamp() };
   if (buyerAddress) patch.buyerAddress = buyerAddress;
+  if (paymentScreenshotUrl) patch.advancePaymentScreenshotUrl = paymentScreenshotUrl;
+  // Assign orderId once on first advance-paid; never reassign on retries.
+  try {
+    const snap = await getDoc(ref);
+    if (snap.exists() && !snap.data().orderId) {
+      patch.orderId = generateCommissionOrderId();
+    }
+  } catch {
+    // If read fails (e.g. transient), still proceed — orderId will be filled on a later flow.
+  }
   await updateDoc(ref, patch as any);
 }
 

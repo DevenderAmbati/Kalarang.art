@@ -282,6 +282,7 @@ export async function acceptReachOutOffer(
   messageId: string,
   paymentAmount: string,
   artworkMetadata?: { artworkId: string; artworkTitle: string; artworkImage?: string; artistId?: string },
+  paymentScreenshotUrl?: string,
 ): Promise<void> {
   const msgRef = doc(db, 'chats', chatId, 'messages', messageId);
   await updateDoc(msgRef, { offerStatus: 'accepted' } as any);
@@ -292,6 +293,9 @@ export async function acceptReachOutOffer(
     offerPaymentDone: true,
     updatedAt: serverTimestamp(),
   };
+  if (paymentScreenshotUrl) {
+    updateData.paymentScreenshotUrl = paymentScreenshotUrl;
+  }
   if (artworkMetadata) {
     updateData[`acceptedOffers`] = arrayUnion({
       artworkId: artworkMetadata.artworkId,
@@ -574,11 +578,12 @@ export async function processBuyNow(
   artworkImage: string | undefined,
   price: string,
   address: { name: string; line1: string; line2: string; city: string; pincode: string; phone: string },
+  paymentScreenshotUrl?: string,
 ): Promise<string> {
   const chatId = await createOrGetChat(buyerId, artistId);
   const chatRef = doc(db, 'chats', chatId);
   const orderId = generateOrderId();
-  await updateDoc(chatRef, {
+  const chatUpdate: Record<string, unknown> = {
     offerPaymentDone: true,
     offerPaymentAmount: price,
     paidArtworkIds: arrayUnion(artworkId),
@@ -592,7 +597,11 @@ export async function processBuyNow(
       artistId,
       orderId,
     }),
-  } as any);
+  };
+  if (paymentScreenshotUrl) {
+    chatUpdate.paymentScreenshotUrl = paymentScreenshotUrl;
+  }
+  await updateDoc(chatRef, chatUpdate as any);
 
   // Automated chat message — includes artwork metadata so the context card appears in chat
   await sendMessage(
@@ -602,6 +611,18 @@ export async function processBuyNow(
     artistId,
     { artworkId, artworkTitle, artworkImage, artworkPrice: Number(price) },
   );
+
+  // Send payment screenshot as a chat message if available
+  if (paymentScreenshotUrl) {
+    await sendMessage(
+      chatId,
+      buyerId,
+      '💳 Payment screenshot',
+      artistId,
+      undefined,
+      paymentScreenshotUrl,
+    );
+  }
 
   // Address card message
   await sendAddressCard(chatId, buyerId, address, artistId);

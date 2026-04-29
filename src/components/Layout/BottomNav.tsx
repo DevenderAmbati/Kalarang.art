@@ -5,6 +5,7 @@ import { MdExplore, MdFavorite, MdAssignment } from 'react-icons/md';
 import { BiUpload } from 'react-icons/bi';
 import { IconType } from 'react-icons';
 import { useAuth } from '../../context/AuthContext';
+import { useChatContext } from '../../context/ChatContext';
 import { canAccessRoute } from '../../utils/permissions';
 import './BottomNav.css';
 
@@ -33,6 +34,7 @@ interface NavItem {
 const BottomNav: React.FC = () => {
   const location = useLocation();
   const { appUser } = useAuth();
+  const { hasCommissionUnread } = useChatContext();
   const [hoveredItem, setHoveredItem] = React.useState<string | null>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
   const navItemRefs = React.useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -168,6 +170,9 @@ const BottomNav: React.FC = () => {
             >
               <div className={`icon-wrapper ${active ? 'active' : ''} ${hovered && !active ? 'hovered' : ''}`}>
                 <span className="nav-icon">{React.createElement(item.Icon as any)}</span>
+                {item.path === '/commissions' && hasCommissionUnread && (
+                  <span className="bottom-nav-unread-dot" aria-label="Unread messages" />
+                )}
               </div>
             </Link>
           );

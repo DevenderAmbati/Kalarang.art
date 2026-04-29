@@ -50,7 +50,7 @@ import {
   subscribeCommissionMessages,
   subscribeToUserCommissionChats,
 } from '../../services/commissionChatService';
-import { uploadChatMessageImage } from '../../services/chatImageUpload';
+import { uploadChatMessageImage, uploadPaymentScreenshot } from '../../services/chatImageUpload';
 import { notifyServiceWorkerActiveChatId } from '../../services/fcmService';
 import { getUserProfile } from '../../services/userService';
 import { createNotification } from '../../services/notificationService';
@@ -69,7 +69,6 @@ import LoadingState from '../../components/State/LoadingState';
 import { useScrollDirection } from '../../hooks/useScrollDirection';
 import { usePullToRefresh } from '../../hooks/usePullToRefresh';
 import PullToRefreshIndicator from '../../components/Common/PullToRefreshIndicator';
-import africanAmericanArtAnimation from '../../animations/African American Art.json';
 import noContentAnimation from '../../animations/no content.json';
 import artPostLoaderAnimation from '../../animations/Line art (1).json';
 import CommissionFlowInfoModal from '../../components/Modals/CommissionFlowInfoModal';
@@ -86,7 +85,7 @@ const containsPhoneNumber = (text: string): boolean => {
 const COMMISSION_LISTS_UPDATED_EVENT = 'kalarang:commission-lists-updated';
 
 const COMMISSIONS_PAGE_SIZE = 15;
-const VIRTUALIZE_THRESHOLD = 20;
+const VIRTUALIZE_THRESHOLD = 80;
 
 const getCommissionGridColumnCount = (width: number): number => {
   if (width >= 1024) return 2;
@@ -98,14 +97,35 @@ const TYPE_OPTIONS = ['Digital', 'Painting', 'Sketch'] as const;
 const DEFAULT_STYLE_OPTIONS = ['Realistic', 'Anime', 'Cartoon', 'Abstract', 'Minimal'];
 const DEFAULT_SUBJECT_OPTIONS = ['Portrait', 'Pet', 'Nature', 'God'];
 
-type BudgetOption = '₹500–₹1,000' | '₹1,000–₹3,000' | '₹3,000–₹5,000' | '₹5,000+' | 'Custom';
+type BudgetOption = '₹1,000–₹3,000' | '₹3,000–₹5,000' | '₹5,000+' | 'Custom';
 type DeadlineOption = 'Flexible' | '3 days' | '1 week' | '2–3 weeks' | 'Custom';
 type SizeOption = 'A4' | 'A3' | 'A2' | 'Custom';
 type TypeOption = (typeof TYPE_OPTIONS)[number];
 
-const budgetOptions: BudgetOption[] = ['₹500–₹1,000', '₹1,000–₹3,000', '₹3,000–₹5,000', '₹5,000+', 'Custom'];
+const budgetOptions: BudgetOption[] = ['₹1,000–₹3,000', '₹3,000–₹5,000', '₹5,000+', 'Custom'];
 const deadlineOptions: DeadlineOption[] = ['Flexible', '3 days', '1 week', '2–3 weeks', 'Custom'];
 const sizeOptions: SizeOption[] = ['A4', 'A3', 'A2', 'Custom'];
+
+function copyTextToClipboard(text: string): void {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).catch(() => {
+      execCommandCopy(text);
+    });
+  } else {
+    execCommandCopy(text);
+  }
+}
+
+function execCommandCopy(text: string): void {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand('copy'); } catch { /* silent */ }
+  document.body.removeChild(ta);
+}
 
 function formatAgreedDateLine(iso: string | undefined): string {
   if (!iso?.trim()) return '';
@@ -232,6 +252,9 @@ const CommissionChatModal: React.FC<{
   onReadyToShip?: () => void;
   onMakePayment?: () => void;
   onMakeShipment?: () => void;
+  /** When true, the offer form is auto-opened the next time the modal opens (artist flow). */
+  autoOpenOfferForm?: boolean;
+  onAutoOpenOfferFormConsumed?: () => void;
 }> = ({
   isOpen,
   onClose,
@@ -250,6 +273,8 @@ const CommissionChatModal: React.FC<{
   onReadyToShip,
   onMakePayment,
   onMakeShipment,
+  autoOpenOfferForm = false,
+  onAutoOpenOfferFormConsumed,
 }) => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<CommissionChatMessage[]>([]);
@@ -277,6 +302,10 @@ const CommissionChatModal: React.FC<{
   const [buyerAddressForm, setBuyerAddressForm] = useState({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
   const [artistUpiId, setArtistUpiId] = useState<string | null>(null);
   const [fetchingArtistUpi, setFetchingArtistUpi] = useState(false);
+  const [paymentScreenshotFile, setPaymentScreenshotFile] = useState<File | null>(null);
+  const [paymentScreenshotPreview, setPaymentScreenshotPreview] = useState<string | null>(null);
+  const paymentScreenshotInputRef = useRef<HTMLInputElement>(null);
+  const [localAcceptBusy, setLocalAcceptBusy] = useState(false);
 
   const showClosedCommissionNoticeFooter = Boolean(
     (chatClosed && (chatClosedReason === 'other_hired' || chatClosedReason === 'commission_completed')) ||
@@ -312,6 +341,13 @@ const CommissionChatModal: React.FC<{
       setOfferFormOpen(false);
     }
   }, [commissionInProgress, commissionCompleted, chatClosed]);
+
+  useEffect(() => {
+    if (isOpen && autoOpenOfferForm && showSendOfferButton) {
+      setOfferFormOpen(true);
+      onAutoOpenOfferFormConsumed?.();
+    }
+  }, [isOpen, autoOpenOfferForm, showSendOfferButton, onAutoOpenOfferFormConsumed]);
 
   useEffect(() => {
     if (isOpen && chatId) {
@@ -786,7 +822,7 @@ const CommissionChatModal: React.FC<{
               <button
                 type="button"
                 className="button button-primary"
-                disabled={sendingOffer}
+                disabled={sendingOffer || !offerFinalPrice.trim() || !offerAdvanceAmount.trim() || !offerDeliveryDate}
                 onClick={() => void handleSubmitOffer()}
               >
                 {sendingOffer ? (
@@ -1126,7 +1162,7 @@ const CommissionChatModal: React.FC<{
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard.writeText(UPI_ID!);
+                    copyTextToClipboard(UPI_ID!);
                     toast.success('UPI ID copied to clipboard!');
                   }}
                   style={{
@@ -1150,95 +1186,135 @@ const CommissionChatModal: React.FC<{
               </div>
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>💡 You are directly paying to the artist</p>
             </div>
+
+            <input
+              ref={paymentScreenshotInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (!file?.type.startsWith('image/')) return;
+                setPaymentScreenshotFile(file);
+                setPaymentScreenshotPreview(URL.createObjectURL(file));
+              }}
+              aria-hidden
+              tabIndex={-1}
+            />
+            {paymentScreenshotPreview ? (
+              <div className="cd-shipment-receipt-preview">
+                <img src={paymentScreenshotPreview} alt="Payment screenshot" />
+                <button
+                  type="button"
+                  className="cd-shipment-receipt-remove"
+                  onClick={() => { setPaymentScreenshotFile(null); setPaymentScreenshotPreview(null); }}
+                  aria-label="Remove screenshot"
+                  disabled={Boolean(acceptingOfferMessageId)}
+                >×</button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="cd-shipment-receipt-upload"
+                onClick={() => paymentScreenshotInputRef.current?.click()}
+                disabled={Boolean(acceptingOfferMessageId)}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                Upload payment screenshot <span className="cd-required">*</span>
+              </button>
+            )}
+
             {!addressComplete && (
               <p className="commission-accept-address-required-hint">* Fill in all address fields to continue</p>
             )}
-            {showPaymentConfirm ? (
-              <div className="commission-make-payment-confirm-block">
-                <p className="commission-payment-confirm-tooltip-q">Have you made the payment?</p>
-                <div className="confirm-modal-actions confirm-modal-actions--row">
-                  <button
-                    type="button"
-                    className="confirm-modal-btn confirm-modal-btn-cancel"
-                    disabled={Boolean(acceptingOfferMessageId)}
-                    onClick={() => setShowPaymentConfirm(false)}
-                  >
-                    No
-                  </button>
-                  <button
-                    type="button"
-                    className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-                    disabled={Boolean(acceptingOfferMessageId)}
-                    onClick={async () => {
-                      const id = offerAcceptConfirmMessageId;
-                      if (!id || !onAcceptOffer) return;
-                      try {
-                        await onAcceptOffer(id);
-                        if (metadata?.artworkId && chatId) {
-                          const formattedAddress = [
-                            buyerAddressForm.name,
-                            buyerAddressForm.line1,
-                            buyerAddressForm.line2,
-                            buyerAddressForm.city,
-                            buyerAddressForm.pincode,
-                            buyerAddressForm.phone,
-                          ].filter(Boolean).join(', ');
-                          await markAdvancePaid(
-                            metadata.artworkId,
-                            offerAcceptConfirmAdvance,
-                            formattedAddress || undefined,
-                          ).catch(() => {});
-                          
-                          // Send address as a card message in the chat
-                          await sendCommissionAddressCard(
-                            chatId,
-                            currentUserId!,
-                            metadata.artworkId,
-                            buyerAddressForm,
-                            metadata.artworkTitle,
-                            metadata.artworkImage,
-                          ).catch(() => {});
-                        }
-                        setShowPaymentConfirm(false);
-                        setOfferAcceptConfirmMessageId(null);
-                        setOfferAcceptConfirmAdvance('');
-                        setBuyerAddressForm({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
-                      } catch {
-                        // Parent shows toast
+            <div className="confirm-modal-actions confirm-modal-actions--row">
+              <button
+                type="button"
+                className="confirm-modal-btn confirm-modal-btn-cancel"
+                disabled={localAcceptBusy || Boolean(acceptingOfferMessageId)}
+                onClick={() => {
+                  setOfferAcceptConfirmMessageId(null);
+                  setPaymentScreenshotFile(null);
+                  setPaymentScreenshotPreview(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                disabled={localAcceptBusy || Boolean(acceptingOfferMessageId) || !addressComplete || !paymentScreenshotFile}
+                title={!addressComplete ? 'Please fill in all address fields' : !paymentScreenshotFile ? 'Please upload payment screenshot' : undefined}
+                onClick={async () => {
+                  const id = offerAcceptConfirmMessageId;
+                  if (!id || !onAcceptOffer || !currentUserId) return;
+                  setLocalAcceptBusy(true);
+                  try {
+                    let screenshotUrl: string | undefined;
+                    if (paymentScreenshotFile) {
+                      screenshotUrl = await uploadPaymentScreenshot(currentUserId, paymentScreenshotFile);
+                    }
+                    await onAcceptOffer(id);
+                    if (metadata?.artworkId && chatId) {
+                      const formattedAddress = [
+                        buyerAddressForm.name,
+                        buyerAddressForm.line1,
+                        buyerAddressForm.line2,
+                        buyerAddressForm.city,
+                        buyerAddressForm.pincode,
+                        buyerAddressForm.phone,
+                      ].filter(Boolean).join(', ');
+                      await markAdvancePaid(
+                        metadata.artworkId,
+                        offerAcceptConfirmAdvance,
+                        formattedAddress || undefined,
+                        screenshotUrl,
+                      ).catch(() => {});
+                      
+                      await sendCommissionAddressCard(
+                        chatId,
+                        currentUserId!,
+                        metadata.artworkId,
+                        buyerAddressForm,
+                        metadata.artworkTitle,
+                        metadata.artworkImage,
+                      ).catch(() => {});
+
+                      if (screenshotUrl) {
+                        await sendCommissionMessage(
+                          chatId,
+                          currentUserId,
+                          '💳 Payment screenshot (advance)',
+                          metadata.artworkId,
+                          metadata.artworkTitle,
+                          metadata.artworkImage,
+                          screenshotUrl,
+                        ).catch(() => {});
                       }
-                    }}
-                  >
-                    <span className="commission-hire-tooltip-confirm-inner">
-                      {acceptingOfferMessageId && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
-                      {acceptingOfferMessageId ? 'Please wait…' : 'Yes'}
-                    </span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="confirm-modal-actions confirm-modal-actions--row">
-                <button
-                  type="button"
-                  className="confirm-modal-btn confirm-modal-btn-cancel"
-                  disabled={Boolean(acceptingOfferMessageId)}
-                  onClick={() => {
+                    }
                     setOfferAcceptConfirmMessageId(null);
-                    setShowPaymentConfirm(false);
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-                  disabled={Boolean(acceptingOfferMessageId) || !addressComplete}
-                  title={!addressComplete ? 'Please fill in all address fields' : undefined}
-                  onClick={() => setShowPaymentConfirm(true)}
-                >
-                  Accept
-                </button>
-              </div>
-            )}
+                    setOfferAcceptConfirmAdvance('');
+                    setBuyerAddressForm({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
+                    setPaymentScreenshotFile(null);
+                    setPaymentScreenshotPreview(null);
+                  } catch {
+                    // Parent shows toast
+                  } finally {
+                    setLocalAcceptBusy(false);
+                  }
+                }}
+              >
+                <span className="commission-hire-tooltip-confirm-inner">
+                  {(localAcceptBusy || acceptingOfferMessageId) && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
+                  {(localAcceptBusy || acceptingOfferMessageId) ? 'Please wait…' : 'Accept'}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       );
@@ -1255,7 +1331,6 @@ interface CommissionsProps {
 interface CommissionListUiState {
   mainTab: MainListTab;
   artistSubTab: ArtistSubTab;
-  buyerSubTab: BuyerSubTab;
 }
 
 interface CommissionDraftData {
@@ -1286,17 +1361,6 @@ interface ArtistCommissionActions {
 
 type MainListTab = 'commissions' | 'my-applications';
 type ArtistSubTab = 'shortlisted' | 'applied' | 'inprogress' | 'completed';
-type BuyerSubTab = 'posted' | 'inprogress' | 'completed';
-
-function buyerSubTabForStatus(status: string | undefined): BuyerSubTab {
-  const n = String(status || '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '');
-  if (n === 'inprogress') return 'inprogress';
-  if (n === 'completed') return 'completed';
-  return 'posted';
-}
 
 /** Which Applications sub-tab a row belongs to — mirrors `listRequests` artist filters. */
 function artistSubTabForItem(
@@ -1392,14 +1456,19 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
   const [fetchingUpiIdForPayment, setFetchingUpiIdForPayment] = useState(false);
   const [makePaymentCommissionId, setMakePaymentCommissionId] = useState<string | null>(null);
   const [makePaymentCommissionTitle, setMakePaymentCommissionTitle] = useState<string | null>(null);
+  const [makePaymentScreenshotFile, setMakePaymentScreenshotFile] = useState<File | null>(null);
+  const [makePaymentScreenshotPreview, setMakePaymentScreenshotPreview] = useState<string | null>(null);
+  const makePaymentScreenshotInputRef = useRef<HTMLInputElement>(null);
   const [makeShipmentItem, setMakeShipmentItem] = useState<CommissionRequest | null>(null);
   const [trackingInput, setTrackingInput] = useState('');
+  const [trackingModalId, setTrackingModalId] = useState<string | null>(null);
   const [shipmentReceiptFile, setShipmentReceiptFile] = useState<File | null>(null);
   const [shipmentReceiptPreview, setShipmentReceiptPreview] = useState<string | null>(null);
   const [makeShipmentBusy, setMakeShipmentBusy] = useState(false);
   const shipmentReceiptInputRef = useRef<HTMLInputElement>(null);
   const [reviewsMap, setReviewsMap] = useState<Record<string, CommissionReview | null>>({});
   const [reviewOpenId, setReviewOpenId] = useState<string | null>(null);
+  const [reviewExpandedId, setReviewExpandedId] = useState<string | null>(null);
   const [reviewInputs, setReviewInputs] = useState<Record<string, string>>({});
   const [ratingInputs, setRatingInputs] = useState<Record<string, number>>({});
   const [reviewSubmitting, setReviewSubmitting] = useState<string | null>(null);
@@ -1418,7 +1487,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
   } | null>(null);
   const [applicationsEmptyCtaLoading, setApplicationsEmptyCtaLoading] = useState(false);
   const [showPortfolioRequiredModal, setShowPortfolioRequiredModal] = useState(false);
-  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(true);
   const [artistActions, setArtistActions] = useState<ArtistCommissionActions>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
@@ -1432,15 +1501,17 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
   const [commissionSearchResults, setCommissionSearchResults] = useState<CommissionRequest[]>([]);
   const [isCommissionSearchLoading, setIsCommissionSearchLoading] = useState(false);
   const [activeArtistSubTab, setActiveArtistSubTab] = useState<ArtistSubTab>('shortlisted');
-  const [activeBuyerSubTab, setActiveBuyerSubTab] = useState<BuyerSubTab>('posted');
   const [commissionChats, setCommissionChats] = useState<CommissionChat[]>([]);
   const [commissionChatOpen, setCommissionChatOpen] = useState(false);
   const [commissionChatId, setCommissionChatId] = useState('');
   const [commissionChatContact, setCommissionChatContact] = useState<CommissionChatContact | null>(null);
   const [commissionChatInitialMessage, setCommissionChatInitialMessage] = useState('');
   const [commissionChatMetadata, setCommissionChatMetadata] = useState<CommissionChatMetadata | null>(null);
+  const [autoOpenOfferFormForChatId, setAutoOpenOfferFormForChatId] = useState<string | null>(null);
   const [chatContactsByUid, setChatContactsByUid] = useState<Record<string, CommissionChatContact>>({});
   const hasRestoredListUiRef = useRef(false);
+  const hasSavedListUiRef = useRef(false);
+  const hasAppliedBuyerDefaultTabRef = useRef(false);
   const backfillApplicationRef = useRef<Set<string>>(new Set());
   const [showCommissionFlowInfo, setShowCommissionFlowInfo] = useState(false);
 
@@ -1456,6 +1527,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
   const [commGridScrollTop, setCommGridScrollTop] = useState(0);
   const [commGridOffsetTop, setCommGridOffsetTop] = useState(0);
   const [commGridViewportHeight, setCommGridViewportHeight] = useState(0);
+  const commVirtBatchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const mergedArtistCommissions = useMemo(() => {
     const map = new Map<string, CommissionRequest>();
@@ -1486,6 +1558,8 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     if (appUser?.role === 'artist') return mergedArtistCommissions;
     return sortCommissionsNewestFirst(postedRequests);
   }, [appUser?.role, buyerBrowseMerged, mergedArtistCommissions, postedRequests]);
+
+  const buyerHasPostedRequests = appUser?.role === 'buyer' && buyerRequests.length > 0;
 
   const getDraftKey = (uid: string) => `commissionDraft_${uid}`;
   const getArtistActionsKey = (uid: string) => `commission_actions_${uid}`;
@@ -2194,6 +2268,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     try {
       const raw = sessionStorage.getItem(getListUiKey(appUser.uid));
       if (!raw) return;
+      hasSavedListUiRef.current = true;
       const saved = JSON.parse(raw) as Partial<CommissionListUiState>;
       if (saved.mainTab === 'commissions' || saved.mainTab === 'my-applications') {
         setActiveMainTab(saved.mainTab);
@@ -2206,13 +2281,6 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       ) {
         setActiveArtistSubTab(saved.artistSubTab);
       }
-      if (
-        saved.buyerSubTab === 'posted' ||
-        saved.buyerSubTab === 'inprogress' ||
-        saved.buyerSubTab === 'completed'
-      ) {
-        setActiveBuyerSubTab(saved.buyerSubTab);
-      }
     } catch {
       // ignore malformed session data
     }
@@ -2220,13 +2288,27 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
 
   useEffect(() => {
     if (mode !== 'list' || !appUser?.uid) return;
+    if (hasAppliedBuyerDefaultTabRef.current) return;
+    if (!hasRestoredListUiRef.current) return;
+    if (appUser.role !== 'buyer') {
+      hasAppliedBuyerDefaultTabRef.current = true;
+      return;
+    }
+    if (isLoadingRequests) return;
+    if (buyerRequests.length > 0) {
+      setActiveMainTab('my-applications');
+    }
+    hasAppliedBuyerDefaultTabRef.current = true;
+  }, [mode, appUser?.uid, appUser?.role, isLoadingRequests, buyerRequests.length]);
+
+  useEffect(() => {
+    if (mode !== 'list' || !appUser?.uid) return;
     const payload: CommissionListUiState = {
       mainTab: activeMainTab,
       artistSubTab: activeArtistSubTab,
-      buyerSubTab: activeBuyerSubTab,
     };
     sessionStorage.setItem(getListUiKey(appUser.uid), JSON.stringify(payload));
-  }, [mode, appUser?.uid, activeMainTab, activeArtistSubTab, activeBuyerSubTab]);
+  }, [mode, appUser?.uid, activeMainTab, activeArtistSubTab]);
 
   const confirmMarkCommissionCompleted = async () => {
     const item = completeConfirmItem;
@@ -2272,7 +2354,6 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
         setCommissionChatClosedReason('commission_completed');
         setCommissionStatusForChat('completed');
       }
-      setActiveBuyerSubTab('completed');
       setCompleteConfirmItem(null);
     } catch {
       toast.error('Could not update commission. Please try again.');
@@ -2355,13 +2436,8 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       inprogress: false,
       completed: false,
     };
-    const emptyBuyer: Record<BuyerSubTab, boolean> = {
-      posted: false,
-      inprogress: false,
-      completed: false,
-    };
     if (!appUser?.uid) {
-      return { artist: emptyArtist, buyer: emptyBuyer };
+      return { artist: emptyArtist };
     }
     const uid = appUser.uid;
 
@@ -2374,21 +2450,10 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           dots[tab] = true;
         }
       }
-      return { artist: dots, buyer: emptyBuyer };
+      return { artist: dots };
     }
-    if (appUser.role === 'buyer') {
-      const dots = { ...emptyBuyer };
-      for (const item of buyerRequests) {
-        const tab = buyerSubTabForStatus(item.status);
-        if (commissionUnreadTotalForUser(commissionChats, item.id, uid) > 0) {
-          dots[tab] = true;
-        }
-      }
-      // No dot on completed for buyer
-      return { artist: emptyArtist, buyer: dots };
-    }
-    return { artist: emptyArtist, buyer: emptyBuyer };
-  }, [appUser?.uid, appUser?.role, mergedArtistCommissions, buyerRequests, commissionChats, artistActions, reviewsMap]);
+    return { artist: emptyArtist };
+  }, [appUser?.uid, appUser?.role, mergedArtistCommissions, commissionChats, artistActions, reviewsMap]);
 
   const openCommissionChat = (
     chatId: string,
@@ -2421,6 +2486,55 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       localStorage.setItem(storageKey, 'true');
     }
   }, [appUser?.uid]);
+
+  const handleSendOfferFromCard = async (item: CommissionRequest) => {
+    if (!appUser?.uid || appUser.role !== 'artist') return;
+    if (!isCommissionOpen(item.status)) {
+      toast.info('This commission is no longer open.');
+      return;
+    }
+    if (!item.buyerId) {
+      toast.error('Buyer info is missing for this commission.');
+      return;
+    }
+    try {
+      const chatId = await createOrGetCommissionChat(
+        item.id,
+        appUser.uid,
+        item.buyerId,
+        item.title,
+        item.referenceImages?.[0] || '',
+      );
+      setAutoOpenOfferFormForChatId(chatId);
+      openCommissionChat(
+        chatId,
+        {
+          uid: item.buyerId,
+          name: item.buyerName || 'Buyer',
+          avatar: item.buyerAvatar,
+        },
+        {
+          artworkId: item.id,
+          artworkTitle: item.title,
+          artworkImage: item.referenceImages?.[0],
+          agreedFinalPrice: item.agreedFinalPrice,
+          agreedAdvanceAmount: item.agreedAdvanceAmount,
+          agreedDeliveryDate: item.agreedDeliveryDate,
+          hiredArtistId: item.hiredArtistId,
+          readyToShipImageUrl: item.readyToShipImageUrl,
+          fullPaymentDone: item.fullPaymentDone,
+        },
+        '',
+        {
+          commissionStatus: item.status,
+          chatClosed: false,
+          hiredArtistId: item.hiredArtistId,
+        },
+      );
+    } catch {
+      toast.error('Failed to open chat. Please try again.');
+    }
+  };
 
   const handleApplyClick = async (item: CommissionRequest) => {
     if (!appUser?.uid || appUser.role !== 'artist') return;
@@ -2457,47 +2571,54 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     }
 
     setArtistActionBusy({ commissionId: item.id, kind: 'apply' });
-    try {
-      await registerArtistApplication(item.id, appUser.uid);
-      invalidateCommissionsBrowseCache();
-      invalidateCommissionsUserCaches(appUser.uid);
-      createNotification(
-        item.buyerId,
-        'commission_application',
-        appUser.uid,
-        appUser.name || 'An artist',
-        appUser.avatar,
-        undefined, undefined, undefined, undefined,
-        item.id,
-        item.title,
-      ).catch(() => {});
-    } catch {
-      toast.error('Could not apply. This commission may no longer be open.');
-      setArtistActionBusy(null);
-      return;
-    }
-    try {
-      const chatId = await createOrGetCommissionChat(
-        item.id,
-        appUser.uid,
-        item.buyerId,
-        item.title,
-        item.referenceImages?.[0] || '',
-      );
 
-      setArtistActions((prev) => {
-        const next: ArtistCommissionActions = {
-          ...prev,
-          [item.id]: {
-            ...prev[item.id],
-            applied: true,
-          },
-        };
-        localStorage.setItem(getArtistActionsKey(appUser.uid), JSON.stringify(next));
-        return next;
-      });
-      setShortlistOnlyCommissions((prev) => prev.filter((c) => c.id !== item.id));
+    // Open the chat as fast as possible. The application registration and
+    // notification run in parallel in the background. Tab switch happens AFTER
+    // the chat is open so the Apply button stays mounted (with its spinner)
+    // until the chat appears, and the tab transition then occurs behind the
+    // chat overlay.
+    const chatPromise = createOrGetCommissionChat(
+      item.id,
+      appUser.uid,
+      item.buyerId,
+      item.title,
+      item.referenceImages?.[0] || '',
+    );
 
+    void (async () => {
+      try {
+        await registerArtistApplication(item.id, appUser.uid);
+        invalidateCommissionsBrowseCache();
+        invalidateCommissionsUserCaches(appUser.uid);
+        createNotification(
+          item.buyerId,
+          'commission_application',
+          appUser.uid,
+          appUser.name || 'An artist',
+          appUser.avatar,
+          undefined, undefined, undefined, undefined,
+          item.id,
+          item.title,
+        ).catch(() => {});
+        setArtistActions((prev) => {
+          const next: ArtistCommissionActions = {
+            ...prev,
+            [item.id]: {
+              ...prev[item.id],
+              applied: true,
+            },
+          };
+          localStorage.setItem(getArtistActionsKey(appUser.uid), JSON.stringify(next));
+          return next;
+        });
+        setShortlistOnlyCommissions((prev) => prev.filter((c) => c.id !== item.id));
+      } catch {
+        toast.error('Could not apply. This commission may no longer be open.');
+      }
+    })();
+
+    try {
+      const chatId = await chatPromise;
       openCommissionChat(
         chatId,
         {
@@ -2523,6 +2644,10 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           hiredArtistId: item.hiredArtistId,
         },
       );
+      // Now that the chat is open on top, switch the underlying tab so when the
+      // user closes the chat they land on My Applications → Applied.
+      setActiveMainTab('my-applications');
+      setActiveArtistSubTab('applied');
     } catch {
       toast.error('Failed to open chat. Please try again.');
     } finally {
@@ -2560,16 +2685,6 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
         hiredArtistId: item.hiredArtistId,
       },
     );
-  };
-
-  const getStatusKey = (status?: string): 'posted' | 'inprogress' | 'completed' => {
-    const n = String(status || '')
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '');
-    if (n === 'inprogress') return 'inprogress';
-    if (n === 'completed') return 'completed';
-    return 'posted';
   };
 
   const runApplicationsEmptyCta = useCallback((fn: () => void) => {
@@ -2623,31 +2738,12 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       }
     }
     if (appUser?.role === 'buyer') {
-      switch (activeBuyerSubTab) {
-        case 'posted':
-          return {
-            title: 'No commission requests posted',
-            description: 'Describe what you need so artists can apply and you can hire the right match.',
-            actionLabel: 'Post a commission',
-            onAction: () => runApplicationsEmptyCta(() => navigate('/post')),
-          };
-        case 'inprogress':
-          return {
-            title: 'Nothing in progress',
-            description: 'After you hire an artist, ongoing work appears here until you mark it complete.',
-            actionLabel: 'Post a commission',
-            onAction: () => runApplicationsEmptyCta(() => navigate('/post')),
-          };
-        case 'completed':
-          return {
-            title: 'No completed commissions',
-            description: 'Commissions you mark as completed will show up here.',
-            actionLabel: 'Post a commission',
-            onAction: () => runApplicationsEmptyCta(() => navigate('/post')),
-          };
-        default:
-          return { title: 'Nothing here', description: 'No items in this category.' };
-      }
+      return {
+        title: 'No commission requests posted',
+        description: 'Describe what you need so artists can apply and you can hire the right match.',
+        actionLabel: 'Post a commission',
+        onAction: () => runApplicationsEmptyCta(() => navigate('/post')),
+      };
     }
     return { title: 'Nothing here', description: 'No items in this category.' };
   };
@@ -2685,13 +2781,13 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
         return false;
       });
     } else {
-      rows = buyerRequests.filter((item) => getStatusKey(item.status) === activeBuyerSubTab);
+      rows = buyerRequests;
     }
     return sortCommissionsNewestFirst(rows);
   }, [
     activeMainTab, debouncedCommissionSearch, commissionSearchResults,
     commissionsBrowsePool, appUser?.role, appUser?.uid, mergedArtistCommissions,
-    artistActions, activeArtistSubTab, buyerRequests, activeBuyerSubTab,
+    artistActions, activeArtistSubTab, buyerRequests,
   ]);
 
   const shouldVirtualizeCommissions = listRequests.length > VIRTUALIZE_THRESHOLD;
@@ -2739,12 +2835,19 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     const scrollContainer = containerRef.current;
     const shell = commissionGridShellRef.current;
     if (!scrollContainer || !shell) return;
-    setCommGridScrollTop(scrollContainer.scrollTop);
-    setCommGridViewportHeight(scrollContainer.clientHeight);
+    const newScrollTop = scrollContainer.scrollTop;
+    const newViewportHeight = scrollContainer.clientHeight;
     const containerRect = scrollContainer.getBoundingClientRect();
     const shellRect = shell.getBoundingClientRect();
-    const offsetTop = shellRect.top - containerRect.top + scrollContainer.scrollTop;
-    setCommGridOffsetTop(offsetTop);
+    const newOffsetTop = shellRect.top - containerRect.top + scrollContainer.scrollTop;
+    // Batch into a single update to avoid multiple re-renders per frame
+    if (commVirtBatchRef.current) clearTimeout(commVirtBatchRef.current);
+    commVirtBatchRef.current = setTimeout(() => {
+      commVirtBatchRef.current = null;
+      setCommGridScrollTop(newScrollTop);
+      setCommGridViewportHeight(newViewportHeight);
+      setCommGridOffsetTop(newOffsetTop);
+    }, 60);
   }, []);
 
   useEffect(() => {
@@ -3035,7 +3138,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
         images,
       );
 
-      toast.success('Commission request posted.');
+     
       localStorage.removeItem(getDraftKey(appUser.uid));
       handleClearForm();
       window.dispatchEvent(new CustomEvent(COMMISSION_LISTS_UPDATED_EVENT));
@@ -3452,20 +3555,29 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
               />
               <div ref={tabsAnchorRef} className={`commission-main-tabs-fixed${tabsHidden ? ' pill-tabs-hidden' : ''}`}>
                 <div className="commission-main-tabs">
-                  <button
-                    type="button"
-                    className={`commission-tab ${activeMainTab === 'commissions' ? 'active' : ''}`}
-                    onClick={() => setActiveMainTab('commissions')}
-                  >
-                    Commissions
-                  </button>
-                  <button
-                    type="button"
-                    className={`commission-tab ${activeMainTab === 'my-applications' ? 'active' : ''}`}
-                    onClick={() => setActiveMainTab('my-applications')}
-                  >
-                    Applications
-                  </button>
+                  {(() => {
+                    const commissionsBtn = (
+                      <button
+                        key="commissions"
+                        type="button"
+                        className={`commission-tab ${activeMainTab === 'commissions' ? 'active' : ''}`}
+                        onClick={() => setActiveMainTab('commissions')}
+                      >
+                        Commissions
+                      </button>
+                    );
+                    const applicationsBtn = (
+                      <button
+                        key="my-applications"
+                        type="button"
+                        className={`commission-tab ${activeMainTab === 'my-applications' ? 'active' : ''}`}
+                        onClick={() => setActiveMainTab('my-applications')}
+                      >
+                        Applications
+                      </button>
+                    );
+                    return <>{commissionsBtn}{applicationsBtn}</>;
+                  })()}
                 </div>
                 <button
                   type="button"
@@ -3582,39 +3694,18 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                 </div>
               )}
 
-              {activeMainTab === 'my-applications' && appUser?.role === 'buyer' && (
-                <div className="commission-sub-tabs">
-                  {(['posted', 'inprogress', 'completed'] as BuyerSubTab[]).map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      className={`commission-sub-tab ${activeBuyerSubTab === tab ? 'active' : ''}`}
-                      onClick={() => setActiveBuyerSubTab(tab)}
-                    >
-                      <span className="commission-sub-tab-inner">
-                        <span className="commission-sub-tab-label">
-                          {tab === 'inprogress' ? 'In progress' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                        </span>
-                        {applicationsSubTabUnread.buyer[tab] && (
-                          <span className="commission-sub-tab-unread-dot" aria-label="Unread messages" />
-                        )}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
 
               {isLoadingRequests ? (
                 <div className="commission-search-loading">
                   <LoadingState
-                    animation={africanAmericanArtAnimation}
+                    variant="commissions"
                     message="Loading commissions…"
                   />
                 </div>
               ) : activeMainTab === 'commissions' && debouncedCommissionSearch.trim() && isCommissionSearchLoading ? (
                 <div className="commission-search-loading">
                   <LoadingState
-                    animation={africanAmericanArtAnimation}
+                    variant="commissions"
                     message="Searching commissions…"
                   />
                 </div>
@@ -3684,18 +3775,26 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                                 <span className="commission-posted-by">By: {item.buyerName || 'Unknown buyer'}</span>,{' '}
                                 <span>{formatDisplayDate(item.createdAt)}</span>
                               </span>
-                              <span>Budget: {item.budget}</span>
-                              <span>Deadline: {item.deadline}</span>
-                              <span>
-                                Size:{' '}
-                                {item.size === 'Custom'
-                                  ? item.customHeight || item.customWidth
-                                    ? `${item.customHeight || '?'} x ${item.customWidth || '?'} inches`
-                                    : 'Custom'
-                                  : item.size || 'Not specified'}
-                              </span>
-                              {item.cityOrPincode?.trim() && (
-                                <span>Delivery: {item.cityOrPincode}</span>
+                              {!(
+                                activeMainTab === 'my-applications' &&
+                                ((appUser?.role === 'artist' && (activeArtistSubTab === 'inprogress' || activeArtistSubTab === 'completed')) ||
+                                  (appUser?.role === 'buyer' && (isCommissionInProgress(item.status) || isCommissionCompleted(item.status))))
+                              ) && (
+                                <>
+                                  <span>Budget: {item.budget}</span>
+                                  <span>Deadline: {item.deadline}</span>
+                                  <span>
+                                    Size:{' '}
+                                    {item.size === 'Custom'
+                                      ? item.customHeight || item.customWidth
+                                        ? `${item.customHeight || '?'} x ${item.customWidth || '?'} inches`
+                                        : 'Custom'
+                                      : item.size || 'Not specified'}
+                                  </span>
+                                  {item.cityOrPincode?.trim() && (
+                                    <span>Delivery: {item.cityOrPincode}</span>
+                                  )}
+                                </>
                               )}
                               {activeMainTab === 'my-applications' && isCommissionInProgress(item.status) && (
                                 <button
@@ -3712,6 +3811,25 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                                 {item.buyerAddress || 'No delivery address provided.'}
                               </div>
                             )}
+                            {activeMainTab === 'my-applications' &&
+                              ((appUser?.role === 'artist' && (activeArtistSubTab === 'inprogress' || activeArtistSubTab === 'completed')) ||
+                                (appUser?.role === 'buyer' && (isCommissionInProgress(item.status) || isCommissionCompleted(item.status)))) &&
+                              (item.agreedFinalPrice?.trim() || item.agreedAdvanceAmount?.trim() || item.agreedDeliveryDate?.trim()) && (
+                                <div className="commission-card-agreed-offer commission-card-agreed-offer--inline">
+                                  <span className="commission-card-agreed-offer-title">Agreed offer</span>
+                                  <div className="commission-card-agreed-offer-grid">
+                                    {item.agreedFinalPrice?.trim() && (
+                                      <span>Final Price: ₹{item.agreedFinalPrice}</span>
+                                    )}
+                                    {item.agreedAdvanceAmount?.trim() && (
+                                      <span>Advance: ₹{item.agreedAdvanceAmount}</span>
+                                    )}
+                                    {item.agreedDeliveryDate?.trim() && (
+                                      <span>Delivery: {formatAgreedDateLine(item.agreedDeliveryDate)}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                         {appUser?.role === 'artist' &&
                           (activeMainTab === 'commissions' ||
                             (activeMainTab === 'my-applications' && activeArtistSubTab === 'shortlisted')) && (
@@ -3786,14 +3904,41 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                           </div>
                         </div>
 
+                        {activeMainTab === 'my-applications' &&
+                          ((appUser?.role === 'artist' && (activeArtistSubTab === 'inprogress' || activeArtistSubTab === 'completed')) ||
+                            (appUser?.role === 'buyer' && (isCommissionInProgress(item.status) || isCommissionCompleted(item.status)))) &&
+                          (item.agreedFinalPrice?.trim() || item.agreedAdvanceAmount?.trim() || item.agreedDeliveryDate?.trim()) && (
+                            <div className="commission-card-agreed-offer commission-card-agreed-offer--mobile">
+                              <span className="commission-card-agreed-offer-title">Agreed offer</span>
+                              <div className="commission-card-agreed-offer-grid">
+                                {item.agreedFinalPrice?.trim() && (
+                                  <span>Final Price: ₹{item.agreedFinalPrice}</span>
+                                )}
+                                {item.agreedAdvanceAmount?.trim() && (
+                                  <span>Advance: ₹{item.agreedAdvanceAmount}</span>
+                                )}
+                                {item.agreedDeliveryDate?.trim() && (
+                                  <span>Delivery: {formatAgreedDateLine(item.agreedDeliveryDate)}</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
                         {/* Chips + action button row above chat strip */}
                         {(() => {
+                          const canArtistSendOffer =
+                            appUser?.role === 'artist' &&
+                            activeMainTab === 'my-applications' &&
+                            activeArtistSubTab === 'applied' &&
+                            isCommissionOpen(item.status) &&
+                            Boolean(artistActions[item.id]?.applied);
                           const showActionBtn = activeMainTab === 'my-applications' && (
+                            canArtistSendOffer ||
                             (isCommissionInProgress(item.status) && (
-                              appUser?.role === 'artist' ||
+                              (appUser?.role === 'artist' && item.hiredArtistId === appUser?.uid) ||
                               (appUser?.role === 'buyer' && Boolean(item.readyToShipImageUrl) && !item.fullPaymentDone)
                             )) ||
-                            (item.status === 'completed' && appUser?.role === 'buyer' && activeBuyerSubTab === 'completed' && !item.sharedToPublic)
+                            (item.status === 'completed' && appUser?.role === 'buyer' && !item.sharedToPublic)
                           );
                           const hasChips = item.type || item.style.length > 0 || item.subject.length > 0;
                           if (!hasChips && !showActionBtn) return null;
@@ -3811,7 +3956,15 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                               {showActionBtn && (
                                 <div className="commission-card-action-slot">
                                   {appUser?.role === 'artist' ? (
-                                    item.fullPaymentDone ? (
+                                    canArtistSendOffer ? (
+                                      <button
+                                        type="button"
+                                        className="commission-card-action-btn"
+                                        onClick={() => void handleSendOfferFromCard(item)}
+                                      >
+                                        Send Offer
+                                      </button>
+                                    ) : item.fullPaymentDone ? (
                                       <button
                                         type="button"
                                         className="commission-card-action-btn"
@@ -3828,7 +3981,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                                         Ready to ship
                                       </button>
                                     )
-                                  ) : item.status === 'completed' && activeBuyerSubTab === 'completed' && !item.sharedToPublic ? (
+                                  ) : item.status === 'completed' && !item.sharedToPublic ? (
                                     <button
                                       type="button"
                                       className="commission-card-action-btn"
@@ -3862,7 +4015,6 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                                         setMakePaymentCommissionTitle(item.title);
                                         if (contact) setCommissionChatContact(contact);
                                         setMakePaymentOpen(true);
-                                        setMakePaymentConfirm(false);
                                       }}
                                     >
                                       Make Payment
@@ -3873,6 +4025,40 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                             </div>
                           );
                         })()}
+
+                        {activeMainTab === 'my-applications' && !(appUser?.role === 'artist' && activeArtistSubTab === 'shortlisted') && (
+                          (item.buyerId === appUser?.uid || (item.hiredArtistId && item.hiredArtistId === appUser?.uid)) &&
+                          ((item.orderId && item.advancePaid) || item.trackingId?.trim()) && (
+                            <div className="commission-posted-id-group">
+                              {item.orderId && item.advancePaid && (
+                                <div className="commission-posted-orderid">
+                                  <span className="commission-posted-orderid-label">Order ID:</span>
+                                  <span className="commission-posted-orderid-value">{item.orderId}</span>
+                                </div>
+                              )}
+                              {item.trackingId?.trim() && (
+                                <div className="commission-posted-orderid">
+                                  <span className="commission-posted-orderid-label">Tracking ID:</span>
+                                  <span className="commission-posted-orderid-value">{item.trackingId}</span>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        )}
+
+                        {activeMainTab === 'my-applications' && !(appUser?.role === 'artist' && activeArtistSubTab === 'shortlisted') && (
+                          <div className="commission-tracking-btn-row">
+                            <button
+                              type="button"
+                              className="commission-view-tracking-btn"
+                              onClick={() => setTrackingModalId(trackingModalId === item.id ? null : item.id)}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                              {trackingModalId === item.id ? 'Hide Tracking' : 'View Tracking'}
+                            </button>
+                          </div>
+                        )}
+
 
                         {activeMainTab !== 'commissions' && (() => {
                           const visibleChats = getCommissionChats(item.id).filter((chat) => {
@@ -3934,7 +4120,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                         {/* Review section — buyer: write a review; artist: read review + reply */}
                         {item.status === 'completed' && activeMainTab === 'my-applications' && (() => {
                           const review = reviewsMap[item.id];
-                          const isBuyerView = appUser?.role === 'buyer' && activeBuyerSubTab === 'completed';
+                          const isBuyerView = appUser?.role === 'buyer';
                           const isArtistView = appUser?.role === 'artist' && activeArtistSubTab === 'completed';
 
                           const StarDisplay = ({ rating }: { rating: number }) => (
@@ -3947,15 +4133,33 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
 
                           if (isBuyerView) {
                             if (review) {
+                              const isExpanded = reviewExpandedId === item.id;
                               return (
-                                <div className="commission-review-block">
-                                  <p className="commission-review-label">Your review</p>
-                                  <StarDisplay rating={review.rating ?? 0} />
-                                  <p className="commission-review-text">"{review.reviewText}"</p>
-                                  {review.artistReply && (
-                                    <div className="commission-review-reply">
-                                      <span className="commission-review-reply-label">Artist replied:</span>
-                                      <p className="commission-review-reply-text">"{review.artistReply}"</p>
+                                <div className="commission-review-block commission-review-block--collapsible">
+                                  <button
+                                    type="button"
+                                    className="commission-review-toggle"
+                                    onClick={() => setReviewExpandedId(isExpanded ? null : item.id)}
+                                  >
+                                    <span className="commission-review-toggle-left">
+                                      <span className="commission-review-label">Your review</span>
+                                      <span className="commission-review-toggle-stars">
+                                        {[1,2,3,4,5].map((s) => (
+                                          <span key={s} className={`commission-review-star-display${s <= (review.rating ?? 0) ? ' filled' : ''}`}>★</span>
+                                        ))}
+                                      </span>
+                                    </span>
+                                    <span className={`commission-review-toggle-chevron${isExpanded ? ' open' : ''}`}>›</span>
+                                  </button>
+                                  {isExpanded && (
+                                    <div className="commission-review-collapse-body">
+                                      <p className="commission-review-text">"{review.reviewText}"</p>
+                                      {review.artistReply && (
+                                        <div className="commission-review-reply">
+                                          <span className="commission-review-reply-label">Artist replied:</span>
+                                          <p className="commission-review-reply-text">"{review.artistReply}"</p>
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -4067,16 +4271,28 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                           }
 
                           if (isArtistView && review) {
+                            const isExpanded = reviewExpandedId === item.id;
                             return (
-                              <div className="commission-review-block">
-                                <p className="commission-review-label">Buyer's review</p>
-                                {(review.rating ?? 0) > 0 && (
-                                  <div className="commission-review-stars-display" aria-label={`${review.rating} out of 5 stars`}>
-                                    {[1,2,3,4,5].map((s) => (
-                                      <span key={s} className={`commission-review-star-display${s <= (review.rating ?? 0) ? ' filled' : ''}`}>★</span>
-                                    ))}
-                                  </div>
-                                )}
+                              <div className="commission-review-block commission-review-block--collapsible">
+                                <button
+                                  type="button"
+                                  className="commission-review-toggle"
+                                  onClick={() => setReviewExpandedId(isExpanded ? null : item.id)}
+                                >
+                                  <span className="commission-review-toggle-left">
+                                    <span className="commission-review-label">Buyer's review</span>
+                                    {(review.rating ?? 0) > 0 && (
+                                      <span className="commission-review-toggle-stars">
+                                        {[1,2,3,4,5].map((s) => (
+                                          <span key={s} className={`commission-review-star-display${s <= (review.rating ?? 0) ? ' filled' : ''}`}>★</span>
+                                        ))}
+                                      </span>
+                                    )}
+                                  </span>
+                                  <span className={`commission-review-toggle-chevron${isExpanded ? ' open' : ''}`}>›</span>
+                                </button>
+                                {isExpanded && (
+                                <div className="commission-review-collapse-body">
                                 <p className="commission-review-text">"{review.reviewText}"</p>
                                 {review.artistReply ? (
                                   <div className="commission-review-reply">
@@ -4147,6 +4363,8 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                                   >
                                     Reply
                                   </button>
+                                )}
+                                </div>
                                 )}
                               </div>
                             );
@@ -4427,7 +4645,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
               <div
                 className="confirm-modal-overlay"
                 role="presentation"
-                onClick={() => { if (!makePaymentBusy) { setMakePaymentOpen(false); setMakePaymentConfirm(false); } }}
+                onClick={() => { if (!makePaymentBusy) { setMakePaymentOpen(false); } }}
               >
                 <div
                   className="confirm-modal-content commission-make-payment-modal"
@@ -4441,7 +4659,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                     className="commission-accept-offer-close"
                     disabled={makePaymentBusy}
                     aria-label="Close"
-                    onClick={() => { setMakePaymentOpen(false); setMakePaymentConfirm(false); }}
+                    onClick={() => { setMakePaymentOpen(false); }}
                   >×</button>
                   <h2 id="make-payment-title" className="confirm-modal-title">Make Payment</h2>
                   <p className="confirm-modal-message">
@@ -4489,87 +4707,125 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                         <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
                       </div>
                       <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>💡 You are directly paying to the artist</p>
+
+                      <input
+                        ref={makePaymentScreenshotInputRef}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = '';
+                          if (!file?.type.startsWith('image/')) return;
+                          setMakePaymentScreenshotFile(file);
+                          setMakePaymentScreenshotPreview(URL.createObjectURL(file));
+                        }}
+                        aria-hidden
+                        tabIndex={-1}
+                      />
+                      {makePaymentScreenshotPreview ? (
+                        <div className="cd-shipment-receipt-preview">
+                          <img src={makePaymentScreenshotPreview} alt="Payment screenshot" />
+                          <button
+                            type="button"
+                            className="cd-shipment-receipt-remove"
+                            onClick={() => { setMakePaymentScreenshotFile(null); setMakePaymentScreenshotPreview(null); }}
+                            aria-label="Remove screenshot"
+                            disabled={makePaymentBusy}
+                          >×</button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="cd-shipment-receipt-upload"
+                          onClick={() => makePaymentScreenshotInputRef.current?.click()}
+                          disabled={makePaymentBusy}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21 15 16 10 5 21" />
+                          </svg>
+                          Upload payment screenshot <span className="cd-required">*</span>
+                        </button>
+                      )}
                     </>
                   )}
-                  {makePaymentConfirm ? (
-                    <div className="commission-make-payment-confirm-block">
-                      <p className="commission-payment-confirm-tooltip-q">Have you done the payment?</p>
-                      <div className="confirm-modal-actions confirm-modal-actions--row">
-                        <button
-                          type="button"
-                          className="confirm-modal-btn confirm-modal-btn-cancel"
-                          disabled={makePaymentBusy}
-                          onClick={() => setMakePaymentConfirm(false)}
-                        >No</button>
-                        <button
-                          type="button"
-                          className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-                          disabled={makePaymentBusy}
-                          onClick={async () => {
-                            if (!appUser?.uid || !commissionChatMetadata) return;
-                            setMakePaymentBusy(true);
-                            try {
-                              const totalPaid = finalPrice > 0 ? String(finalPrice) : String(remaining);
-                              await markFullPaymentDone(commissionChatMetadata.artworkId, totalPaid);
-                              const paymentChat = commissionChats.find(
-                                (c) => c.commissionId === commissionChatMetadata.artworkId && c.participants.includes(appUser.uid),
-                              );
-                              if (paymentChat && commissionChatContact) {
-                                await sendCommissionMessage(
-                                  paymentChat.id,
-                                  appUser.uid,
-                                  'Full payment is done. Please do ship the artwork.',
-                                  commissionChatMetadata.artworkId,
-                                  commissionChatMetadata.artworkTitle,
-                                  commissionChatMetadata.artworkImage,
-                                ).catch(() => {});
-                                createNotification(
-                                  commissionChatContact.uid,
-                                  'full_payment_done',
-                                  appUser.uid,
-                                  appUser.name || 'Buyer',
-                                  appUser.avatar,
-                                  undefined, undefined, undefined, undefined,
-                                  commissionChatMetadata.artworkId,
-                                  commissionChatMetadata.artworkTitle,
-                                ).catch(() => {});
-                              }
-                              setCommissionChatMetadata((prev) => prev ? { ...prev, fullPaymentDone: true } : prev);
-                              setBuyerRequests((prev) => prev.map((c) => c.id === commissionChatMetadata.artworkId ? { ...c, fullPaymentDone: true } : c));
-                            
-                              setMakePaymentOpen(false);
-                              setMakePaymentConfirm(false);
-                            } catch {
-                              toast.error('Could not confirm payment. Please try again.');
-                            } finally {
-                              setMakePaymentBusy(false);
+                  <div className="confirm-modal-actions confirm-modal-actions--row">
+                    <button
+                      type="button"
+                      className="confirm-modal-btn confirm-modal-btn-cancel"
+                      disabled={makePaymentBusy}
+                      onClick={() => { setMakePaymentOpen(false); setMakePaymentScreenshotFile(null); setMakePaymentScreenshotPreview(null); }}
+                    >Cancel</button>
+                    <button
+                      type="button"
+                      className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                      disabled={makePaymentBusy || !UPI_ID || fetchingUpiIdForPayment || !makePaymentScreenshotFile}
+                      title={!UPI_ID ? 'Artist UPI ID not available' : !makePaymentScreenshotFile ? 'Please upload payment screenshot' : undefined}
+                      onClick={async () => {
+                        if (!appUser?.uid || !commissionChatMetadata) return;
+                        setMakePaymentBusy(true);
+                        try {
+                          let screenshotUrl: string | undefined;
+                          if (makePaymentScreenshotFile) {
+                            screenshotUrl = await uploadPaymentScreenshot(appUser.uid, makePaymentScreenshotFile);
+                          }
+                          const totalPaid = finalPrice > 0 ? String(finalPrice) : String(remaining);
+                          await markFullPaymentDone(commissionChatMetadata.artworkId, totalPaid, screenshotUrl);
+                          const paymentChat = commissionChats.find(
+                            (c) => c.commissionId === commissionChatMetadata.artworkId && c.participants.includes(appUser.uid),
+                          );
+                          if (paymentChat && commissionChatContact) {
+                            await sendCommissionMessage(
+                              paymentChat.id,
+                              appUser.uid,
+                              'Full payment is done. Please do ship the artwork.',
+                              commissionChatMetadata.artworkId,
+                              commissionChatMetadata.artworkTitle,
+                              commissionChatMetadata.artworkImage,
+                            ).catch(() => {});
+                            if (screenshotUrl) {
+                              await sendCommissionMessage(
+                                paymentChat.id,
+                                appUser.uid,
+                                '💳 Payment screenshot (final payment)',
+                                commissionChatMetadata.artworkId,
+                                commissionChatMetadata.artworkTitle,
+                                commissionChatMetadata.artworkImage,
+                                screenshotUrl,
+                              ).catch(() => {});
                             }
-                          }}
-                        >
-                          <span className="commission-hire-tooltip-confirm-inner">
-                            {makePaymentBusy && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
-                            {makePaymentBusy ? 'Please wait…' : 'Yes'}
-                          </span>
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="confirm-modal-actions confirm-modal-actions--row">
-                      <button
-                        type="button"
-                        className="confirm-modal-btn confirm-modal-btn-cancel"
-                        disabled={makePaymentBusy}
-                        onClick={() => { setMakePaymentOpen(false); setMakePaymentConfirm(false); }}
-                      >Cancel</button>
-                      <button
-                        type="button"
-                        className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-                        disabled={makePaymentBusy || !UPI_ID || fetchingUpiIdForPayment}
-                        title={!UPI_ID ? 'Artist UPI ID not available' : undefined}
-                        onClick={() => setMakePaymentConfirm(true)}
-                      >Complete</button>
-                    </div>
-                  )}
+                            createNotification(
+                              commissionChatContact.uid,
+                              'full_payment_done',
+                              appUser.uid,
+                              appUser.name || 'Buyer',
+                              appUser.avatar,
+                              undefined, undefined, undefined, undefined,
+                              commissionChatMetadata.artworkId,
+                              commissionChatMetadata.artworkTitle,
+                            ).catch(() => {});
+                          }
+                          setCommissionChatMetadata((prev) => prev ? { ...prev, fullPaymentDone: true } : prev);
+                          setBuyerRequests((prev) => prev.map((c) => c.id === commissionChatMetadata.artworkId ? { ...c, fullPaymentDone: true } : c));
+                        
+                          setMakePaymentOpen(false);
+                          setMakePaymentScreenshotFile(null);
+                          setMakePaymentScreenshotPreview(null);
+                        } catch {
+                          toast.error('Could not confirm payment. Please try again.');
+                        } finally {
+                          setMakePaymentBusy(false);
+                        }
+                      }}
+                    >
+                      <span className="commission-hire-tooltip-confirm-inner">
+                        {makePaymentBusy && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
+                        {makePaymentBusy ? 'Please wait…' : 'Complete'}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -5027,6 +5283,97 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
         document.body,
       )}
 
+      {(() => {
+        const trackingItem = trackingModalId ? listRequests.find((r) => r.id === trackingModalId) ?? null : null;
+        if (!trackingItem) return null;
+
+        const step1Done = true;
+        const step2Done = Boolean(trackingItem.hiredArtistId);
+        const step3Done = Boolean(trackingItem.readyToShipImageUrl);
+        const step4Done = Boolean(trackingItem.trackingId);
+        const step5Done = Boolean(trackingItem.sharedToPublic) && Boolean(reviewsMap[trackingItem.id]);
+        const advanceDone = Boolean(trackingItem.hiredArtistId);
+        const finalPayDone = Boolean(trackingItem.fullPaymentDone);
+        const shippingDone = Boolean(trackingItem.trackingId);
+
+        const artistSteps: { label: string; sub: React.ReactNode; done: boolean; milestone: { label: string; achieved: boolean } | null }[] = [
+          { label: 'Apply to the offer', sub: 'Chat with the buyer and get details', done: step1Done, milestone: null },
+          { label: 'Send the offer & Wait for advance', sub: 'Start making the painting once you receive the advance payment', done: step2Done, milestone: { label: 'Advance Payment', achieved: advanceDone } },
+          { label: 'Upload to Ready to Ship', sub: <>Let the buyer evaluate, make changes if needed, and wait for full payment by clicking <strong>Ready to Ship</strong></>, done: step3Done, milestone: { label: 'Final Payment', achieved: finalPayDone } },
+          { label: 'Make Shipment', sub: <>Pack and ship the painting at your nearest courier service and share the shipping ID and receipt by clicking <strong>Make Shipment</strong></>, done: step4Done, milestone: { label: 'Shipping', achieved: shippingDone } },
+        ];
+        const buyerSteps: { label: string; sub: React.ReactNode; done: boolean; milestone: { label: string; achieved: boolean } | null }[] = [
+          { label: 'Post the application', sub: 'Your commission request is live', done: step1Done, milestone: null },
+          { label: 'Accept offer & make advance', sub: 'Chat with artists, accept an offer, fill your address, and pay the advance', done: step2Done, milestone: { label: 'Advance Payment', achieved: advanceDone } },
+          { label: 'Review painting & pay balance', sub: <>Wait for the artist to upload the final painting, request changes if needed, and send the remaining payment by clicking <strong>Make Payment</strong></>, done: step3Done, milestone: { label: 'Final Payment', achieved: finalPayDone } },
+          { label: 'Receive shipment', sub: 'Wait for the artist to ship and share tracking details', done: step4Done, milestone: { label: 'Shipping', achieved: shippingDone } },
+          { label: 'Review & share to public', sub: <>Give a review to the artist and share to community by clicking <strong>Share to Public</strong></>, done: step5Done, milestone: null },
+        ];
+
+        const steps = appUser?.role === 'artist' ? artistSteps : buyerSteps;
+
+        const renderModalSteps = (stepsArr: { label: string; sub: React.ReactNode; done: boolean; milestone: { label: string; achieved: boolean } | null }[]) => (
+          <ol className="commission-tracking-steps">
+            {stepsArr.map((s, i) => (
+              <li key={i} className={`commission-tracking-step${s.done ? ' done' : ''}`}>
+                <div className="commission-tracking-left">
+                  <span className="commission-tracking-dot">
+                    {s.done ? (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    ) : (
+                      <span className="commission-tracking-dot-inner" />
+                    )}
+                  </span>
+                  {i < stepsArr.length - 1 && <span className="commission-tracking-line" />}
+                </div>
+                <div className="commission-tracking-content">
+                  <span className="commission-tracking-label">{s.label}</span>
+                  <span className="commission-tracking-sub">{s.sub}</span>
+                  {s.milestone && (
+                    <span className={`commission-tracking-milestone${s.milestone.achieved ? ' achieved' : ''}`}>
+                      {s.milestone.achieved ? '✓' : '○'} {s.milestone.label}
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
+        );
+
+        return createPortal(
+          <div
+            className="commission-tracking-modal-overlay"
+            role="presentation"
+            onClick={() => setTrackingModalId(null)}
+          >
+            <div
+              className="commission-tracking-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Order Tracking"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="commission-tracking-modal-header">
+                <span className="commission-tracking-modal-title">Order Tracking</span>
+                <button
+                  type="button"
+                  className="commission-accept-offer-close"
+                  aria-label="Close"
+                  onClick={() => setTrackingModalId(null)}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="commission-tracking-col">
+                {renderModalSteps(steps)}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        );
+      })()}
+
       <CommissionChatModal
         isOpen={commissionChatOpen}
         onClose={() => {
@@ -5050,90 +5397,121 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
         chatClosed={commissionChatClosed}
         chatClosedReason={commissionChatClosedReason}
         commissionHiredArtistId={commissionHiredArtistIdForChat}
+        autoOpenOfferForm={Boolean(autoOpenOfferFormForChatId && autoOpenOfferFormForChatId === commissionChatId)}
+        onAutoOpenOfferFormConsumed={() => setAutoOpenOfferFormForChatId(null)}
         acceptingOfferMessageId={acceptingOfferMessageId}
         onAcceptOffer={
           appUser?.role === 'buyer' && commissionChatMetadata && commissionChatContact && commissionChatId
             ? async (messageId: string) => {
                 if (!appUser?.uid || !commissionChatMetadata) return;
                 setAcceptingOfferMessageId(messageId);
-                try {
-                  await acceptCommissionOfferFromChat(commissionChatId, messageId);
-                  invalidateCommissionsBrowseCache();
-                  invalidateCommissionsUserCaches(appUser.uid);
-                  const [openItems, ownItems] = await Promise.all([
-                    getBrowseCommissionRequestsCached(),
-                    getBuyerCommissionRequestsCached(appUser.uid),
-                  ]);
-                  setPostedRequests(openItems);
-                  setBuyerRequests(ownItems);
-                  const acceptedHiredId = ownItems.find(
-                    (r) => r.id === commissionChatMetadata.artworkId,
-                  )?.hiredArtistId;
-                  if (acceptedHiredId) {
-                    invalidateCommissionsUserCaches(acceptedHiredId);
-                  }
-                  const updatedRow = ownItems.find((r) => r.id === commissionChatMetadata.artworkId);
-                  if (updatedRow) {
-                    setCommissionChatMetadata((prev) =>
-                      prev && prev.artworkId === updatedRow.id
-                        ? {
-                            ...prev,
-                            agreedFinalPrice: updatedRow.agreedFinalPrice,
-                            agreedAdvanceAmount: updatedRow.agreedAdvanceAmount,
-                            agreedDeliveryDate: updatedRow.agreedDeliveryDate,
-                            hiredArtistId: updatedRow.hiredArtistId,
+                // Optimistic update — update UI instantly before the cloud function call
+                const hiredId = commissionChatContact.uid;
+                const patchCommission = (r: CommissionRequest): CommissionRequest =>
+                  r.id === commissionChatMetadata.artworkId
+                    ? { ...r, status: 'inprogress' as const, hiredArtistId: hiredId }
+                    : r;
+                setBuyerRequests((prev) => prev.map(patchCommission));
+                setPostedRequests((prev) => prev.map(patchCommission));
+                setCommissionChatMetadata((prev) =>
+                  prev && prev.artworkId === commissionChatMetadata.artworkId
+                    ? { ...prev, hiredArtistId: hiredId }
+                    : prev,
+                );
+                setCommissionHiredArtistIdForChat(hiredId);
+                setCommissionStatusForChat('inprogress');
+                setCommissionChatClosed(false);
+                setCommissionChatClosedReason(undefined);
+                setTimeout(() => setAcceptingOfferMessageId(null), 1000);
+
+                // Cloud function + background sync (non-blocking)
+                acceptCommissionOfferFromChat(commissionChatId, messageId)
+                  .then(() => {
+                    invalidateCommissionsBrowseCache();
+                    invalidateCommissionsUserCaches(appUser.uid);
+                    if (commissionChatContact) {
+                      createNotification(
+                        commissionChatContact.uid,
+                        'commission_offer_accepted',
+                        appUser.uid,
+                        appUser.name || 'Buyer',
+                        appUser.avatar,
+                        undefined, undefined, undefined, undefined,
+                        commissionChatMetadata.artworkId,
+                        commissionChatMetadata.artworkTitle,
+                      ).catch(() => {});
+                      getUserProfile(commissionChatContact.uid)
+                        .then((profile) => {
+                          if (!profile?.upiId || profile.upiId.trim() === '') {
+                            createNotification(
+                              commissionChatContact.uid,
+                              'payment_failed_no_upi',
+                              appUser.uid,
+                              appUser.name || 'A buyer',
+                              appUser.avatar,
+                              undefined, undefined, undefined, undefined,
+                              commissionChatMetadata.artworkId,
+                              commissionChatMetadata.artworkTitle,
+                            ).catch(() => {});
                           }
-                        : prev,
+                        })
+                        .catch(() => {});
+                    }
+                    return Promise.all([
+                      getBrowseCommissionRequestsCached(),
+                      getBuyerCommissionRequestsCached(appUser.uid),
+                    ]);
+                  })
+                  .then(([openItems, ownItems]) => {
+                    setPostedRequests(openItems);
+                    setBuyerRequests(ownItems);
+                    const acceptedHiredId = ownItems.find(
+                      (r) => r.id === commissionChatMetadata.artworkId,
+                    )?.hiredArtistId;
+                    if (acceptedHiredId) invalidateCommissionsUserCaches(acceptedHiredId);
+                    const updatedRow = ownItems.find((r) => r.id === commissionChatMetadata.artworkId);
+                    if (updatedRow) {
+                      setCommissionChatMetadata((prev) =>
+                        prev && prev.artworkId === updatedRow.id
+                          ? {
+                              ...prev,
+                              agreedFinalPrice: updatedRow.agreedFinalPrice,
+                              agreedAdvanceAmount: updatedRow.agreedAdvanceAmount,
+                              agreedDeliveryDate: updatedRow.agreedDeliveryDate,
+                              hiredArtistId: updatedRow.hiredArtistId,
+                            }
+                          : prev,
+                      );
+                      setCommissionHiredArtistIdForChat(updatedRow.hiredArtistId ?? null);
+                    }
+                  })
+                  .catch(() => {
+                    // Revert optimistic updates if cloud function failed
+                    toast.error('Could not accept offer. Please try again.');
+                    setBuyerRequests((prev) =>
+                      prev.map((r) =>
+                        r.id === commissionChatMetadata.artworkId
+                          ? { ...r, status: 'open' as const, hiredArtistId: undefined }
+                          : r,
+                      ),
                     );
-                    setCommissionHiredArtistIdForChat(updatedRow.hiredArtistId ?? null);
-                  }
-                  setActiveBuyerSubTab('inprogress');
-                  setCommissionStatusForChat('inprogress');
-                  setCommissionChatClosed(false);
-                  setCommissionChatClosedReason(undefined);
-                  if (commissionChatContact) {
-                    createNotification(
-                      commissionChatContact.uid,
-                      'commission_offer_accepted',
-                      appUser.uid,
-                      appUser.name || 'Buyer',
-                      appUser.avatar,
-                      undefined, undefined, undefined, undefined,
-                      commissionChatMetadata.artworkId,
-                      commissionChatMetadata.artworkTitle,
-                    ).catch(() => {});
-                    
-                    // Check if artist has UPI ID and send notification if missing
-                    getUserProfile(commissionChatContact.uid)
-                      .then((profile) => {
-                        if (!profile?.upiId || profile.upiId.trim() === '') {
-                          createNotification(
-                            commissionChatContact.uid,
-                            'payment_failed_no_upi',
-                            appUser.uid,
-                            appUser.name || 'A buyer',
-                            appUser.avatar,
-                            undefined, undefined, undefined, undefined,
-                            commissionChatMetadata.artworkId,
-                            commissionChatMetadata.artworkTitle
-                          ).catch(() => {}); // Silent fail
-                        }
-                      })
-                      .catch(() => {}); // Silent fail
-                  }
-                } catch {
-                  toast.error('Could not accept offer. Please try again.');
-                  throw new Error('accept_failed');
-                } finally {
-                  setAcceptingOfferMessageId(null);
-                }
+                    setPostedRequests((prev) =>
+                      prev.map((r) =>
+                        r.id === commissionChatMetadata.artworkId
+                          ? { ...r, status: 'open' as const, hiredArtistId: undefined }
+                          : r,
+                      ),
+                    );
+                    setCommissionHiredArtistIdForChat(null);
+                    setCommissionStatusForChat('open');
+                  });
               }
             : undefined
         }
         onReadyToShip={
           appUser?.role === 'artist' && commissionChatMetadata?.artworkId
             ? () => {
-                const item = hiredArtistCommissions.find((c) => c.id === commissionChatMetadata?.artworkId) ?? null;
+                const item = mergedArtistCommissions.find((c) => c.id === commissionChatMetadata?.artworkId) ?? null;
                 setReadyToShipItem(item);
                 setReadyToShipFile(null);
                 setReadyToShipPreview(null);
@@ -5144,14 +5522,13 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           appUser?.role === 'buyer' && commissionChatMetadata?.readyToShipImageUrl && !commissionChatMetadata?.fullPaymentDone
             ? () => {
                 setMakePaymentOpen(true);
-                setMakePaymentConfirm(false);
               }
             : undefined
         }
         onMakeShipment={
           appUser?.role === 'artist' && commissionChatMetadata?.fullPaymentDone && commissionChatMetadata?.artworkId
             ? () => {
-                const item = hiredArtistCommissions.find((c) => c.id === commissionChatMetadata?.artworkId) ?? null;
+                const item = mergedArtistCommissions.find((c) => c.id === commissionChatMetadata?.artworkId) ?? null;
                 setMakeShipmentItem(item);
                 setTrackingInput('');
               }

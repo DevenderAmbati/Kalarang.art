@@ -39,3 +39,14 @@ export async function uploadChatMessageImage(
   await uploadBytes(storageRef, processed, metadata);
   return getDownloadURL(storageRef);
 }
+
+/**
+ * Uploads a payment screenshot reusing the existing chat image upload path
+ * so that Firebase Storage rules are satisfied.
+ */
+export async function uploadPaymentScreenshot(
+  userId: string,
+  file: File,
+): Promise<string> {
+  return uploadChatMessageImage(userId, 'chats', 'payment_proofs', file, false);
+}

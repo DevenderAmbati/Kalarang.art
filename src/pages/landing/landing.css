@@ -128,6 +128,14 @@
     gap: 0.75rem !important;
     padding: 0.75rem 1rem !important;
     margin-top: 0 !important;
+    transition: transform 0.28s ease, opacity 0.28s ease;
+    will-change: transform;
+  }
+
+  .landing-page .home-header.home-header-mobile-hidden {
+    transform: translateY(-110%);
+    opacity: 0.98;
+    pointer-events: none;
   }
 
   .landing-page .home-header .home-header-left {

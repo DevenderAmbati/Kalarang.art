@@ -16,7 +16,6 @@ import {
 } from '../../services/artworkService';
 import { searchUsers } from '../../services/userService';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
-import laptopAnimation from '../../animations/Laptop-Drawing 1.json';
 import noContentAnimation from '../../animations/no content.json';
 import { toast } from 'react-toastify';
 import { cache, cacheKeys } from '../../utils/cache';
@@ -869,7 +868,8 @@ const Discover: React.FC = () => {
         <div className="discover-content">
           {loading ? (
             <LoadingState 
-              animation={laptopAnimation}
+              variant="cards"
+                cardsLayout="standard"
               message="Discovering artworks..." 
               fullHeight 
             />

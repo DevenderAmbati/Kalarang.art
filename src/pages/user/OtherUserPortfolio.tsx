@@ -16,7 +16,6 @@ import { followArtist, unfollowArtist, isFollowingArtist } from '../../services/
 import { toast } from 'react-toastify';
 import { getArtworksByArtist } from '../../services/artworkService';
 import LoadingState from '../../components/State/LoadingState';
-import lineArt1Animation from '../../animations/Line art (1).json';
 import { cache, cacheKeys, cacheTimes } from '../../utils/cache';
 import './Portfolio.css';
 
@@ -367,7 +366,7 @@ const OtherUserPortfolio: React.FC = () => {
   if (authLoading || isLoadingProfile) {
     return (
       <LoadingState 
-        animation={lineArt1Animation}
+        variant="portfolio"
         message="Loading profile..." 
         fullHeight 
       />

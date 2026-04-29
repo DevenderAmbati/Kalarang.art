@@ -14,7 +14,6 @@ import {
 } from '../../services/artworkService';
 import { searchUsers } from '../../services/userService';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
-import laptopAnimation from '../../animations/Laptop-Drawing 1.json';
 import noContentAnimation from '../../animations/no content.json';
 import { toast } from 'react-toastify';
 import { cache } from '../../utils/cache';
@@ -580,7 +579,7 @@ const Explore: React.FC = () => {
           {/* Artwork grid */}
           <div className="discover-content">
             {loading ? (
-              <LoadingState animation={laptopAnimation} message="Loading artworks..." fullHeight />
+              <LoadingState variant="cards" cardsLayout="standard" message="Loading artworks..." fullHeight />
             ) : (
               <>
                 {debouncedSearchQuery.trim() && matchedUsers.length > 0 && (

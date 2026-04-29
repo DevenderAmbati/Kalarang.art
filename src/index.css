@@ -19,35 +19,6 @@ html {
   overscroll-behavior-x: none;
 }
 
-/* iOS Safari/PWA Overscroll Prevention */
-@supports (-webkit-touch-callout: none) {
-  /* iOS-specific styles */
-  html {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-  }
-  
-  body {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  #root {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: none;
-  }
-}
-
 /* Global Base Styles */
 * {
   box-sizing: border-box;
@@ -111,6 +82,37 @@ body {
   overscroll-behavior-x: none;
   /* iOS PWA bounce prevention */
   -webkit-overflow-scrolling: touch;
+}
+
+/* iOS Safari/PWA Overscroll Prevention.
+   MUST come after the base #root/body rules so the cascade picks these up;
+   otherwise the regular `#root { overflow: visible }` cancels the scroll
+   container and the page becomes un-scrollable on iOS. */
+@supports (-webkit-touch-callout: none) {
+  html {
+    position: fixed !important;
+    width: 100%;
+    height: 100%;
+    overflow: hidden !important;
+  }
+
+  body {
+    position: fixed !important;
+    width: 100%;
+    height: 100%;
+    overflow: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #root {
+    position: fixed !important;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none;
+  }
 }
 
 code {

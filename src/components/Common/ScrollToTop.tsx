@@ -1,6 +1,27 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 
+function resetAllScrollContainers() {
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+
+  const selectors = [
+    '.landing-content',
+    '.home-main-content',
+    '.about-main-content',
+    '.legal-container',
+    '.home-container',
+    '.about-container',
+    '.login-left-section',
+  ];
+  selectors.forEach((s) => {
+    document.querySelectorAll<HTMLElement>(s).forEach((el) => {
+      el.scrollTop = 0;
+    });
+  });
+}
+
 /**
  * Scrolls to top on route change.
  * Prevents scroll position from persisting when navigating between pages.
@@ -10,12 +31,16 @@ export function ScrollToTop() {
   const prevPathnameRef = useRef<string | null>(null);
 
   useEffect(() => {
+    const forceTopRoutes = new Set(['/', '/about', '/privacy', '/terms']);
+
+    if (forceTopRoutes.has(pathname)) {
+      resetAllScrollContainers();
+      setTimeout(resetAllScrollContainers, 50);
+    }
+
     const prev = prevPathnameRef.current;
     prevPathnameRef.current = pathname;
 
-    // The app uses independent inner scroll containers for feed + artwork.
-    // Don't force window scroll reset when transitioning between those routes,
-    // otherwise back-navigation feels like it jumps to the top.
     const isShellTab = (p: string | null) =>
       p === '/home' ||
       p === '/discover' ||
@@ -29,7 +54,7 @@ export function ScrollToTop() {
       return;
     }
 
-    window.scrollTo(0, 0);
+    resetAllScrollContainers();
   }, [pathname]);
 
   return null;

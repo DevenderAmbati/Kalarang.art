@@ -7,7 +7,8 @@ import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../hooks/useChat';
 import { useDrawerBackNavigation } from '../../hooks/useDrawerBackNavigation';
-import { markChatRead, markMessagesAsSeen, getChatId, sendReachOutOfferMessage, acceptReachOutOffer, sendAddressCard, markArtworkShipped } from '../../services/chatService';
+import { markChatRead, markMessagesAsSeen, getChatId, sendReachOutOfferMessage, acceptReachOutOffer, sendAddressCard, markArtworkShipped, sendMessage as sendChatServiceMessage } from '../../services/chatService';
+import { uploadPaymentScreenshot } from '../../services/chatImageUpload';
 import { useChatContext } from '../../context/ChatContext';
 import { getUserProfile } from '../../services/userService';
 import { createNotification } from '../../services/notificationService';
@@ -241,6 +242,9 @@ const ChatView: React.FC<{
   const [buyerAddressForm, setBuyerAddressForm] = useState({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
   const [artistUpiId, setArtistUpiId] = useState<string | null>(null);
   const [fetchingArtistUpi, setFetchingArtistUpi] = useState(false);
+  const [paymentScreenshotFile, setPaymentScreenshotFile] = useState<File | null>(null);
+  const [paymentScreenshotPreview, setPaymentScreenshotPreview] = useState<string | null>(null);
+  const paymentScreenshotInputRef = useRef<HTMLInputElement>(null);
 
   // Set of artworkIds that already have an accepted offer —
   // includes both accepted reachout_offer messages AND Buy Now purchases (from acceptedOffers on chat doc)
@@ -556,16 +560,27 @@ const ChatView: React.FC<{
     const paymentAmount = offerMsg?.offerFinalPrice || '';
     setAcceptingOfferId(offerAcceptMsgId);
     try {
+      let screenshotUrl: string | undefined;
+      if (paymentScreenshotFile) {
+        screenshotUrl = await uploadPaymentScreenshot(appUser.uid, paymentScreenshotFile);
+      }
+
       const chatId = getChatId(appUser.uid, contact.uid);
       await acceptReachOutOffer(chatId, offerAcceptMsgId, paymentAmount, offerMsg?.artworkId ? {
         artworkId: offerMsg.artworkId,
         artworkTitle: offerMsg.artworkTitle ?? '',
         artworkImage: offerMsg.artworkImage,
         artistId: contact.uid,
-      } : undefined);
+      } : undefined, screenshotUrl);
 
       // Send automated messages
       await sendMessage(`🎉 Offer accepted! Please prepare the shipment.`);
+
+      // Send payment screenshot to artist in chat
+      if (screenshotUrl) {
+        await sendChatServiceMessage(chatId, appUser.uid, '💳 Payment screenshot', contact.uid, undefined, screenshotUrl);
+      }
+
       await sendAddressCard(chatId, appUser.uid, buyerAddressForm, contact.uid);
 
       // Notify the artist — payment done, start shipping
@@ -584,9 +599,10 @@ const ChatView: React.FC<{
         'payment_done',
       ).catch(() => {});
 
-      setShowPaymentConfirm(false);
       setOfferAcceptMsgId(null);
       setBuyerAddressForm({ name: '', line1: '', line2: '', city: '', pincode: '', phone: '' });
+      setPaymentScreenshotFile(null);
+      setPaymentScreenshotPreview(null);
       
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -900,7 +916,6 @@ const ChatView: React.FC<{
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setOfferAcceptMsgId(msg.id);
-                                  setShowPaymentConfirm(false);
                                 }}
                               >
                                 Accept offer
@@ -1117,7 +1132,7 @@ const ChatView: React.FC<{
                 className="commission-accept-offer-close"
                 aria-label="Close"
                 disabled={Boolean(acceptingOfferId)}
-                onClick={() => { setOfferAcceptMsgId(null); setShowPaymentConfirm(false); }}
+                onClick={() => { setOfferAcceptMsgId(null); }}
               >
                 ×
               </button>
@@ -1185,6 +1200,48 @@ const ChatView: React.FC<{
                     <p className="commission-accept-offer-qr-hint">Scan to pay via UPI</p>
                   </div>
                   <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>💡 You are directly paying to the artist</p>
+
+                  <input
+                    ref={paymentScreenshotInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = '';
+                      if (!file?.type.startsWith('image/')) return;
+                      setPaymentScreenshotFile(file);
+                      setPaymentScreenshotPreview(URL.createObjectURL(file));
+                    }}
+                    aria-hidden
+                    tabIndex={-1}
+                  />
+                  {paymentScreenshotPreview ? (
+                    <div className="cd-shipment-receipt-preview">
+                      <img src={paymentScreenshotPreview} alt="Payment screenshot" />
+                      <button
+                        type="button"
+                        className="cd-shipment-receipt-remove"
+                        onClick={() => { setPaymentScreenshotFile(null); setPaymentScreenshotPreview(null); }}
+                        aria-label="Remove screenshot"
+                        disabled={Boolean(acceptingOfferId)}
+                      >×</button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="cd-shipment-receipt-upload"
+                      onClick={() => paymentScreenshotInputRef.current?.click()}
+                      disabled={Boolean(acceptingOfferId)}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
+                      Upload payment screenshot <span className="cd-required">*</span>
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -1192,37 +1249,21 @@ const ChatView: React.FC<{
                 <p className="commission-accept-address-required-hint">* Fill in all address fields to continue</p>
               )}
 
-              {showPaymentConfirm ? (
-                <div className="commission-make-payment-confirm-block">
-                  <p className="commission-payment-confirm-tooltip-q">Have you made the payment?</p>
-                  <div className="confirm-modal-actions confirm-modal-actions--row">
-                    <button type="button" className="confirm-modal-btn confirm-modal-btn-cancel"
-                      disabled={Boolean(acceptingOfferId)} onClick={() => setShowPaymentConfirm(false)}>
-                      No
-                    </button>
-                    <button type="button" className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-                      disabled={Boolean(acceptingOfferId)} onClick={() => void handleConfirmAccept()}>
-                      <span className="commission-hire-tooltip-confirm-inner">
-                        {acceptingOfferId && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
-                        {acceptingOfferId ? 'Please wait…' : 'Yes'}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="confirm-modal-actions confirm-modal-actions--row">
-                  <button type="button" className="confirm-modal-btn confirm-modal-btn-cancel"
-                    disabled={Boolean(acceptingOfferId)} onClick={() => { setOfferAcceptMsgId(null); setShowPaymentConfirm(false); }}>
-                    Cancel
-                  </button>
-                  <button type="button" className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
-                    disabled={Boolean(acceptingOfferId) || !addressComplete || !UPI_ID || fetchingArtistUpi}
-                    title={!addressComplete ? 'Please fill in all address fields' : !UPI_ID ? 'Artist UPI ID not available' : undefined}
-                    onClick={() => setShowPaymentConfirm(true)}>
-                    Accept
-                  </button>
-                </div>
-              )}
+              <div className="confirm-modal-actions confirm-modal-actions--row">
+                <button type="button" className="confirm-modal-btn confirm-modal-btn-cancel"
+                  disabled={Boolean(acceptingOfferId)} onClick={() => { setOfferAcceptMsgId(null); setPaymentScreenshotFile(null); setPaymentScreenshotPreview(null); }}>
+                  Cancel
+                </button>
+                <button type="button" className="confirm-modal-btn confirm-modal-btn-confirm confirm-modal-btn-info"
+                  disabled={Boolean(acceptingOfferId) || !addressComplete || !UPI_ID || fetchingArtistUpi || !paymentScreenshotFile}
+                  title={!addressComplete ? 'Please fill in all address fields' : !UPI_ID ? 'Artist UPI ID not available' : !paymentScreenshotFile ? 'Please upload payment screenshot' : undefined}
+                  onClick={() => void handleConfirmAccept()}>
+                  <span className="commission-hire-tooltip-confirm-inner">
+                    {acceptingOfferId && <span className="commission-inline-spinner commission-inline-spinner--outline" aria-hidden />}
+                    {acceptingOfferId ? 'Please wait…' : 'Accept'}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>,
           document.body

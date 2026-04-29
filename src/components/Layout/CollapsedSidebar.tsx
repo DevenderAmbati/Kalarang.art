@@ -6,6 +6,7 @@ import { BiUpload } from 'react-icons/bi';
 import { IconType } from 'react-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useChatContext } from '../../context/ChatContext';
 import { canAccessRoute } from '../../utils/permissions';
 import './CollapsedSidebar.css';
 
@@ -38,6 +39,7 @@ const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({ onExpand }) => {
   const location = useLocation();
   const { appUser } = useAuth();
   const { theme } = useTheme();
+  const { hasCommissionUnread } = useChatContext();
   const [hoveredItem, setHoveredItem] = React.useState<string | null>(null);
   const [, forceUpdate] = React.useReducer(x => x + 1, 0);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -225,11 +227,14 @@ const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({ onExpand }) => {
               onMouseLeave={() => setHoveredItem(null)}
               aria-label={item.label}
             >
-              <div 
+              <div
                 className={`sidebar-icon-wrapper ${active ? 'active' : ''} ${hovered && !active ? 'hovered' : ''}`}
                 ref={(el: HTMLDivElement | null) => { iconWrapperRefs.current[item.path] = el; }}
               >
                 <span className="sidebar-nav-icon">{React.createElement(item.Icon as any)}</span>
+                {item.path === '/commissions' && hasCommissionUnread && (
+                  <span className="sidebar-nav-unread-dot" aria-label="Unread messages" />
+                )}
               </div>
             </Link>
           );

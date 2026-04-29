@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useParams } from "react-router-dom";
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './toastStyles.css';
@@ -127,27 +128,20 @@ const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 function App() {
   const { firebaseUser, appUser, loading } = useAuth();
 
-  // Prevent pinch-zoom and gesture zoom across the app globally
-  // The artwork preview handles its own zoom internally via React events
+  // Prevent pinch-zoom and gesture zoom across the app globally.
+  // Pinch-zoom is prevented at the platform layer via:
+  //   - `touch-action: pan-x pan-y` on <html> (index.css)
+  //   - Safari's non-standard gesturestart/change/end events
+  // We deliberately do NOT attach non-passive touchmove listeners on document
+  // because iOS Safari refuses inner-container scrolling when one is present
+  // (it can't move scroll to the compositor when a JS handler may preventDefault).
   useEffect(() => {
-    const preventZoom = (e: TouchEvent) => {
-      // Always prevent multi-touch zoom at browser level
-      // The preview component handles its own zoom via React synthetic events
-      if (e.touches.length > 1) {
-        e.preventDefault();
-      }
-    };
-
     const preventGestureZoom = (e: Event) => {
       // Always prevent Safari gesture zoom at browser level
       e.preventDefault();
     };
 
-    // Prevent pinch-zoom on touchstart/touchmove
-    document.addEventListener('touchstart', preventZoom, { passive: false });
-    document.addEventListener('touchmove', preventZoom, { passive: false });
-    
-    // Prevent Safari gesture events
+    // Prevent Safari gesture events (pinch zoom)
     document.addEventListener('gesturestart', preventGestureZoom);
     document.addEventListener('gesturechange', preventGestureZoom);
     document.addEventListener('gestureend', preventGestureZoom);
@@ -161,8 +155,6 @@ function App() {
     document.addEventListener('wheel', preventWheelZoom, { passive: false });
 
     return () => {
-      document.removeEventListener('touchstart', preventZoom);
-      document.removeEventListener('touchmove', preventZoom);
       document.removeEventListener('gesturestart', preventGestureZoom);
       document.removeEventListener('gesturechange', preventGestureZoom);
       document.removeEventListener('gestureend', preventGestureZoom);
@@ -242,17 +234,6 @@ function App() {
           <PwaUpdatePrompt />
           <SidebarProvider>
             <ChatProvider>
-            <ToastContainer 
-              position="top-center"
-              autoClose={2000}
-              hideProgressBar={false}
-              newestOnTop={true}
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-            />
             <Routes>
 
               {/* Public routes */}
@@ -498,6 +479,21 @@ function App() {
           </SidebarProvider>
         </Router>
       </ThemeProvider>
+      {createPortal(
+        <ToastContainer
+          position="top-center"
+          autoClose={2000}
+          hideProgressBar={false}
+          newestOnTop={true}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          style={{ zIndex: 2147483647 }}
+        />,
+        document.body
+      )}
     </>
   );
 }

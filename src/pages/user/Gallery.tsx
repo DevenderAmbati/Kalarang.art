@@ -7,7 +7,6 @@ import GalleryTab, { GalleryImage } from '../../components/Profile/GalleryTab';
 import EmptyState from '../../components/State/EmptyState';
 import LoadingState from '../../components/State/LoadingState';
 import noContentAnimation from '../../animations/no content.json';
-import lineArt1Animation from '../../animations/Line art (1).json';
 
 interface GalleryProps {
   cachedData?: UseCachedDataResult<Artwork[]>;
@@ -45,7 +44,7 @@ const Gallery: React.FC<GalleryProps> = ({ cachedData, isOwnProfile = true }) =>
   }, [artworks]);
 
   if (isLoading) {
-    return <LoadingState animation={lineArt1Animation} message="Loading your gallery..." fullHeight />;
+    return <LoadingState variant="cards" cardsLayout="standard" message="Loading your gallery..." fullHeight />;
   }
 
   if (galleryImages.length === 0) {
