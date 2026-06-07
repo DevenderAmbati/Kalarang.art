@@ -80,7 +80,7 @@
 
 .edit-profile-form {
   padding: 2rem;
-  padding-bottom: 4rem;
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   flex: 1;
 }
@@ -181,7 +181,7 @@
   border-radius: 8px;
   font-size: 0.95rem;
   font-family: inherit;
-  font-style: italic;
+  font-style: normal;
   color: #374151;
   background: var(--color-bg-white);
   transition: all var(--transition-base);
@@ -193,9 +193,14 @@
   box-shadow: 0 0 0 3px var(--color-focus-glow);
 }
 
+.dropdown-trigger {
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+}
+
 .form-input::placeholder {
   color: #6b7280;
-  font-style: italic;
+  font-style: normal;
   opacity: 0.8;
 }
 
@@ -214,7 +219,7 @@
   border-radius: 8px;
   font-size: 0.95rem;
   font-family: inherit;
-  font-style: italic;
+  font-style: normal;
   color: #374151;
   background: var(--color-bg-white);
   resize: vertical;
@@ -224,7 +229,7 @@
 
 .form-textarea::placeholder {
   color: #6b7280;
-  font-style: italic;
+  font-style: normal;
   opacity: 0.8;
 }
 
@@ -240,7 +245,7 @@
   border-radius: 8px;
   font-size: 0.95rem;
   font-family: inherit;
-  font-style: italic;
+  font-style: normal;
   color: #374151;
   background: var(--color-bg-white);
   cursor: pointer;
@@ -459,7 +464,7 @@
 }
 
 .add-link-row .custom-dropdown .dropdown-trigger {
-  padding: 0.625rem 0.875rem;
+  padding: 0.75rem 0.875rem;
   font-size: 0.95rem;
 }
 
@@ -523,7 +528,7 @@
   justify-content: flex-end;
   gap: 1rem;
   padding-top: 1.5rem;
-  padding-bottom: 1rem;
+  padding-bottom: 0;
   margin-top: 2rem;
   border-top: 2px solid var(--color-border-light);
 }
@@ -580,7 +585,9 @@
   }
 
   .edit-profile-form {
-    padding: 1.5rem;    padding-bottom: 5rem;  }
+    padding: 1.5rem;
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  }
 
   .image-upload-container {
     flex-direction: column;
@@ -648,7 +655,7 @@
 
   .edit-profile-form {
     padding: 1.5rem;
-    padding-bottom: 5rem;
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
   }
 
   .image-upload-container {
@@ -703,7 +710,7 @@
   .form-actions {
     flex-direction: row;
     gap: 0.75rem;
-    padding-bottom: 1.5rem;
+    padding-bottom: 0;
   }
 
   .button-primary,
@@ -742,7 +749,7 @@
 
   .edit-profile-form {
     padding: 1rem;
-    padding-bottom: 5rem;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
   }
 
   .form-section {
@@ -778,7 +785,8 @@
 
   .form-input,
   .form-textarea,
-  .form-select {
+  .form-select,
+  .dropdown-trigger {
     font-size: 0.875rem;
     padding: 0.625rem 0.875rem;
   }
@@ -905,7 +913,7 @@
     flex-direction: row;
     gap: 0.5rem;
     padding-top: 1rem;
-    padding-bottom: 1.5rem;
+    padding-bottom: 0;
     margin-top: 1.5rem;
   }
 

@@ -32,9 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const profile = await getUserProfile(firebaseUser.uid);
       setAppUser(profile as AppUser);
-      console.log('[AuthContext] User profile refreshed');
-    } catch (error) {
-      console.error('[AuthContext] Error refreshing user profile:', error);
+    } catch {
+      // Profile refresh failed; ignore
     }
   };
 
@@ -73,7 +72,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error) {
           // User is authenticated with Firebase but has no Firestore profile
           // This can happen during Google sign-in when account doesn't exist
-          console.log("No user profile found in Firestore after retries");
           setAppUser(null);
           // Sign out the user if they don't have a profile
           await auth.signOut();
@@ -104,7 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } as AppUser;
         
         setAppUser(updatedUser);
-        console.log('[AuthContext] User profile updated via listener');
         
         // Invalidate artwork caches to refetch with new avatar
         cache.invalidate(cacheKeys.artworks(20));

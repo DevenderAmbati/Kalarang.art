@@ -5,17 +5,23 @@
 
 /* Toast Container */
 .Toastify__toast-container {
-  z-index: 99999;
+  z-index: 2147483647 !important;
   width: auto;
   max-width: 500px;
   min-width: 280px;
   padding: 0;
+  position: fixed !important;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
+  isolation: isolate;
 }
 
 .Toastify__toast-container--top-center {
   top: 20px;
   left: 50%;
-  transform: translateX(-50%);
+  -webkit-transform: translateX(-50%) translateZ(0);
+  transform: translateX(-50%) translateZ(0);
 }
 
 /* Base Toast Styling */
@@ -27,7 +33,6 @@
   box-shadow: var(--shadow-lg);
   padding: 10px 16px;
   padding-left: 16px;
-  backdrop-filter: blur(10px);
   min-height: 48px;
   width: fit-content;
   max-width: 500px;

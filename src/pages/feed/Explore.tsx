@@ -4,35 +4,36 @@ import ArtworkGrid from '../../components/Artwork/ArtworkGrid';
 import FilterPanel, { FilterState } from '../../components/Filters/FilterPanel';
 import LoadingState from '../../components/State/LoadingState';
 import EmptyState from '../../components/State/EmptyState';
+import { useAuth } from '../../context/AuthContext';
 import { Artwork as ArtworkType } from '../../types/artwork';
-import { getPublishedArtworksPaginated } from '../../services/artworkService';
+import {
+  getPublishedArtworksPaginated,
+  getPublishedArtworksFilteredPaginated,
+  ArtworkFeedSortOption,
+  FeedPaginationOrderMode,
+} from '../../services/artworkService';
 import { searchUsers } from '../../services/userService';
 import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
-import laptopAnimation from '../../animations/Laptop-Drawing 1.json';
 import noContentAnimation from '../../animations/no content.json';
 import { toast } from 'react-toastify';
 import { cache } from '../../utils/cache';
 import './Explore.css';
 
-const SIZE_CATEGORIES = [
-  { label: 'Small', minWidth: 0, maxWidth: 8, minHeight: 0, maxHeight: 8 },
-  { label: 'Medium', minWidth: 8, maxWidth: 18, minHeight: 8, maxHeight: 18 },
-  { label: 'Large', minWidth: 18, maxWidth: 500, minHeight: 18, maxHeight: 500 },
-];
-
 const CATEGORIES = ['All', 'Abstract', 'Landscape', 'Portrait', 'Modern', 'Craft', 'Digital', 'Sculpture'];
 
-const EXPLORE_CACHE_KEY = 'explore_artworks';
-
-const parseInches = (value?: string): number | null => {
-  if (!value) return null;
-  const parsed = parseFloat(value);
-  return isNaN(parsed) ? null : parsed;
+const exploreCacheKey = (sort: ArtworkFeedSortOption) => `explore_artworks_${sort}`;
+const EXPLORE_SCROLL_KEY = 'exploreScrollTop';
+const getGridColumnCount = (width: number): number => {
+  if (width >= 1440) return 4;
+  if (width >= 1024) return 3;
+  return 2;
 };
 
 const Explore: React.FC = () => {
   const navigate = useNavigate();
+  const { appUser, loading: authLoading } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollRestoredRef = useRef(false);
 
   /* Lock document scroll so only the inner .explore-scroll-container scrolls */
   useEffect(() => {
@@ -45,6 +46,7 @@ const Explore: React.FC = () => {
   }, []);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const lastScrollY = useRef<number>(0);
   const manuallyToggled = useRef<boolean>(false);
 
@@ -67,14 +69,62 @@ const Explore: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
-  const [sortOption, setSortOption] = useState<'price-low' | 'price-high' | 'newest'>('newest');
-  const [filters, setFilters] = useState<FilterState>({ mediums: [], priceRange: { min: 100, max: 200000 }, sizes: [] });
+  const [sortOption, setSortOption] = useState<ArtworkFeedSortOption>('featured');
+  const [filters, setFilters] = useState<FilterState>({ mediums: [], priceRange: { min: 100, max: 10000000 }, sizes: [] });
 
   const [artworks, setArtworks] = useState<ArtworkType[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const artworkGridShellRef = useRef<HTMLDivElement | null>(null);
+  const [gridWidth, setGridWidth] = useState(0);
+  const [gridOffsetTop, setGridOffsetTop] = useState(0);
+  const [gridScrollTop, setGridScrollTop] = useState(0);
+  const [gridViewportHeight, setGridViewportHeight] = useState(0);
+
+  /** Search / category / panel filters — drives filtered Firestore scans. */
+  const hasActiveFilters = useMemo(() => {
+    return (
+      debouncedSearchQuery.trim().length > 0 ||
+      activeCategory !== 'All' ||
+      filters.mediums.length > 0 ||
+      filters.sizes.length > 0 ||
+      filters.priceRange.min !== 100 ||
+      filters.priceRange.max !== 10000000
+    );
+  }, [debouncedSearchQuery, activeCategory, filters]);
+
+  /** Price sorts always use filtered query; otherwise use simple pagination when unfiltered. */
+  const needsFilteredQuery = useMemo(() => {
+    return (
+      hasActiveFilters ||
+      sortOption === 'price-low' ||
+      sortOption === 'price-high'
+    );
+  }, [hasActiveFilters, sortOption]);
+
+  const hasActivePanelFilters = useMemo(() => {
+    return (
+      filters.mediums.length > 0 ||
+      filters.sizes.length > 0 ||
+      filters.priceRange.min !== 100 ||
+      filters.priceRange.max !== 10000000
+    );
+  }, [filters]);
+
+  const queryOptions = useMemo(() => ({
+    query: debouncedSearchQuery.trim(),
+    artistIds: matchedUsers.map((u) => u.uid),
+    category: activeCategory,
+    mediums: filters.mediums,
+    priceRange: filters.priceRange,
+    sizes: filters.sizes,
+    sortOption,
+  }), [debouncedSearchQuery, matchedUsers, activeCategory, filters, sortOption]);
+
+  const paginationOrderMode: FeedPaginationOrderMode =
+    sortOption === 'newest' ? 'newest' : 'featured';
 
   const savedArtworks = useMemo(() => new Set<string>(), []);
 
@@ -110,57 +160,141 @@ const Explore: React.FC = () => {
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Initial fetch with cache
+  // Fetch with cache (default) or server query (search/filter/sort)
   useEffect(() => {
+    let cancelled = false;
     const fetchArtworks = async () => {
-      const cached = cache.get<{ artworks: ArtworkType[]; hasMore: boolean }>(EXPLORE_CACHE_KEY);
+      setLoading(true);
+      if (needsFilteredQuery) {
+        try {
+          const result = await getPublishedArtworksFilteredPaginated(queryOptions, 20);
+          if (cancelled) return;
+          setArtworks(result.artworks);
+          setLastVisible(result.lastVisible);
+          setHasMore(result.hasMore);
+        } catch {
+          if (!cancelled) toast.error('Failed to load artworks');
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+        return;
+      }
+
+      const cacheKey = exploreCacheKey(sortOption);
+      const cached = cache.get<{ artworks: ArtworkType[]; hasMore: boolean }>(cacheKey);
       if (cached.exists && cached.data) {
         setArtworks(cached.data.artworks);
         setHasMore(cached.data.hasMore);
-        setLoading(false);
+        if (!cancelled) setLoading(false);
         if (cached.isStale) {
           try {
-            const result = await getPublishedArtworksPaginated(20);
+            const result = await getPublishedArtworksPaginated(20, undefined, paginationOrderMode);
+            if (cancelled) return;
             setArtworks(result.artworks);
             setLastVisible(result.lastVisible);
             setHasMore(result.hasMore);
-            cache.set(EXPLORE_CACHE_KEY, { artworks: result.artworks, hasMore: result.hasMore }, 2 * 60 * 1000, 5 * 60 * 1000);
+            cache.set(cacheKey, { artworks: result.artworks, hasMore: result.hasMore }, 2 * 60 * 1000, 5 * 60 * 1000);
           } catch {}
         }
         return;
       }
-      setLoading(true);
       try {
-        const result = await getPublishedArtworksPaginated(20);
+        const result = await getPublishedArtworksPaginated(20, undefined, paginationOrderMode);
+        if (cancelled) return;
         setArtworks(result.artworks);
         setLastVisible(result.lastVisible);
         setHasMore(result.hasMore);
-        cache.set(EXPLORE_CACHE_KEY, { artworks: result.artworks, hasMore: result.hasMore }, 2 * 60 * 1000, 5 * 60 * 1000);
+        cache.set(cacheKey, { artworks: result.artworks, hasMore: result.hasMore }, 2 * 60 * 1000, 5 * 60 * 1000);
       } catch (error) {
-        toast.error('Failed to load artworks');
+        if (!cancelled) toast.error('Failed to load artworks');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     fetchArtworks();
-  }, []);
+    return () => { cancelled = true; };
+  }, [needsFilteredQuery, queryOptions, sortOption, paginationOrderMode]);
+
+  // Restore scroll position once after artworks are rendered (when returning from /card/:id).
+  useEffect(() => {
+    if (scrollRestoredRef.current) return;
+    if (loading) return;
+    if (artworks.length === 0) return;
+    const saved = sessionStorage.getItem(EXPLORE_SCROLL_KEY);
+    if (!saved) {
+      scrollRestoredRef.current = true;
+      return;
+    }
+    const target = Number(saved);
+    if (!Number.isFinite(target) || target <= 0) {
+      sessionStorage.removeItem(EXPLORE_SCROLL_KEY);
+      scrollRestoredRef.current = true;
+      return;
+    }
+
+    // Retry across frames until scrollHeight is tall enough (images / virtual grid still settling).
+    let attempts = 0;
+    const maxAttempts = 60; // ~1s @ 60fps
+    let rafId = 0;
+    let cancelled = false;
+    const tryRestore = () => {
+      if (cancelled) return;
+      const el = scrollContainerRef.current;
+      if (!el) {
+        attempts++;
+        if (attempts < maxAttempts) {
+          rafId = window.requestAnimationFrame(tryRestore);
+        } else {
+          scrollRestoredRef.current = true;
+          sessionStorage.removeItem(EXPLORE_SCROLL_KEY);
+        }
+        return;
+      }
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      if (maxScroll >= target) {
+        el.scrollTop = target;
+        scrollRestoredRef.current = true;
+        sessionStorage.removeItem(EXPLORE_SCROLL_KEY);
+        return;
+      }
+      // Not tall enough yet — pin to current max so the user is at least near the spot
+      // and keep retrying as more content arrives.
+      if (maxScroll > 0) el.scrollTop = maxScroll;
+      attempts++;
+      if (attempts < maxAttempts) {
+        rafId = window.requestAnimationFrame(tryRestore);
+      } else {
+        scrollRestoredRef.current = true;
+        sessionStorage.removeItem(EXPLORE_SCROLL_KEY);
+      }
+    };
+    rafId = window.requestAnimationFrame(tryRestore);
+    return () => {
+      cancelled = true;
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, [loading, artworks.length]);
 
   const loadMoreArtworks = useCallback(async () => {
     if (!hasMore || loadingMore || !lastVisible) return;
     setLoadingMore(true);
     try {
-      const result = await getPublishedArtworksPaginated(20, lastVisible);
+      const result = needsFilteredQuery
+        ? await getPublishedArtworksFilteredPaginated(queryOptions, 20, lastVisible)
+        : await getPublishedArtworksPaginated(20, lastVisible, paginationOrderMode);
       const updated = [...artworks, ...result.artworks];
       setArtworks(updated);
       setLastVisible(result.lastVisible);
       setHasMore(result.hasMore);
-      cache.set(EXPLORE_CACHE_KEY, { artworks: updated, hasMore: result.hasMore }, 2 * 60 * 1000, 5 * 60 * 1000);
+      if (!needsFilteredQuery) {
+        cache.set(exploreCacheKey(sortOption), { artworks: updated, hasMore: result.hasMore }, 2 * 60 * 1000, 5 * 60 * 1000);
+      }
     } catch {
       toast.error('Failed to load more artworks');
     } finally {
       setLoadingMore(false);
     }
-  }, [hasMore, loadingMore, lastVisible, artworks]);
+  }, [hasMore, loadingMore, lastVisible, artworks, needsFilteredQuery, queryOptions, paginationOrderMode, sortOption]);
 
   // Infinite scroll on the local container
   useEffect(() => {
@@ -210,10 +344,9 @@ const Explore: React.FC = () => {
     if (showSuggestions) { document.addEventListener('mousedown', handler); return () => document.removeEventListener('mousedown', handler); }
   }, [showSuggestions]);
 
-  // All interactions redirect to login with an info toast
+  // Show toast without redirecting - login/signup buttons are in header
   const goToLogin = () => {
-    toast.info('Sign in to access this feature', { toastId: 'explore-login-prompt' });
-    navigate('/login');
+    toast.info('Please log in to access this feature', { toastId: 'explore-login-prompt' });
   };
 
   const searchSuggestions = useMemo(() => {
@@ -233,45 +366,117 @@ const Explore: React.FC = () => {
     return Array.from(s).slice(0, 8);
   }, [searchQuery, artworks, matchedUsers]);
 
-  const filteredArtworks = useMemo(() => {
-    return artworks.filter(a => {
-      if (debouncedSearchQuery.trim()) {
-        const q = debouncedSearchQuery.toLowerCase();
-        if (q.includes(' - @')) {
-          const [namePart, userPart] = q.split(' - @');
-          const artist = matchedUsers.find(u => u.username?.toLowerCase() === userPart);
-          if (artist && a.artistId === artist.uid) return true;
-          return [namePart, userPart].some(t => a.title?.toLowerCase().includes(t) || a.description?.toLowerCase().includes(t) || a.category?.toLowerCase().includes(t) || a.medium?.toLowerCase().includes(t));
-        }
-        if (q.startsWith('@')) {
-          const un = q.slice(1);
-          const artist = matchedUsers.find(u => u.username?.toLowerCase() === un);
-          if (artist && a.artistId === artist.uid) return true;
-          return a.title?.toLowerCase().includes(un) || a.artistName?.toLowerCase().includes(un) || a.category?.toLowerCase().includes(un) || a.medium?.toLowerCase().includes(un);
-        }
-        if (!(a.title?.toLowerCase().includes(q) || a.description?.toLowerCase().includes(q) || a.artistName?.toLowerCase().includes(q) || a.category?.toLowerCase().includes(q) || a.medium?.toLowerCase().includes(q))) return false;
-      }
-      if (activeCategory !== 'All' && a.category?.toLowerCase() !== activeCategory.toLowerCase()) return false;
-      if (filters.mediums.length > 0 && !filters.mediums.some(m => a.medium?.toLowerCase() === m.toLowerCase())) return false;
-      if (a.price < filters.priceRange.min || a.price > filters.priceRange.max) return false;
-      if (filters.sizes.length > 0) {
-        const w = parseInches(a.width), h = parseInches(a.height);
-        if (w === null || h === null) return false;
-        if (!filters.sizes.some(sz => { const sc = SIZE_CATEGORIES.find(s => s.label === sz); return sc && w >= sc.minWidth && w <= sc.maxWidth && h >= sc.minHeight && h <= sc.maxHeight; })) return false;
-      }
-      return true;
-    });
-  }, [artworks, debouncedSearchQuery, activeCategory, filters, matchedUsers]);
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setDebouncedSearchQuery(''); // Clear debounced query immediately
+    setMatchedUsers([]);
+    setShowSuggestions(false);
+    searchInputRef.current?.focus();
+  };
 
-  const sortedArtworks = useMemo(() => {
-    return [...filteredArtworks].sort((a, b) => {
-      if (sortOption === 'price-low') return a.price - b.price;
-      if (sortOption === 'price-high') return b.price - a.price;
-      const da = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
-      const db = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
-      return db.getTime() - da.getTime();
+  const displayedArtworks = artworks;
+  const shouldVirtualizeGrid = displayedArtworks.length > 30;
+
+  const gridColumnCount = useMemo(() => {
+    return getGridColumnCount(gridWidth || window.innerWidth);
+  }, [gridWidth]);
+
+  const estimatedRowHeight = useMemo(() => {
+    if (!gridWidth) return 360;
+    const horizontalPadding = 12; // 6px left + 6px right from .artwork-grid
+    const gap = gridWidth <= 639 ? 16 : 18;
+    const usableWidth = Math.max(220, gridWidth - horizontalPadding);
+    const cardWidth =
+      (usableWidth - gap * Math.max(0, gridColumnCount - 1)) / gridColumnCount;
+    return Math.max(300, Math.ceil(cardWidth * 1.42));
+  }, [gridWidth, gridColumnCount]);
+
+  const rowCount = useMemo(
+    () => Math.ceil(displayedArtworks.length / gridColumnCount),
+    [displayedArtworks.length, gridColumnCount]
+  );
+
+  const relativeScrollTop = Math.max(0, gridScrollTop - gridOffsetTop);
+  const visibleStartRow = Math.max(
+    0,
+    Math.floor(relativeScrollTop / estimatedRowHeight) - 2
+  );
+  const visibleEndRow = Math.min(
+    Math.max(0, rowCount - 1),
+    Math.ceil(
+      (relativeScrollTop + (gridViewportHeight || 900)) / estimatedRowHeight
+    ) + 2
+  );
+  const startIndex = visibleStartRow * gridColumnCount;
+  const endIndex = Math.min(
+    displayedArtworks.length,
+    (visibleEndRow + 1) * gridColumnCount
+  );
+
+  const virtualizedArtworks = shouldVirtualizeGrid
+    ? displayedArtworks.slice(startIndex, endIndex)
+    : displayedArtworks;
+  const topSpacerHeight = shouldVirtualizeGrid
+    ? visibleStartRow * estimatedRowHeight
+    : 0;
+  const renderedRows = Math.ceil(virtualizedArtworks.length / gridColumnCount);
+  const totalGridHeight = rowCount * estimatedRowHeight;
+  const bottomSpacerHeight = shouldVirtualizeGrid
+    ? Math.max(0, totalGridHeight - topSpacerHeight - renderedRows * estimatedRowHeight)
+    : 0;
+
+  const updateGridMetrics = useCallback(() => {
+    const scrollContainer = scrollContainerRef.current;
+    const shell = artworkGridShellRef.current;
+    if (!scrollContainer || !shell) return;
+
+    setGridScrollTop(scrollContainer.scrollTop);
+    setGridViewportHeight(scrollContainer.clientHeight);
+
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const shellRect = shell.getBoundingClientRect();
+    const offsetTop = shellRect.top - containerRect.top + scrollContainer.scrollTop;
+    setGridOffsetTop(offsetTop);
+  }, []);
+
+  useEffect(() => {
+    if (!shouldVirtualizeGrid) return;
+    const shell = artworkGridShellRef.current;
+    if (!shell || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      setGridWidth(Math.floor(entry.contentRect.width));
     });
-  }, [filteredArtworks, sortOption]);
+    observer.observe(shell);
+    return () => observer.disconnect();
+  }, [shouldVirtualizeGrid, displayedArtworks.length]);
+
+  useEffect(() => {
+    if (!shouldVirtualizeGrid) return;
+    let rafId = 0;
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    const scheduleMeasure = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        updateGridMetrics();
+      });
+    };
+
+    scheduleMeasure();
+    scrollContainer.addEventListener('scroll', scheduleMeasure, { passive: true });
+    window.addEventListener('resize', scheduleMeasure);
+
+    return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      scrollContainer.removeEventListener('scroll', scheduleMeasure);
+      window.removeEventListener('resize', scheduleMeasure);
+    };
+  }, [shouldVirtualizeGrid, updateGridMetrics, displayedArtworks.length]);
 
   return (
     <div className="explore-page">
@@ -292,6 +497,23 @@ const Explore: React.FC = () => {
                   Explore curated artwork<span className="discover-description-extended"> from talented artists</span>.
                 </p>
               </div>
+              {/* Login/Signup buttons for non-authenticated users */}
+              {!authLoading && !appUser && (
+                <div className="explore-auth-buttons">
+                  <button
+                    className="explore-login-btn"
+                    onClick={() => navigate('/login')}
+                  >
+                    Log in
+                  </button>
+                  <button
+                    className="explore-signup-btn"
+                    onClick={() => navigate('/signup')}
+                  >
+                    Sign up
+                  </button>
+                </div>
+              )}
               {/* Drawer Toggle Button */}
               <button 
                 className={`discover-drawer-toggle ${isSearchDrawerOpen ? 'open' : ''}`}
@@ -315,37 +537,60 @@ const Explore: React.FC = () => {
                 {/* Search bar */}
                 <div className="discover-search-container">
             <div className="discover-search-bar" ref={searchContainerRef}>
-              <svg className="discover-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
-              </svg>
-              <input
-                type="text"
-                className="discover-search-input"
-                placeholder="Search by style, category, medium, artist"
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(e.target.value.trim().length > 0); }}
-                onFocus={() => searchQuery.trim() && setShowSuggestions(true)}
-              />
-              {showSuggestions && searchSuggestions.length > 0 && (
-                <div className="discover-search-suggestions">
-                  {searchSuggestions.map((s, i) => (
-                    <button key={i} className="discover-search-suggestion-item" onClick={() => { setSearchQuery(s); setShowSuggestions(false); }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="discover-search-field">
+                <svg className="discover-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                  type="text"
+                  className="discover-search-input"
+                  placeholder="Search by style, category, medium, artist"
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(e.target.value.trim().length > 0); }}
+                  onFocus={() => searchQuery.trim() && setShowSuggestions(true)}
+                  ref={searchInputRef}
+                />
+                {searchQuery.trim().length > 0 && (
+                  <button
+                    type="button"
+                    className="discover-search-clear-btn"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleClearSearch();
+                    }}
+                    aria-label="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+                {showSuggestions && searchSuggestions.length > 0 && (
+                  <div className="discover-search-suggestions">
+                    {searchSuggestions.map((s, i) => (
+                      <button key={i} className="discover-search-suggestion-item" onClick={() => { setSearchQuery(s); setShowSuggestions(false); }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="discover-btn-wrapper" ref={sortDropdownRef}>
                 <button className="discover-filter-btn" onClick={() => setIsSortDropdownOpen(v => !v)} aria-label="Sort">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m7 15 5 5 5-5" /><path d="m7 9 5-5 5 5" /></svg>
                 </button>
                 {isSortDropdownOpen && (
                   <div className="discover-sort-dropdown" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
-                    {(['price-low', 'price-high', 'newest'] as const).map(opt => (
+                    {(['featured', 'newest', 'price-low', 'price-high'] as const).map(opt => (
                       <button key={opt} className="discover-sort-option" onClick={() => { setSortOption(opt); setIsSortDropdownOpen(false); }}>
-                        {opt === 'price-low' ? 'Price: Low to High' : opt === 'price-high' ? 'Price: High to Low' : 'Latest First'}
+                        {opt === 'featured'
+                          ? 'Featured'
+                          : opt === 'price-low'
+                            ? 'Price: Low to High'
+                            : opt === 'price-high'
+                              ? 'Price: High to Low'
+                              : 'Latest First'}
                       </button>
                     ))}
                   </div>
@@ -353,8 +598,23 @@ const Explore: React.FC = () => {
                 <span className="discover-tooltip">Sort</span>
               </div>
               <div className="discover-btn-wrapper">
-                <button className="discover-filter-btn" onClick={() => setIsFilterPanelOpen(v => !v)} aria-label="Filter">
+                <button className="discover-filter-btn" onClick={() => setIsFilterPanelOpen(v => !v)} aria-label="Filter" style={{ position: 'relative' }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>
+                  {hasActivePanelFilters && (
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 4,
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--color-primary)',
+                        boxShadow: '0 0 0 2px var(--bg-primary)',
+                      }}
+                    />
+                  )}
                 </button>
                 <span className="discover-tooltip">Filter</span>
               </div>
@@ -381,7 +641,7 @@ const Explore: React.FC = () => {
           {/* Artwork grid */}
           <div className="discover-content">
             {loading ? (
-              <LoadingState animation={laptopAnimation} message="Loading artworks..." fullHeight />
+              <LoadingState variant="cards" cardsLayout="standard" message="Loading artworks..." fullHeight />
             ) : (
               <>
                 {debouncedSearchQuery.trim() && matchedUsers.length > 0 && (
@@ -405,19 +665,27 @@ const Explore: React.FC = () => {
                   </div>
                 )}
 
-                {sortedArtworks.length === 0 && matchedUsers.length === 0 ? (
+                {displayedArtworks.length === 0 && matchedUsers.length === 0 ? (
                   <EmptyState animation={noContentAnimation} title="No Artworks Found" description="Check back later for amazing artworks from talented artists." actionLabel="Go to Home" actionPath="/" />
-                ) : sortedArtworks.length > 0 ? (
+                ) : displayedArtworks.length > 0 ? (
                   <>
                     {debouncedSearchQuery.trim() && <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: 'var(--color-royal)', paddingLeft: '1rem' }}>Artworks</h3>}
-                    <ArtworkGrid
-                      artworks={sortedArtworks.map(a => ({ id: a.id, title: a.title, artworkImage: a.images[0], artistName: a.artistName, artistAvatar: a.artistAvatar || '/artist.png', artistId: a.artistId, price: a.price, sold: a.sold }))}
-                      viewType="discover"
-                      onArtworkClick={goToLogin}
-                      onArtistClick={goToLogin}
-                      onSave={goToLogin}
-                      savedArtworks={savedArtworks}
-                    />
+                    <div ref={artworkGridShellRef}>
+                      <ArtworkGrid
+                        artworks={displayedArtworks.map(a => ({ id: a.id, title: a.title, artworkImage: a.images[0], artistName: a.artistName, artistAvatar: a.artistAvatar || '/artist.png', artistId: a.artistId, price: a.price, sold: a.sold }))}
+                        viewType="discover"
+                        onArtworkClick={(id) => {
+                          sessionStorage.setItem('artworkSourceRoute', '/explore');
+                          if (scrollContainerRef.current) {
+                            sessionStorage.setItem(EXPLORE_SCROLL_KEY, String(scrollContainerRef.current.scrollTop));
+                          }
+                          navigate(`/card/${id}`);
+                        }}
+                        onArtistClick={goToLogin}
+                        onSave={goToLogin}
+                        savedArtworks={savedArtworks}
+                      />
+                    </div>
                     {loadingMore && (
                       <div style={{ display: 'flex', justifyContent: 'center', padding: 20 }}>
                         <div style={{ border: '3px solid var(--primary-alpha-20)', borderTop: '3px solid var(--color-primary)', borderRadius: '50%', width: 40, height: 40, animation: 'spin 1s linear infinite' }} />

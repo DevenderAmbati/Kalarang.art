@@ -22,6 +22,7 @@ const ProfileHeaderDemo: React.FC = () => {
       followers: 2847,
       artworks: 156,
       following: 423,
+      customized: 0,
     },
   };
 
@@ -33,6 +34,7 @@ const ProfileHeaderDemo: React.FC = () => {
       followers: 15600,
       artworks: 89,
       following: 1200,
+      customized: 0,
     },
   };
 

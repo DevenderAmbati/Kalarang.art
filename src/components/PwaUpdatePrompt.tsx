@@ -85,7 +85,7 @@ const PwaUpdatePrompt: React.FC = () => {
 
   return (
     <div className="pwa-update-banner" role="status" aria-live="polite">
-      <span className="pwa-update-banner__text">New version of Kalarang is available</span>
+      <span className="pwa-update-banner__text">New update available</span>
       <div className="pwa-update-banner__actions">
         <button
           type="button"
@@ -93,7 +93,7 @@ const PwaUpdatePrompt: React.FC = () => {
           onClick={applyUpdate}
           disabled={isUpdating}
         >
-          {isUpdating ? 'Updating…' : 'Update'}
+          {isUpdating ? 'Installing...' : 'Install'}
         </button>
         <button
           type="button"

@@ -7,7 +7,6 @@ import LoadingState from '../../components/State/LoadingState';
 import LazyImage from '../../components/Common/LazyImage';
 import { useFavoriteArtworks } from '../../hooks/useCachedData';
 import { removeArtworkFromFavorites } from '../../services/interactionService';
-import girlAnimation from '../../animations/African American Art.json';
 import noContentAnimation from '../../animations/no content.json';
 import { toast } from 'react-toastify';
 import { cache, cacheKeys } from '../../utils/cache';
@@ -142,7 +141,6 @@ const Favourites: React.FC = () => {
   useEffect(() => {
     const handleFavoritesChanged = ((e: CustomEvent) => {
       if (e.detail.userId === appUser?.uid) {
-        console.log('[Favourites] Favorites changed in another component, refetching...');
         refetch();
       }
     }) as EventListener;
@@ -152,7 +150,6 @@ const Favourites: React.FC = () => {
   }, [appUser?.uid, refetch]);
 
   const handleArtworkClick = (id: string) => {
-    console.log('Artwork clicked:', id);
     // Navigate to artwork detail page
     sessionStorage.setItem('artworkSourceRoute', '/favourites');
     navigate(`/card/${id}`);
@@ -185,10 +182,9 @@ const Favourites: React.FC = () => {
           newSet.delete(id);
           return newSet;
         });
-        toast.success('Removed from favorites');
+         
       }, 300); // 300ms matches our CSS animation duration
     } catch (error) {
-      console.error('Error removing from favorites:', error);
       toast.error('Failed to remove from favorites');
       // Rollback optimistic update on error
       setLocalArtworks(favoriteArtworks);
@@ -216,7 +212,7 @@ const Favourites: React.FC = () => {
       <div className="discover-container">
         <div className="discover-header favourites-header">
           <p className="discover-description">
-            Your personally curated art collection.
+            Your favourite artworks.
           </p>
         </div>
 
@@ -224,7 +220,8 @@ const Favourites: React.FC = () => {
         <div className="discover-content favourites-content">
           {loading && !displayArtworks ? (
             <LoadingState 
-              animation={girlAnimation}
+              variant="cards"
+              cardsLayout="standard"
               message="Loading your favorites..." 
               fullHeight 
             />

@@ -50,6 +50,45 @@ body.explore-page-active {
   box-shadow: 0 4px 14px rgba(47, 164, 169, 0.4), 0 0 0 3px var(--primary-alpha-10);
 }
 
+/* Auth buttons for non-authenticated users */
+.explore-auth-buttons {
+  display: flex;
+  gap: 8px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.explore-login-btn,
+.explore-signup-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.explore-login-btn {
+  color: var(--color-primary);
+  background-color: transparent;
+  border: 1.5px solid var(--color-primary);
+}
+
+.explore-login-btn:hover {
+  background-color: var(--primary-alpha-10);
+}
+
+.explore-signup-btn {
+  color: white;
+  background-color: var(--color-primary);
+  border: none;
+}
+
+.explore-signup-btn:hover {
+  background-color: var(--color-primary-dark);
+}
+
 .explore-top-logo {
   display: flex;
   align-items: center;
@@ -194,7 +233,7 @@ body.explore-page-active {
   }
   
   .explore-page-title {
-    font-size: 1.5rem;
+    display: none;
   }
   
   .explore-description {
@@ -242,6 +281,18 @@ body.explore-page-active {
   .explore-back-btn svg {
     width: 18px;
     height: 18px;
+  }
+
+  /* Make auth buttons more compact on mobile */
+  .explore-auth-buttons {
+    gap: 6px;
+    margin-right: 4px;
+  }
+
+  .explore-login-btn,
+  .explore-signup-btn {
+    padding: 6px 10px;
+    font-size: 12px;
   }
 }
 

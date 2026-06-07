@@ -22,9 +22,9 @@ import {
 } from '@dnd-kit/sortable';
 import UploadDropzone from './UploadDropzone';
 import ImagePreviewGrid from './ImagePreviewGrid';
-import ArtworkMetadataForm, { ArtworkFormData } from './ArtworkMetadataForm';
+import ArtworkMetadataForm, { ArtworkFormData, ArtworkFormErrors } from './ArtworkMetadataForm';
 import { useAuth } from '../../context/AuthContext';
-import { createArtwork, toggleArtworkPublish, getArtwork, updateArtwork, uploadArtworkImages } from '../../services/artworkService';
+import { createArtwork, toggleArtworkPublish, getArtwork, updateArtwork, uploadArtworkImages, uploadSingleArtworkImage, deleteArtworkImagesByUrls, createArtworkWithUrls } from '../../services/artworkService';
 import { cache, cacheKeys } from '../../utils/cache';
 import artAnimation from '../../animations/Line art (1).json';
 import publishAnimation from '../../animations/Line art (2).json';
@@ -33,8 +33,10 @@ import './CreateArtwork.css';
 interface ImagePreview {
   id: string;
   file?: File;
-  url: string;
+  url: string; // Local blob URL or Firebase URL
+  firebaseUrl?: string; // Firebase Storage URL after upload
   isExisting?: boolean;
+  isUploading?: boolean;
 }
 
 const CreateArtwork: React.FC = () => {
@@ -46,6 +48,7 @@ const CreateArtwork: React.FC = () => {
   const [isDragActive, setIsDragActive] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [showPublishErrors, setShowPublishErrors] = useState(false);
   const [savedArtworkId, setSavedArtworkId] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState('');
@@ -54,7 +57,12 @@ const CreateArtwork: React.FC = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(true); // Start with true for new artworks
   const [showUploadGuidelinesTooltip, setShowUploadGuidelinesTooltip] = useState(false);
   const uploadGuidelinesRef = useRef<HTMLDivElement>(null);
-  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
+  const [showDraftModal, setShowDraftModal] = useState(false);
+  const [showUpiRequiredModal, setShowUpiRequiredModal] = useState(false);
+  const [isArtworkPublished, setIsArtworkPublished] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
+  // Track Firebase URLs of newly uploaded images (not yet saved to gallery) for potential cleanup
+  const uploadedImageUrlsRef = useRef<string[]>([]);
   const [formData, setFormData] = useState<ArtworkFormData>({
     title: '',
     description: '',
@@ -87,7 +95,7 @@ const CreateArtwork: React.FC = () => {
     return () => clearTimeout(t);
   }, [isLoadingArtwork, isSaving, isPublishing]);
 
-  const maxImages = 6;
+  const maxImages = 4;
 
   // Load draft from localStorage if available (for new artworks only)
   useEffect(() => {
@@ -100,104 +108,167 @@ const CreateArtwork: React.FC = () => {
         if (draft.formData) {
           setFormData(draft.formData);
         }
-        // Restore images from base64 data URLs
-        if (draft.images && Array.isArray(draft.images)) {
+        // Restore images from Firebase URLs
+        if (draft.images && Array.isArray(draft.images) && draft.images.length > 0) {
           const restoredImages: ImagePreview[] = draft.images.map((img: any) => ({
             id: img.id,
-            url: img.dataUrl,
-            isExisting: false,
+            url: img.firebaseUrl, // Use Firebase URL for display
+            firebaseUrl: img.firebaseUrl,
+            isExisting: false, // Mark as not existing in DB yet
           }));
           setImages(restoredImages);
+          // Track these URLs for potential cleanup
+          uploadedImageUrlsRef.current = draft.images.map((img: any) => img.firebaseUrl);
         }
-        setHasRestoredDraft(true);
-        console.log('[Draft] Loaded from localStorage:', draft);
-        toast.info('Draft restored from your last session', {
-          autoClose: 3000,
-        });
       } catch (error) {
-        console.error('Error loading draft:', error);
+        // Silently fail
       }
     }
   }, [editArtworkId]);
 
-  // Save draft to localStorage whenever form data changes
-  useEffect(() => {
+  // Check if there's unsaved content worth prompting about
+  const hasUnsavedContent = !editArtworkId && !savedArtworkId && !!(
+    formData.title || formData.description || formData.category || 
+    formData.medium || formData.createdDate || formData.width || 
+    formData.height || formData.price || images.length > 0
+  );
+
+  // Save draft function - called manually or when navigating away
+  const saveDraft = useCallback(() => {
     if (editArtworkId) return; // Don't save draft if editing existing artwork
 
-    // Only save if there's actual data (not just empty form)
     const hasData = formData.title || formData.description || formData.category || 
                      formData.medium || formData.createdDate || formData.width || 
                      formData.height || formData.price;
     
     if (!hasData && images.length === 0) {
-      // If form is empty and no images, remove the draft
       localStorage.removeItem('artworkDraft');
       return;
     }
 
-    // Debounce the save to avoid too many writes
-    const timeoutId = setTimeout(async () => {
-      try {
-        // Convert images to base64 data URLs for storage
-        const imagesToSave = await Promise.all(
-          images.filter(img => !img.isExisting).map(async (img) => {
-            // If it's a blob URL, fetch and convert to base64
-            if (img.url.startsWith('blob:')) {
-              try {
-                const response = await fetch(img.url);
-                const blob = await response.blob();
-                const reader = new FileReader();
-                const dataUrl = await new Promise<string>((resolve) => {
-                  reader.onloadend = () => resolve(reader.result as string);
-                  reader.readAsDataURL(blob);
-                });
-                return { id: img.id, dataUrl };
-              } catch (error) {
-                console.error('Error converting image:', error);
-                return null;
-              }
-            }
-            return { id: img.id, dataUrl: img.url };
-          })
-        );
+    try {
+      // Save images with their Firebase URLs
+      const imagesToSave = images
+        .filter(img => img.firebaseUrl) // Only save images that have been uploaded to Firebase
+        .map(img => ({
+          id: img.id,
+          firebaseUrl: img.firebaseUrl,
+        }));
 
-        const draft = {
-          formData,
-          images: imagesToSave.filter(img => img !== null),
-          timestamp: Date.now(),
-        };
-        
-        const draftStr = JSON.stringify(draft);
-        // Check if draft is too large (localStorage limit is typically 5-10MB)
-        if (draftStr.length > 4.5 * 1024 * 1024) { // 4.5MB limit to be safe
-          console.warn('[Draft] Draft too large, saving without images');
-          const draftWithoutImages = {
-            formData,
-            timestamp: Date.now(),
-          };
-          localStorage.setItem('artworkDraft', JSON.stringify(draftWithoutImages));
-          toast.warning('Draft saved without images (size limit)', { autoClose: 2000 });
-        } else {
-          localStorage.setItem('artworkDraft', draftStr);
-          console.log('[Draft] Saved to localStorage:', draft);
-        }
-      } catch (error) {
-        console.error('[Draft] Error saving:', error);
-        // If error (e.g., quota exceeded), try saving without images
-        try {
-          const draftWithoutImages = {
-            formData,
-            timestamp: Date.now(),
-          };
-          localStorage.setItem('artworkDraft', JSON.stringify(draftWithoutImages));
-        } catch (e) {
-          console.error('[Draft] Failed to save even without images:', e);
-        }
-      }
-    }, 500); // Wait 500ms after last change before saving
-
-    return () => clearTimeout(timeoutId);
+      const draft = {
+        formData,
+        images: imagesToSave,
+        timestamp: Date.now(),
+      };
+      
+      localStorage.setItem('artworkDraft', JSON.stringify(draft));
+    } catch (error) {
+      // Silently fail
+    }
   }, [formData, images, editArtworkId]);
+
+  // Track if we're allowing navigation (after user confirms)
+  const allowNavigationRef = useRef(false);
+
+  // Handle browser close/refresh with beforeunload
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedContent) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedContent]);
+
+  // Intercept browser back/forward navigation
+  useEffect(() => {
+    if (!hasUnsavedContent) return;
+
+    // Push a dummy state so we can intercept back navigation
+    window.history.pushState(null, '', window.location.href);
+
+    const handlePopState = () => {
+      if (allowNavigationRef.current) {
+        allowNavigationRef.current = false;
+        return;
+      }
+      // Push state again to prevent navigation
+      window.history.pushState(null, '', window.location.href);
+      // Show modal
+      setShowDraftModal(true);
+      setPendingNavigation(() => () => {
+        allowNavigationRef.current = true;
+        window.history.back();
+      });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [hasUnsavedContent]);
+
+  // Intercept link clicks for internal navigation
+  useEffect(() => {
+    if (!hasUnsavedContent) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest('a');
+      
+      if (!link) return;
+      
+      const href = link.getAttribute('href');
+      if (!href || href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+      
+      // Internal link - intercept it
+      e.preventDefault();
+      e.stopPropagation();
+      
+      setShowDraftModal(true);
+      setPendingNavigation(() => () => navigate(href));
+    };
+
+    document.addEventListener('click', handleClick, true);
+    return () => document.removeEventListener('click', handleClick, true);
+  }, [hasUnsavedContent, navigate]);
+
+  // Handle save draft from modal
+  const handleSaveDraftAndLeave = () => {
+    saveDraft();
+    setShowDraftModal(false);
+    if (pendingNavigation) {
+      pendingNavigation();
+      setPendingNavigation(null);
+    }
+  };
+
+  // Handle cancel/discard from modal - delete uploaded images in background
+  const handleDiscardAndLeave = () => {
+    // Delete uploaded images in background (only those not yet saved to gallery)
+    const urlsToDelete = uploadedImageUrlsRef.current.filter(url => url);
+    if (urlsToDelete.length > 0) {
+      // Fire and forget - delete in background
+      deleteArtworkImagesByUrls(urlsToDelete).catch(() => {
+        // Silently fail
+      });
+    }
+    
+    localStorage.removeItem('artworkDraft');
+    uploadedImageUrlsRef.current = [];
+    setShowDraftModal(false);
+    if (pendingNavigation) {
+      pendingNavigation();
+      setPendingNavigation(null);
+    }
+  };
+
+  // Handle cancel from modal (stay on page)
+  const handleCancelNavigation = () => {
+    setShowDraftModal(false);
+    setPendingNavigation(null);
+  };
 
   // Load existing artwork if editing
   useEffect(() => {
@@ -241,8 +312,8 @@ const CreateArtwork: React.FC = () => {
         }));
         setImages(existingPreviews);
         setSavedArtworkId(editArtworkId);
+        setIsArtworkPublished(artwork.published || false);
       } catch (error) {
-        console.error('Error loading artwork:', error);
         toast.error('Failed to load artwork');
         navigate('/post');
       } finally {
@@ -258,31 +329,83 @@ const CreateArtwork: React.FC = () => {
     file,
     url: URL.createObjectURL(file),
     isExisting: false,
+    isUploading: true, // Start with uploading state
   });
 
-  const handleFileSelect = useCallback((files: File[]) => {
+  const handleFileSelect = useCallback(async (files: File[]) => {
+    if (!appUser) {
+      toast.error('You must be logged in to upload images');
+      return;
+    }
+
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
     const totalCurrentImages = images.length;
     const remainingSlots = maxImages - totalCurrentImages;
     const filesToAdd = imageFiles.slice(0, remainingSlots);
     
+    if (filesToAdd.length === 0) return;
+
+    // Create previews with uploading state
     const newPreviews = filesToAdd.map(createImagePreview);
     setImages(prev => [...prev, ...newPreviews]);
     setIsDragActive(false);
+
+    // Upload each image to Firebase immediately
+    for (let i = 0; i < newPreviews.length; i++) {
+      const preview = newPreviews[i];
+      const file = filesToAdd[i];
+      
+      try {
+        const firebaseUrl = await uploadSingleArtworkImage(appUser.uid, file);
+        
+        // Update the image with Firebase URL and remove uploading state
+        setImages(prev => prev.map(img => 
+          img.id === preview.id 
+            ? { ...img, firebaseUrl, isUploading: false, url: firebaseUrl }
+            : img
+        ));
+        
+        // Track the URL for potential cleanup
+        uploadedImageUrlsRef.current.push(firebaseUrl);
+      } catch (error) {
+        toast.error(`Failed to upload image ${i + 1}`);
+        // Remove the failed image from the list
+        setImages(prev => prev.filter(img => img.id !== preview.id));
+        // Clean up blob URL
+        URL.revokeObjectURL(preview.url);
+      }
+    }
+
     // Mark as having unsaved changes when editing or after initial save
     if (editArtworkId || savedArtworkId) {
       setHasUnsavedChanges(true);
     }
-  }, [images.length, maxImages, editArtworkId, savedArtworkId]);
+  }, [images.length, maxImages, editArtworkId, savedArtworkId, appUser]);
 
   const handleRemoveImage = useCallback((id: string) => {
     setImages(prev => {
-      const updated = prev.filter(img => img.id !== id);
-      // Clean up URL for new images only
       const removedImage = prev.find(img => img.id === id);
-      if (removedImage && !removedImage.isExisting && removedImage.file) {
-        URL.revokeObjectURL(removedImage.url);
+      const updated = prev.filter(img => img.id !== id);
+      
+      if (removedImage) {
+        // Clean up blob URL for new images
+        if (!removedImage.isExisting && removedImage.file) {
+          URL.revokeObjectURL(removedImage.url);
+        }
+        
+        // If image has Firebase URL and hasn't been saved to gallery yet, delete from storage
+        if (removedImage.firebaseUrl && !savedArtworkId && !removedImage.isExisting) {
+          // Remove from tracking array
+          uploadedImageUrlsRef.current = uploadedImageUrlsRef.current.filter(
+            url => url !== removedImage.firebaseUrl
+          );
+          // Delete from Firebase in background
+          deleteArtworkImagesByUrls([removedImage.firebaseUrl]).catch(() => {
+            // Silently fail
+          });
+        }
       }
+      
       return updated;
     });
     // Mark as having unsaved changes when editing or after initial save
@@ -414,42 +537,43 @@ const CreateArtwork: React.FC = () => {
 
       if (savedArtworkId) {
         // Update existing artwork (works for both edit mode and after initial save)
-        console.log('Updating existing artwork:', savedArtworkId);
-        console.log('Images state:', images.map(img => ({ id: img.id, isExisting: img.isExisting, hasFile: !!img.file })));
         setUploadStatus('Updating artwork...');
-        
-        // Separate existing and new images
-        const existingImages = images.filter(img => img.isExisting);
-        const newImages = images.filter(img => !img.isExisting && img.file);
-        
-        console.log('Existing images count:', existingImages.length);
-        console.log('New images count:', newImages.length);
-        
         setUploadProgress(10);
         
-        // Upload new images in parallel for better performance
-        let newImageUrls: string[] = [];
-        if (newImages.length > 0) {
-          setUploadStatus(`Uploading ${newImages.length} new image${newImages.length > 1 ? 's' : ''}...`);
-          const newImageFiles = newImages.map(img => img.file!);
-          newImageUrls = await uploadArtworkImages(appUser.uid, newImageFiles);
-          setUploadProgress(60);
-        } else {
-          setUploadProgress(60);
-        }
-
         // Reconstruct images array maintaining the order
+        // For new images with firebaseUrl (pre-uploaded), use that
+        // For existing images, use their current URL
+        // For new images without firebaseUrl but with file (legacy/fallback), upload them
         const allImageUrls: string[] = [];
-        let newImageIndex = 0;
+        const imagesToUpload: { index: number; file: File }[] = [];
         
-        for (const img of images) {
+        for (let i = 0; i < images.length; i++) {
+          const img = images[i];
           if (img.isExisting) {
             allImageUrls.push(img.url);
-          } else {
-            allImageUrls.push(newImageUrls[newImageIndex]);
-            newImageIndex++;
+          } else if (img.firebaseUrl) {
+            // Already uploaded via immediate upload flow
+            allImageUrls.push(img.firebaseUrl);
+          } else if (img.file) {
+            // Fallback: needs to be uploaded
+            imagesToUpload.push({ index: i, file: img.file });
+            allImageUrls.push(''); // Placeholder
           }
         }
+        
+        // Upload any images that weren't pre-uploaded (fallback case)
+        if (imagesToUpload.length > 0) {
+          setUploadStatus(`Uploading ${imagesToUpload.length} new image${imagesToUpload.length > 1 ? 's' : ''}...`);
+          const files = imagesToUpload.map(item => item.file);
+          const uploadedUrls = await uploadArtworkImages(appUser.uid, files);
+          
+          // Fill in the placeholders
+          for (let j = 0; j < imagesToUpload.length; j++) {
+            allImageUrls[imagesToUpload[j].index] = uploadedUrls[j];
+          }
+        }
+        
+        setUploadProgress(60);
 
         setUploadStatus('Saving changes...');
         setUploadProgress(70);
@@ -460,49 +584,50 @@ const CreateArtwork: React.FC = () => {
         } as any);
 
         artworkId = savedArtworkId;
-        console.log('Artwork updated successfully:', artworkId);
         
         // Convert all images to existing after update to prevent re-upload
         setUploadStatus('Finalizing...');
         const existingImagePreviews: ImagePreview[] = allImageUrls.map((url, index) => ({
           id: `existing-${index}-${Date.now()}`,
           url,
+          firebaseUrl: url,
           isExisting: true,
         }));
         setImages(existingImagePreviews);
         setUploadProgress(80);
       } else {
-        // Create new artwork
-        console.log('Creating new artwork...');
-        const imageFiles = images.filter(img => img.file).map(img => img.file!);
+        // Create new artwork using pre-uploaded Firebase URLs
+        // Images are already uploaded when added, so use their firebaseUrls
+        const imageUrls = images
+          .filter(img => img.firebaseUrl)
+          .map(img => img.firebaseUrl!);
         
-        setUploadStatus(`Uploading ${imageFiles.length} image${imageFiles.length > 1 ? 's' : ''}...`);
-        setUploadProgress(20);
+        if (imageUrls.length === 0) {
+          throw new Error('No images have been uploaded. Please wait for images to finish uploading.');
+        }
         
-        artworkId = await createArtwork(
+        setUploadStatus('Creating artwork...');
+        setUploadProgress(40);
+        
+        artworkId = await createArtworkWithUrls(
           appUser.uid,
           appUser.name,
           undefined,
           artworkUpload,
-          imageFiles
+          imageUrls
         );
 
         setUploadProgress(60);
-        console.log('Artwork created successfully:', artworkId);
         
-        // Fetch the created artwork to get the uploaded image URLs
+        // Convert images to existing images with server URLs to prevent issues on next update
         setUploadStatus('Finalizing...');
-        const createdArtwork = await getArtwork(artworkId);
-        
-        if (createdArtwork && createdArtwork.images) {
-          // Convert images to existing images with server URLs to prevent re-upload on next update
-          const existingImagePreviews: ImagePreview[] = createdArtwork.images.map((url, index) => ({
-            id: `existing-${index}-${Date.now()}`,
-            url,
-            isExisting: true,
-          }));
-          setImages(existingImagePreviews);
-        }
+        const existingImagePreviews: ImagePreview[] = imageUrls.map((url, index) => ({
+          id: `existing-${index}-${Date.now()}`,
+          url,
+          firebaseUrl: url,
+          isExisting: true,
+        }));
+        setImages(existingImagePreviews);
         setUploadProgress(80);
       }
       
@@ -516,11 +641,11 @@ const CreateArtwork: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       setSavedArtworkId(artworkId);
-      toast.success(savedArtworkId ? 'Artwork updated successfully!' : 'Artwork saved to gallery! You can now publish it to feature.');
+      
+      toast.success('✅ Saved to gallery');
       
       // Invalidate portfolio cache to reflect changes
       if (appUser) {
-        console.log('[Cache] Invalidating portfolio cache after save');
         cache.invalidate(cacheKeys.galleryWorks(appUser.uid));
         cache.invalidate(cacheKeys.artistWorks(appUser.uid));
       }
@@ -531,8 +656,10 @@ const CreateArtwork: React.FC = () => {
       // Clear draft from localStorage after successful save
       localStorage.removeItem('artworkDraft');
       
+      // Clear uploaded images tracking since they are now saved to gallery
+      uploadedImageUrlsRef.current = [];
+      
     } catch (error: any) {
-      console.error('Error saving artwork:', error);
       if (tipInterval) {
         clearInterval(tipInterval);
       }
@@ -556,21 +683,40 @@ const CreateArtwork: React.FC = () => {
       return;
     }
 
+    if (!isFormValid) {
+      setShowPublishErrors(true);
+      return;
+    }
+
     if (!savedArtworkId) {
       toast.error('Please save to gallery first');
       return;
     }
+
+    // Check if UPI ID is configured
+    if (!appUser.upiId || appUser.upiId.trim() === '') {
+      setShowUpiRequiredModal(true);
+      return;
+    }
+
+    await executePublish();
+  };
+
+  const executePublish = async () => {
+    if (!appUser || !savedArtworkId) return;
 
     setIsPublishing(true);
 
     try {
       await toggleArtworkPublish(savedArtworkId, true);
 
-      toast.success('Artwork published successfully! It will now appear in Discover.');
+      toast.success('✅ Published');
+      
+      // Mark artwork as published
+      setIsArtworkPublished(true);
       
       // Invalidate all portfolio caches when publishing
       if (appUser) {
-        console.log('[Cache] Invalidating all portfolio cache after publish');
         cache.invalidate(cacheKeys.publishedWorks(appUser.uid));
         cache.invalidate(cacheKeys.galleryWorks(appUser.uid));
         cache.invalidate(cacheKeys.artistWorks(appUser.uid));
@@ -594,27 +740,38 @@ const CreateArtwork: React.FC = () => {
         isCommissioned: false,
       });
       setSavedArtworkId(null);
+      setIsArtworkPublished(false);
 
       setTimeout(() => {
         navigate('/portfolio');
       }, 1000);
     } catch (error: any) {
-      console.error('Error publishing artwork:', error);
       toast.error(error.message || 'Failed to publish artwork. Please try again.');
     } finally {
       setIsPublishing(false);
     }
   };
 
-  const isFormValid = 
-    formData.title.trim() && 
-    formData.description.trim() && 
-    formData.category && 
-    formData.medium && 
-    formData.width && 
-    formData.height && 
-    formData.price && 
+  const isFormValid =
+    formData.title.trim() &&
+    formData.description.trim() &&
+    formData.category &&
+    formData.medium &&
+    formData.width &&
+    formData.height &&
+    formData.price &&
     images.length > 0;
+
+  const publishValidationErrors: ArtworkFormErrors & { images?: string } = {
+    images: images.length === 0 ? 'At least one image is required' : '',
+    title: !formData.title.trim() ? 'Title is required' : '',
+    description: !formData.description.trim() ? 'Description is required' : '',
+    category: !formData.category ? 'Category is required' : '',
+    medium: !formData.medium ? 'Medium is required' : '',
+    width: !formData.width ? 'Width is required' : '',
+    height: !formData.height ? 'Height is required' : '',
+    price: !formData.price ? 'Price is required' : '',
+  };
 
   return (
     <>
@@ -626,7 +783,7 @@ const CreateArtwork: React.FC = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.95)',
+          background: '#ffffff',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -642,9 +799,9 @@ const CreateArtwork: React.FC = () => {
             />
           </div>
           <p style={{ 
-            color: 'var(--color-accent)', 
+            color: 'var(--color-primary)', 
             fontSize: '1.25rem', 
-            fontWeight: 600,
+            fontWeight: 400,
           }}>
             Loading Artwork...
           </p>
@@ -785,7 +942,7 @@ const CreateArtwork: React.FC = () => {
         <div className="create-artwork-header">
           <div className="create-artwork-header-left">
             <p className="create-artwork-subtitle">
-              Share your latest creation with the Kalarang community.
+              Upload and share your creations.
             </p>
           </div>
           <div ref={uploadGuidelinesRef} className="upload-guidelines-trigger">
@@ -859,16 +1016,20 @@ const CreateArtwork: React.FC = () => {
                 </DndContext>
               </div>
             </div>
+            {showPublishErrors && publishValidationErrors.images && (
+              <span className="field-error">{publishValidationErrors.images}</span>
+            )}
           </div>
 
           {/* Form Fields */}
           <ArtworkMetadataForm
             formData={formData}
             onFormDataChange={handleFormDataChange}
+            errors={showPublishErrors ? publishValidationErrors : {}}
           />
 
           {/* Info Message */}
-          <div style={{
+          <div className="gallery-hint-box" style={{
             margin: '0.5rem 0',
             marginTop: '0rem',
             padding: '1rem 1.25rem',
@@ -876,7 +1037,7 @@ const CreateArtwork: React.FC = () => {
             borderLeft: '4px solid var(--color-primary)',
             borderRadius: '8px',
           }}>
-            <p style={{ 
+            <p className="gallery-hint-text" style={{ 
               color: 'var(--color-text-secondary)', 
               fontSize: '0.95rem',
               lineHeight: '1.6',
@@ -888,53 +1049,29 @@ const CreateArtwork: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="button-group">
-            {/* Clear Draft Button - Show when draft was restored or form has content (new artworks only) */}
-            {!editArtworkId && !savedArtworkId && (hasRestoredDraft || formData.title || formData.description || formData.category || formData.medium || formData.createdDate || formData.width || formData.height || formData.price || images.length > 0) && (
-              <button
-                type="button"
-                className="button button-outline"
-                onClick={() => {
-                    setFormData({
-                      title: '',
-                      description: '',
-                      createdDate: '',
-                      category: '',
-                      medium: '',
-                      width: '',
-                      height: '',
-                      price: '',
-                      isCommissioned: false,
-                    });
-                    setImages([]);
-                    setHasRestoredDraft(false);
-                    localStorage.removeItem('artworkDraft');
-                    toast.success('Draft cleared');
-                }}
-                style={{ color: 'var(--color-royal)'}}
-              >
-                Clear Draft
-              </button>
-            )}
+            {/* Save/update button - always visible, disabled when no changes */}
+            <button
+              type="button"
+              className="button button-outline-green"
+              onClick={handleSaveToGallery}
+              disabled={!hasUnsavedChanges || isSaving || isPublishing || images.length === 0 || !formData.title.trim() || images.some(img => img.isUploading)}
+              style={!hasUnsavedChanges ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+            >
+              {images.some(img => img.isUploading)
+                ? 'Uploading images...'
+                : isSaving
+                  ? 'Saving...'
+                  : savedArtworkId
+                    ? 'Update Artwork'
+                    : 'Save to gallery'}
+            </button>
             
-            {/* Show save/update button when there are unsaved changes */}
-            {hasUnsavedChanges && (
-              <button
-                type="button"
-                className="button button-outline-green"
-                onClick={handleSaveToGallery}
-                disabled={isSaving || isPublishing || images.length === 0 || !formData.title.trim()}
-              >
-                {isSaving ? 'Saving...' : (savedArtworkId ? 'Update Artwork' : 'Save to gallery')}
-              </button>
-            )}
-            
-            {!formData.isCommissioned && (
+            {!formData.isCommissioned && !hasUnsavedChanges && !isArtworkPublished && (
               <button
                 type="button"
                 className="button button-primary"
                 onClick={handlePublish}
-                disabled={isPublishing || isSaving || !savedArtworkId || !isFormValid || hasUnsavedChanges}
-                style={(!savedArtworkId || !isFormValid || hasUnsavedChanges) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                disabled={isPublishing || isSaving || images.some(img => img.isUploading)}
               >
                 {isPublishing ? 'Publishing...' : 'Publish to feature'}
               </button>
@@ -942,6 +1079,190 @@ const CreateArtwork: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* UPI Required Modal - shown when trying to publish without UPI ID */}
+      {showUpiRequiredModal && (
+        <div 
+          className="confirm-modal-overlay" 
+          onClick={() => setShowUpiRequiredModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+        >
+          <div 
+            className="confirm-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '1.5rem',
+              maxWidth: '360px',
+              width: '90%',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              position: 'relative',
+            }}
+          >
+            {/* Icon */}
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              background: 'rgba(47, 164, 169, 0.1)',
+              color: 'var(--color-accent, #2fa4a9)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem',
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            
+            <h2 style={{ 
+              margin: '0 0 0.75rem', 
+              fontSize: '1.25rem',
+              color: '#1a1a1a',
+              textAlign: 'center',
+            }}>
+              UPI ID Required
+            </h2>
+            <p style={{ 
+              margin: '0 0 1.5rem', 
+              color: '#666666',
+              lineHeight: 1.5,
+              textAlign: 'center',
+            }}>
+              Update your UPI ID in profile so that buyers can directly transfer money to you.
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                className="button button-primary"
+                onClick={() => {
+                  saveDraft();
+                  setShowUpiRequiredModal(false);
+                  navigate('/profile');
+                }}
+                style={{ flex: 1 }}
+              >
+                Go to Profile
+              </button>
+              <button
+                className="button button-outline"
+                onClick={async () => {
+                  setShowUpiRequiredModal(false);
+                  await executePublish();
+                }}
+                style={{ flex: 1 }}
+              >
+                Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Draft Save Modal - shown when navigating away with unsaved content */}
+      {showDraftModal && (
+        <div 
+          className="confirm-modal-overlay" 
+          onClick={handleCancelNavigation}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+        >
+          <div 
+            className="confirm-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '1.5rem',
+              maxWidth: '320px',
+              width: '90%',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              position: 'relative',
+            }}
+          >
+            {/* Close button */}
+            <button
+              onClick={handleCancelNavigation}
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                background: 'transparent',
+                border: 'none',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                color: '#666666',
+                padding: '0',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: 1,
+              }}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <h2 style={{ 
+              margin: '0 0 0.75rem', 
+              fontSize: '1.25rem',
+              color: '#1a1a1a',
+              paddingRight: '2rem',
+            }}>
+              Unsaved Changes
+            </h2>
+            <p style={{ 
+              margin: '0 0 1.5rem', 
+              color: '#666666',
+              lineHeight: 1.5,
+            }}>
+              You have unsaved work. Would you like to save it as a draft?
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                className="button button-primary"
+                onClick={handleSaveDraftAndLeave}
+                disabled={images.some(img => img.isUploading)}
+                style={{ flex: 1 }}
+              >
+                {images.some(img => img.isUploading) ? 'Wait...' : 'Save Draft'}
+              </button>
+              <button
+                className="button button-outline"
+                onClick={handleDiscardAndLeave}
+                style={{ flex: 1, color: 'var(--color-error)' }}
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

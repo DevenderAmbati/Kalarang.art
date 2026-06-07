@@ -69,7 +69,6 @@ const CreateUsername: React.FC = () => {
         setError('This username is already taken');
       }
     } catch (err) {
-      console.error('Error checking username:', err);
       setError('Failed to check username availability');
       setIsAvailable(false);
     } finally {
@@ -126,8 +125,6 @@ const CreateUsername: React.FC = () => {
       await updateDoc(userRef, {
         username: username.toLowerCase(),
       });
-
-      toast.success('Username created successfully!');
       
       // Refresh user profile to get updated data
       await refreshUserProfile();
@@ -135,7 +132,6 @@ const CreateUsername: React.FC = () => {
       setIsSubmitting(false);
       navigate('/artist');
     } catch (err) {
-      console.error('Error creating username:', err);
       toast.error('Failed to create username. Please try again.');
       setIsSubmitting(false);
     }
@@ -163,7 +159,7 @@ const CreateUsername: React.FC = () => {
             alt="Kalarang Logo"
             className="login-mobile-logo"
           />
-          <h1 className="login-mobile-headline">Where Art Meets Its People</h1>
+          <h1 className="login-mobile-headline">Get your paintings customized</h1>
           <p className="login-mobile-subtext">Discover and share original art with the world.</p>
         </div>
 

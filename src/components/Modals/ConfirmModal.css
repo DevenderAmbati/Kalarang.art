@@ -4,13 +4,12 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.65);
   display: flex;
   align-items: flex-start;
   justify-content: center;
   z-index: 9999;
   animation: confirmFadeIn 0.2s ease-in;
-  backdrop-filter: blur(8px);
   padding-top: 40px;
 }
 
@@ -174,9 +173,15 @@
 
 /* Mobile Styles */
 @media (max-width: 639px) {
+  .confirm-modal-overlay {
+    padding: 40px 16px 24px;
+    align-items: flex-start;
+  }
+
   .confirm-modal-content {
     padding: 24px;
-    max-width: 340px;
+    max-width: 100%;
+    width: 100%;
   }
 
   .confirm-modal-icon {
@@ -207,5 +212,19 @@
     width: 100%;
     padding: 12px 20px;
     font-size: 0.9rem;
+  }
+
+  /* Keep primary + cancel on one row when needed (e.g. accept offer) */
+  .confirm-modal-actions.confirm-modal-actions--row {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+  }
+
+  .confirm-modal-actions.confirm-modal-actions--row .confirm-modal-btn {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+    padding: 12px 16px;
   }
 }

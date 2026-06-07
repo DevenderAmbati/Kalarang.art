@@ -28,7 +28,7 @@ const TermsOfService: React.FC = () => {
               <span className="gradient-text">Terms of Service</span>
             </h1>
             <p className="legal-subtitle">MVP Version – Kalarang</p>
-            <p className="legal-last-updated">Last Updated: March 3, 2026</p>
+            <p className="legal-last-updated">Last Updated: March 18, 2026</p>
           </div>
 
           {/* Content */}
@@ -57,7 +57,8 @@ const TermsOfService: React.FC = () => {
             <section className="legal-section">
               <h2>3. Artist Responsibilities</h2>
               <p>As an artist on Kalarang, you must upload only artwork that you own and have the legal rights to share. All content you post should be your original creation or properly licensed work.</p>
-              <p>You retain full ownership of your artwork. However, by uploading artwork to our platform, you grant Kalarang a non-exclusive license to display and promote your work on the platform and related marketing materials.</p>
+              <p>You retain full ownership of your artwork. However, by uploading artwork to our platform, you grant Kalarang a non-exclusive license to display, feature, and promote your work on the platform and in Kalarang&apos;s marketing materials.</p>
+              <p>This may include showcasing artworks on the Kalarang website, social media platforms, promotional campaigns, advertisements, and community highlights. Whenever reasonably possible, we will credit the artist when their work is featured.</p>
               <p>You are fully responsible for all aspects of transactions including pricing, negotiation, payment collection, packaging, and shipping. Any transaction happens directly between you and the buyer.</p>
               <p>Please understand that Kalarang does not verify authenticity, pricing, or delivery arrangements. These are solely your responsibility as the artist.</p>
             </section>
@@ -70,7 +71,13 @@ const TermsOfService: React.FC = () => {
             </section>
 
             <section className="legal-section">
-              <h2>5. No Payment or Shipping Involvement</h2>
+              <h2>5. Artwork Authenticity</h2>
+              <p>Artists are responsible for ensuring that the artworks they upload are original or that they possess the legal rights to share them.</p>
+              <p>Kalarang does not verify the authenticity, originality, or ownership of artworks uploaded by users and is not responsible for disputes related to copyright or intellectual property.</p>
+            </section>
+
+            <section className="legal-section">
+              <h2>6. No Payment or Shipping Involvement</h2>
               <p>Kalarang operates strictly as a discovery and communication platform. We do not process payments, hold funds, or handle any financial transactions between users.</p>
               <p>We do not ship artwork, manage logistics, or participate in delivery arrangements. Kalarang is not a party to any transaction between artists and buyers.</p>
               <p className="legal-highlight">
@@ -79,7 +86,7 @@ const TermsOfService: React.FC = () => {
             </section>
 
             <section className="legal-section">
-              <h2>6. Prohibited Content</h2>
+              <h2>7. Prohibited Content</h2>
               <p>Users are strictly prohibited from uploading or sharing stolen or copyrighted artwork without proper authorization. All content must respect intellectual property rights.</p>
               <p>Hate speech, abusive content, harassment, or discriminatory material of any kind is not tolerated on our platform.</p>
               <p>Explicit, illegal, or content that violates any local, national, or international law is forbidden.</p>
@@ -87,14 +94,14 @@ const TermsOfService: React.FC = () => {
             </section>
 
             <section className="legal-section">
-              <h2>7. Account Suspension</h2>
-              <p>We reserve the right to suspend or permanently terminate accounts that violate these Terms of Service.</p>
-              <p>Accounts engaged in fraud, abuse, harassment, or any form of platform misuse will be subject to immediate suspension or termination.</p>
-              <p>We may take action without prior notice if we determine that account activity poses a risk to other users or the platform's integrity.</p>
+              <h2>8. Account Suspension</h2>
+              <p>Kalarang reserves the right to remove artworks, restrict content, suspend, or permanently terminate accounts that violate these Terms of Service or engage in suspicious, fraudulent, abusive, or harmful behavior.</p>
+              <p>This includes but is not limited to copyright infringement, impersonation, scams, harassment, or misuse of the platform.</p>
+              <p>We may take such actions without prior notice if necessary to protect the safety of users or the integrity of the platform.</p>
             </section>
 
             <section className="legal-section">
-              <h2>8. Limitation of Liability</h2>
+              <h2>9. Limitation of Liability</h2>
               <p>Kalarang provides the platform on an "as is" and "as available" basis, without any warranties of any kind, either express or implied.</p>
               <p>We are not liable for transaction disputes, loss of money, or any financial damages arising from interactions on our platform. We do not guarantee the accuracy, completeness, or reliability of any content posted by users.</p>
               <p>Kalarang is not responsible for shipping damage, lost packages, misrepresentation by users, or any indirect or consequential damages.</p>
@@ -102,12 +109,12 @@ const TermsOfService: React.FC = () => {
             </section>
 
             <section className="legal-section">
-              <h2>9. Changes to Terms</h2>
+              <h2>10. Changes to Terms</h2>
               <p>We may update these Terms at any time. Continued use of Kalarang means you accept the updated Terms.</p>
             </section>
 
             <section className="legal-section">
-              <h2>10. Governing Law</h2>
+              <h2>11. Governing Law</h2>
               <p>These Terms are governed by the laws of India.</p>
               <p>Any disputes shall be subject to the jurisdiction of courts in India.</p>
             </section>

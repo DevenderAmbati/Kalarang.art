@@ -1,7 +1,5 @@
 {
-  "hosting": [
-    {
-    "target": "staging",
+  "hosting": {
     "public": "build",
     "ignore": [
       "firebase.json",
@@ -17,36 +15,19 @@
       }
     ],
     "rewrites": [
+      {
+        "source": "/og/**",
+        "function": {
+          "functionId": "artworkOgRenderer",
+          "region": "us-central1"
+        }
+      },
       {
         "source": "**",
         "destination": "/index.html"
       }
     ]
   },
-  {
-    "target": "production",
-    "public": "build",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "headers": [
-      {
-        "source": "/service-worker.js",
-        "headers": [
-          { "key": "Cache-Control", "value": "no-cache" }
-        ]
-      }
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
-  }
- ],
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"

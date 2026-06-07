@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import Layout from '../../components/Layout/Layout';
 import ProfileHeader from '../../components/Profile/ProfileHeader';
 import AboutTab from '../../components/Profile/AboutTab';
@@ -11,11 +12,14 @@ import { useAuth } from '../../context/AuthContext';
 import { PortfolioProvider } from '../../context/PortfolioContext';
 import { usePublishedWorks, useGalleryWorks } from '../../hooks/useCachedData';
 import { getUserProfile, updateUserBanner, updateUserAvatar, updateUserProfile, getUserStats, getFollowersList, getFollowingList, subscribeToUserStats } from '../../services/userService';
+import { getReviewsForArtist } from '../../services/reviewService';
 import { unfollowArtist } from '../../services/interactionService';
 import { toast } from 'react-toastify';
 import { Artwork } from '../../types/artwork';
 import { createStory, getUserStories } from '../../services/storyService';
 import FollowersModal from '../../components/Modals/FollowersModal';
+import ReviewsModal from '../../components/Modals/ReviewsModal';
+import { CommissionReview } from '../../services/reviewService';
 import '../../components/Artwork/ArtworkGridCard.css'; // Import for story modal styles
 import './Portfolio.css';
 
@@ -34,6 +38,10 @@ const Portfolio: React.FC = () => {
     isLoading: boolean;
   }>({ isOpen: false, type: 'followers', users: [], isLoading: false });
   
+  const [artistRating, setArtistRating] = useState<{ avg: number; count: number } | undefined>(undefined);
+  const [artistReviews, setArtistReviews] = useState<CommissionReview[]>([]);
+  const [reviewsModalOpen, setReviewsModalOpen] = useState(false);
+
   // Fetch data at Portfolio level to persist across tab switches
   const publishedWorksData = usePublishedWorks(appUser?.uid);
   const galleryWorksData = useGalleryWorks(appUser?.uid);
@@ -48,7 +56,6 @@ const Portfolio: React.FC = () => {
         const artworkIds = new Set(userStories.map(story => story.artworkId));
         setArtworkIdsInStories(artworkIds);
       } catch (error) {
-        console.error('Error loading user stories:', error);
       }
     };
 
@@ -65,7 +72,6 @@ const Portfolio: React.FC = () => {
         const artworkIds = new Set(userStories.map(story => story.artworkId));
         setArtworkIdsInStories(artworkIds);
       } catch (error) {
-        console.error('Error loading user stories:', error);
       }
     };
 
@@ -80,7 +86,6 @@ const Portfolio: React.FC = () => {
         navigate('/', { replace: true });
       }, 400);
     } catch (error) {
-      console.error('Logout error:', error);
     }
   };
 
@@ -89,16 +94,18 @@ const Portfolio: React.FC = () => {
   };
 
   const handleShareProfile = () => {
-    // TODO: Implement profile sharing functionality
+    if (!appUser) return;
+
+    const shareUrl = `${window.location.origin}/portfolio/${appUser.uid}`;
+
     if (navigator.share) {
       navigator.share({
         title: `${mockUser.name}'s Portfolio`,
         text: `Check out ${mockUser.name}'s amazing artwork collection on Kalarang!`,
-        url: window.location.href,
+        url: shareUrl,
       });
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      // Could show a toast notification here
+      navigator.clipboard.writeText(shareUrl);
     }
   };
 
@@ -109,7 +116,6 @@ const Portfolio: React.FC = () => {
       const followers = await getFollowersList(appUser.uid);
       setFollowersModal({ isOpen: true, type: 'followers', users: followers, isLoading: false });
     } catch (error) {
-      console.error('Error loading followers:', error);
       toast.error('Failed to load followers');
       setFollowersModal({ isOpen: false, type: 'followers', users: [], isLoading: false });
     }
@@ -122,7 +128,6 @@ const Portfolio: React.FC = () => {
       const following = await getFollowingList(appUser.uid);
       setFollowersModal({ isOpen: true, type: 'following', users: following, isLoading: false });
     } catch (error) {
-      console.error('Error loading following:', error);
       toast.error('Failed to load following');
       setFollowersModal({ isOpen: false, type: 'following', users: [], isLoading: false });
     }
@@ -137,7 +142,6 @@ const Portfolio: React.FC = () => {
     try {
       // Remove the follower by unfollowing from their side
       await unfollowArtist(followerId, appUser.uid);
-      toast.success('Follower removed');
       
       // Refresh the followers list
       const updatedFollowers = await getFollowersList(appUser.uid);
@@ -146,7 +150,6 @@ const Portfolio: React.FC = () => {
       // Refresh stats
       await refreshStats();
     } catch (error) {
-      console.error('Error removing follower:', error);
       toast.error('Failed to remove follower');
     }
   };
@@ -155,7 +158,6 @@ const Portfolio: React.FC = () => {
     if (!appUser) return;
     try {
       await unfollowArtist(appUser.uid, artistId);
-      toast.success('Unfollowed successfully');
       
       // Refresh the following list
       const updatedFollowing = await getFollowingList(appUser.uid);
@@ -164,7 +166,6 @@ const Portfolio: React.FC = () => {
       // Refresh stats
       await refreshStats();
     } catch (error) {
-      console.error('Error unfollowing user:', error);
       toast.error('Failed to unfollow');
     }
   };
@@ -184,7 +185,7 @@ const Portfolio: React.FC = () => {
     if (!storyArtwork || !appUser) return;
 
     try {
-      await createStory(
+  await createStory(
         storyArtwork.id,
         appUser.uid,
         storyArtwork.artistName,
@@ -194,7 +195,6 @@ const Portfolio: React.FC = () => {
         storyArtwork.price
       );
       
-      toast.success('Story shared successfully!');
       
       // Add artwork to the set of artworks in stories
       setArtworkIdsInStories(prev => new Set(prev).add(storyArtwork.id));
@@ -204,7 +204,6 @@ const Portfolio: React.FC = () => {
       // Redirect to home feed immediately
       navigate('/home', { replace: true, state: { storyCreated: true } });
     } catch (error) {
-      console.error('Error sharing story:', error);
       toast.error('Failed to share story. Please try again.');
     }
   };
@@ -217,12 +216,14 @@ const Portfolio: React.FC = () => {
   const [mockUser, setMockUser] = useState({
     name: appUser?.name || 'Artist Name',
     username: appUser?.username,
+    isFoundingArtist: appUser?.isFoundingArtist,
     avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
     bannerImage: '/logo.jpeg',
     stats: {
       followers: 0,
       artworks: 0,
       following: 0,
+      customized: 0,
     },
   });
 
@@ -259,6 +260,7 @@ const Portfolio: React.FC = () => {
             ...prev,
             name: profile.name || appUser.name,
             username: profile.username,
+            isFoundingArtist: profile.isFoundingArtist ?? prev.isFoundingArtist,
             avatar: profile.avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
             bannerImage: profile.bannerImage || '/logo.jpeg',
             // Preserve existing stats - they're managed by real-time subscription
@@ -287,7 +289,6 @@ const Portfolio: React.FC = () => {
           }));
         }
       } catch (error) {
-        console.error('Error loading user profile:', error);
       } finally {
         setIsLoadingProfile(false);
       }
@@ -296,29 +297,36 @@ const Portfolio: React.FC = () => {
     loadUserProfile();
   }, [appUser]);
 
+  // Fetch artist rating
+  useEffect(() => {
+    if (!appUser?.uid) return;
+    getReviewsForArtist(appUser.uid).then((reviews) => {
+      const valid = reviews.filter(r => typeof r.rating === 'number' && !isNaN(r.rating));
+      if (valid.length === 0) return;
+      const avg = valid.reduce((sum, r) => sum + r.rating, 0) / valid.length;
+      setArtistRating({ avg, count: valid.length });
+      setArtistReviews(valid);
+    }).catch(() => {});
+  }, [appUser?.uid]);
+
   // Real-time stats subscription
   useEffect(() => {
     if (!appUser) return;
 
-    console.log('[Real-time] Subscribing to user stats:', appUser.uid);
-
     const unsubscribe = subscribeToUserStats(
       appUser.uid,
       (stats) => {
-        console.log('[Real-time] Received stats update:', stats);
         setMockUser(prev => ({
           ...prev,
           stats: stats,
         }));
       },
       (error) => {
-        console.error('[Real-time] Stats subscription error:', error);
       }
     );
 
     // CRITICAL: Cleanup subscription
     return () => {
-      console.log('[Real-time] Unsubscribing from user stats');
       unsubscribe();
     };
   }, [appUser?.uid]);
@@ -326,7 +334,6 @@ const Portfolio: React.FC = () => {
   // Function to refresh stats (now handled by real-time subscription)
   const refreshStats = async () => {
     // Stats are now updated automatically via real-time subscription
-    console.log('[Real-time] Stats refresh requested (automatic via subscription)');
   };
 
   // Listen for artwork changes to refresh stats
@@ -397,9 +404,8 @@ const Portfolio: React.FC = () => {
       }));
       
       setIsEditingProfile(false);
-      toast.success('Profile updated successfully!');
+      toast.success('✅Profile updated');
     } catch (error) {
-      console.error('Error saving profile:', error);
       toast.error('Failed to save profile. Please try again.');
     }
   };
@@ -429,10 +435,7 @@ const Portfolio: React.FC = () => {
       // Refresh user profile in AuthContext to update avatar/banner throughout app
       await refreshUserProfile();
       
-      toast.success('Banner updated successfully!');
-      console.log('Banner uploaded to Firebase');
     } catch (error) {
-      console.error('Error updating banner:', error);
       toast.error('Failed to update banner. Please try again.');
     }
   };
@@ -458,10 +461,7 @@ const Portfolio: React.FC = () => {
       // Refresh user profile in AuthContext to update avatar throughout app
       await refreshUserProfile();
       
-      toast.success('Avatar updated successfully!');
-      console.log('Avatar uploaded to Firebase');
     } catch (error) {
-      console.error('Error updating avatar:', error);
       toast.error('Failed to update avatar. Please try again.');
     }
   };
@@ -519,7 +519,8 @@ const Portfolio: React.FC = () => {
                 username: mockUser.username,
                 avatar: profileData.avatar,
                 bannerImage: profileData.bannerImage,
-                stats: mockUser.stats
+                stats: mockUser.stats,
+                isFoundingArtist: mockUser.isFoundingArtist
               }}
               onEditProfile={handleEditProfile}
               onShareProfile={handleShareProfile}
@@ -528,6 +529,8 @@ const Portfolio: React.FC = () => {
               isOwner={true}
               onFollowersClick={handleFollowersClick}
               onFollowingClick={handleFollowingClick}
+              rating={artistRating}
+              onRatingClick={() => setReviewsModalOpen(true)}
             />
             
             <div style={styles.tabSection} className="portfolio-tab-section">
@@ -554,17 +557,18 @@ const Portfolio: React.FC = () => {
           </div>
         </div>
 
-        {/* Edit Profile Modal */}
-        {isEditingProfile && (
+        {/* Edit Profile Modal - Rendered via portal to escape layout stacking context */}
+        {isEditingProfile && ReactDOM.createPortal(
           <EditProfile
             profileData={profileData}
             onSave={handleSaveProfile}
             onCancel={handleCancelEdit}
-          />
+          />,
+          document.body
         )}
 
-        {/* Story Modal */}
-        {storyArtwork && (
+        {/* Story Modal - Rendered via portal to escape layout stacking context */}
+        {storyArtwork && ReactDOM.createPortal(
           <div className="story-fullscreen" onClick={handleCloseStory}>
             <div className="story-fullscreen-content" onClick={(e) => e.stopPropagation()}>
               <button className="story-close-btn" onClick={handleCloseStory}>
@@ -593,7 +597,8 @@ const Portfolio: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
         
         {/* Followers/Following Modal */}
@@ -605,6 +610,12 @@ const Portfolio: React.FC = () => {
           isLoading={followersModal.isLoading}
           onRemoveFollower={handleRemoveFollower}
           onUnfollow={handleUnfollow}
+        />
+        <ReviewsModal
+          isOpen={reviewsModalOpen}
+          onClose={() => setReviewsModalOpen(false)}
+          reviews={artistReviews}
+          avgRating={artistRating?.avg ?? 0}
         />
       </PortfolioProvider>
     </div>
@@ -622,25 +633,25 @@ const styles = {
     justifyContent: 'center',
   },
   tabSection: {
-    marginTop: '1.5rem',
+    marginTop: '0.5rem',
   },
   tabContainer: {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     borderBottom: '1px solid var(--color-border)',
-    marginBottom: '2rem',
+    marginBottom: '1rem',
     gap: '0',
     overflowX: 'hidden' as const,
     paddingBottom: '0',
   },
   tabButton: {
     position: 'relative' as const,
-    padding: '1rem 2rem',
+    padding: '0.65rem 1.25rem',
     border: 'none',
     backgroundColor: 'transparent',
     color: 'var(--color-text-secondary)',
-    fontSize: '0.95rem',
+    fontSize: '0.88rem',
     fontWeight: 500,
     cursor: 'pointer',
     transition: 'all 0.3s ease',

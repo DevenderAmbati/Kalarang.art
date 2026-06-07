@@ -11,6 +11,8 @@ interface EmptyStateProps {
   actionPath?: string;
   onAction?: () => void;
   icon?: string;
+  /** Shows inline spinner and disables the action button while true */
+  actionLoading?: boolean;
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({
@@ -21,6 +23,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   actionPath,
   onAction,
   icon,
+  actionLoading = false,
 }) => {
   const navigate = useNavigate();
   const lottieRef = useRef<any>(null);
@@ -32,6 +35,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   }, [animation]);
 
   const handleAction = () => {
+    if (actionLoading) return;
     if (onAction) {
       onAction();
     } else if (actionPath) {
@@ -59,11 +63,14 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         <p className="empty-state-description">{description}</p>
         
         {actionLabel && (
-          <button 
-            className="empty-state-button"
+          <button
+            type="button"
+            className={`empty-state-button${actionLoading ? ' empty-state-button--loading' : ''}`}
             onClick={handleAction}
+            disabled={actionLoading}
           >
-            {actionLabel}
+            {actionLoading && <span className="empty-state-button-spinner" aria-hidden />}
+            <span className="empty-state-button-label">{actionLabel}</span>
           </button>
         )}
       </div>

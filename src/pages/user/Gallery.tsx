@@ -7,7 +7,6 @@ import GalleryTab, { GalleryImage } from '../../components/Profile/GalleryTab';
 import EmptyState from '../../components/State/EmptyState';
 import LoadingState from '../../components/State/LoadingState';
 import noContentAnimation from '../../animations/no content.json';
-import lineArt1Animation from '../../animations/Line art (1).json';
 
 interface GalleryProps {
   cachedData?: UseCachedDataResult<Artwork[]>;
@@ -24,13 +23,11 @@ const Gallery: React.FC<GalleryProps> = ({ cachedData, isOwnProfile = true }) =>
 
   const handleImageClick = (artworkId: string) => {
     const artwork = artworks?.find(a => a.id === artworkId);
+    // Only allow editing unpublished artworks
     if (artwork && !artwork.published) {
-      // If unpublished, navigate to edit page
       navigate(`/post?edit=${artworkId}`);
-    } else {
-      // If published, navigate to detail page
-      navigate(`/artwork/${artworkId}`);
     }
+    // Published artworks are not clickable in gallery
   };
 
   // Convert artworks to gallery images (only first image of each artwork)
@@ -47,7 +44,7 @@ const Gallery: React.FC<GalleryProps> = ({ cachedData, isOwnProfile = true }) =>
   }, [artworks]);
 
   if (isLoading) {
-    return <LoadingState animation={lineArt1Animation} message="Loading your gallery..." fullHeight />;
+    return <LoadingState variant="cards" cardsLayout="standard" message="Loading your gallery..." fullHeight />;
   }
 
   if (galleryImages.length === 0) {

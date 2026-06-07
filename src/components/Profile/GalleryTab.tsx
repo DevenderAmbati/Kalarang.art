@@ -25,7 +25,6 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ images, onImageClick, isOwnProf
   };
 
   const handleImageError = (imageId: string) => {
-    console.warn(`Failed to load image: ${imageId}`);
     setFailedImages(prev => new Set(prev).add(imageId));
   };
 
@@ -55,11 +54,11 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ images, onImageClick, isOwnProf
         {images.map((image, index) => (
           <div
             key={image.id}
-            className={`gallery-tab-item ${loadedImages.has(image.id) ? 'loaded' : ''} ${failedImages.has(image.id) ? 'error' : ''} ${!isOwnProfile ? 'view-only' : ''}`}
+            className={`gallery-tab-item ${loadedImages.has(image.id) ? 'loaded' : ''} ${failedImages.has(image.id) ? 'error' : ''} ${!isOwnProfile ? 'view-only' : ''} ${image.published ? 'published' : ''}`}
             onClick={() => isOwnProfile && handleImageClick(image.id)}
             style={{
               animationDelay: `${index * 0.05}s`,
-              cursor: isOwnProfile ? 'pointer' : 'default'
+              cursor: isOwnProfile && !image.published ? 'pointer' : 'default'
             }}
           >
             <div className="gallery-tab-image-wrapper">
@@ -74,7 +73,7 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ images, onImageClick, isOwnProf
                   aspectRatio: image.aspectRatio || 'auto'
                 }}
               />
-              {isOwnProfile && image.published === false && (
+              {image.published === false && (
                 <div className="gallery-unpublished-badge">
                   <span>Unpublished</span>
                 </div>
@@ -84,7 +83,6 @@ const GalleryTab: React.FC<GalleryTabProps> = ({ images, onImageClick, isOwnProf
                   <span>Commission Work</span>
                 </div>
               )}
-              {isOwnProfile && <div className="gallery-tab-image-overlay" />}
             </div>
           </div>
         ))}

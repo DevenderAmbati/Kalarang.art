@@ -150,6 +150,12 @@ export default function ArtistLanding() {
       description:
         "Track views, likes, and engagement on your published work. Understand your audience and refine your strategy (coming soon).",
     },
+    {
+      title: "Commission Artwork Management",
+      icon: MdChat,
+      description:
+        "Apply to commission requests from buyers, discuss requirements, and deliver custom artwork through direct collaboration.",
+    },
   ];
 
   const buyerFeatures = [
@@ -206,7 +212,7 @@ export default function ArtistLanding() {
             Artists are not content creators, and their work is not meant to compete for attention.
           </p>
           <p className="vision-text">
-            We have created a platform where artists have full control, transparent
+            We have created a platform Get your paintings ists have full control, transparent
             pricing, and direct connection with collectors who value original art.
           </p>
         </div>

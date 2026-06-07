@@ -1,17 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { saveArtworkToFavorites, removeArtworkFromFavorites, isArtworkInFavorites } from '../../services/interactionService';
+import { 
+  saveArtworkToFavorites, 
+  removeArtworkFromFavorites, 
+  isArtworkInFavorites,
+  likeArtwork,
+  unlikeArtwork,
+  hasLikedArtwork
+} from '../../services/interactionService';
 import { Artwork } from '../../types/artwork';
 import ArtworkGrid from '../../components/Artwork/ArtworkGrid';
 import EmptyState from '../../components/State/EmptyState';
 import LoadingState from '../../components/State/LoadingState';
 import ConfirmModal from '../../components/Modals/ConfirmModal';
-import { useNavigate } from 'react-router-dom';
+import ArtworkCommentModal from '../../components/Artwork/ArtworkCommentModal';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { usePublishedWorks, useFavorites, UseCachedDataResult } from '../../hooks/useCachedData';
 import { cache, cacheKeys } from '../../utils/cache';
 import noContentAnimation from '../../animations/no content.json';
-import lineArt2Animation from '../../animations/Line art (2).json';
 import './PublishedWorks.css';
 
 interface PublishedWorksProps {
@@ -29,19 +36,20 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
 }) => {
   const { appUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
   // Use provided cached data or fetch if not provided
   const ownData = usePublishedWorks(appUser?.uid, !cachedData);
   const { data: artworks, isLoading, refetch, updateCache } = cachedData || ownData;
   
-  const { data: favoriteIds, updateCache: updateFavoritesCache, refetch: refetchFavorites } = useFavorites(appUser?.uid);
+  const { data: favoriteIds, updateCache: updateFavoritesCache, refetch: refetchFavorites } = useFavorites(appUser?.uid, !!appUser);
   const [savedArtworks, setSavedArtworks] = useState<Set<string>>(new Set());
+  const [likedArtworks, setLikedArtworks] = useState<Set<string>>(new Set());
 
   // Listen for favorites changes from other components
   useEffect(() => {
     const handleFavoritesChanged = ((e: CustomEvent) => {
       if (e.detail.userId === appUser?.uid) {
-        console.log('[PublishedWorks] Favorites changed in another component, refetching...');
         refetchFavorites();
       }
     }) as EventListener;
@@ -59,14 +67,34 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
     artworkId: '',
   });
 
+  const [commentArtwork, setCommentArtwork] = useState<Artwork | null>(null);
+
   useEffect(() => {
     if (favoriteIds) {
       setSavedArtworks(new Set(favoriteIds));
     }
   }, [favoriteIds, appUser]);
 
+  // Load liked artworks
+  useEffect(() => {
+    const loadLikedArtworks = async () => {
+      if (!appUser || !artworks) return;
+      
+      const liked = new Set<string>();
+      for (const artwork of artworks) {
+        const isLiked = await hasLikedArtwork(appUser.uid, artwork.id);
+        if (isLiked) {
+          liked.add(artwork.id);
+        }
+      }
+      setLikedArtworks(liked);
+    };
+    
+    loadLikedArtworks();
+  }, [appUser, artworks]);
+
   const handleArtworkClick = (id: string) => {
-    sessionStorage.setItem('artworkSourceRoute', '/portfolio');
+    sessionStorage.setItem('artworkSourceRoute', isOwnProfile ? '/portfolio' : location.pathname);
     navigate(`/card/${id}`);
   };
 
@@ -110,7 +138,6 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
     } catch (error) {
       // Revert on error
       updateCache(() => previousData);
-      console.error('Error updating sold status:', error);
       toast.error('Failed to update sold status. Please try again.');
     }
   };
@@ -147,10 +174,10 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
     try {
       if (isSaved) {
         await removeArtworkFromFavorites(appUser.uid, id);
-        toast.success('Removed from favorites');
+         
       } else {
         await saveArtworkToFavorites(appUser.uid, id);
-        toast.success('Saved to your favourites');
+        
       }
       // Invalidate favorite artworks cache
       cache.invalidate(cacheKeys.favoriteArtworks(appUser.uid));
@@ -170,7 +197,6 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
         return newSet;
       });
       updateFavoritesCache(() => previousFavorites);
-      console.error('Error toggling save:', error);
       toast.error('Failed to update favorites');
     }
   };
@@ -195,18 +221,16 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
         await deleteArtwork(artworkId);
         
         // Show success toast only after actual deletion succeeds
-        toast.success('Artwork deleted successfully');
+        toast.success('✅ Artwork deleted');
         
         // Invalidate gallery cache as well since artwork is deleted completely
         if (appUser) {
-          console.log('[Cache] Invalidating all portfolio cache after delete');
           cache.invalidate(cacheKeys.galleryWorks(appUser.uid));
           cache.invalidate(cacheKeys.artistWorks(appUser.uid));
         }
       } catch (error) {
         // Revert on error
         updateCache(() => previousData);
-        console.error('Error deleting artwork:', error);
         toast.error('Failed to delete artwork. Please try again.');
       }
     }
@@ -220,12 +244,82 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
     });
   };
 
+  const handleCommentClick = (id: string) => {
+    if (!appUser) {
+      toast.info('Please log in to comment on artworks');
+      return;
+    }
+    const artwork = artworks?.find(a => a.id === id);
+    if (artwork) {
+      setCommentArtwork(artwork);
+    }
+  };
+
+  const handleShare = (id: string) => {
+    const shareBase = process.env.NODE_ENV === 'production' ? window.location.origin : 'https://kalarang.art';
+    const shareUrl = `${shareBase}/og/${id}`;
+    const artwork = artworks?.find((a) => a.id === id);
+    if (artwork && navigator.share) {
+      navigator.share({
+        title: artwork.title,
+        text: `Check out "${artwork.title}" by ${artwork.artistName}`,
+        url: shareUrl,
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      toast.success('Link copied to clipboard!');
+    }
+  };
+
+  const handleLike = async (id: string) => {
+    if (!appUser) {
+      toast.info('Please log in to like artworks');
+      return;
+    }
+
+    const isLiked = likedArtworks.has(id);
+
+    // Optimistic update
+    setLikedArtworks(prev => {
+      const newSet = new Set(prev);
+      if (isLiked) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+
+    try {
+      if (isLiked) {
+        await unlikeArtwork(appUser.uid, id);
+      } else {
+        await likeArtwork(appUser.uid, id, appUser.name, appUser.avatar);
+      }
+      // Broadcast change for real-time updates
+      window.dispatchEvent(new CustomEvent('likes-changed', { detail: { userId: appUser.uid } }));
+    } catch (error) {
+      // Revert on error
+      setLikedArtworks(prev => {
+        const newSet = new Set(prev);
+        if (isLiked) {
+          newSet.add(id);
+        } else {
+          newSet.delete(id);
+        }
+        return newSet;
+      });
+      toast.error('Failed to update like');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="published-works-wrapper">
         <div className="published-works-container">
           <LoadingState 
-            animation={lineArt2Animation}
+            variant="cards"
+            cardsLayout="published"
             message="Loading your published works..." 
             fullHeight 
           />
@@ -265,6 +359,9 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
                 artistId: artwork.artistId,
                 price: artwork.price,
                 sold: artwork.sold,
+                likes: artwork.likes || 0,
+                comments: artwork.comments || 0,
+                favorites: artwork.favorites || 0,
               }))}
               viewType="published"
               onArtworkClick={handleArtworkClick}
@@ -277,6 +374,10 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
               onAddToStory={onAddToStory}
               artworkIdsInStories={artworkIdsInStories}
               currentUserId={appUser?.uid}
+              onCommentClick={handleCommentClick}
+              onShare={isOwnProfile ? handleShare : handleShare}
+              onLike={!isOwnProfile ? handleLike : undefined}
+              likedArtworks={likedArtworks}
             />
           )}
         </div>
@@ -295,6 +396,13 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
         }
         confirmText={confirmModal.type === 'delete' ? 'Delete' : 'Mark as Sold'}
         cancelText="Cancel"
+      />
+
+      <ArtworkCommentModal
+        isOpen={commentArtwork !== null}
+        onClose={() => setCommentArtwork(null)}
+        artwork={commentArtwork}
+        appUser={appUser}
       />
     </div>
   );

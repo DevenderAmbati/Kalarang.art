@@ -108,6 +108,12 @@ export default function BuyerLanding() {
       description:
         "Start a conversation with artists directly. Ask about their work, process, or commissions.",
     },
+    {
+      title: "Request commission artwork",
+      icon: MdShoppingCart,
+      description:
+        "Post commission requests for custom artwork and work with artists on your ideas.",
+    },
   ];
 
   const journeySteps = [
@@ -131,9 +137,9 @@ export default function BuyerLanding() {
     },
     {
       number: "4",
-      title: "Reach out",
-      description: "Chat with artists to learn about their work and the buying process",
-      icon: MdChat,
+      title: "Buy Now",
+      description: "Add your address, make payment and receive a tracking ID for your order",
+      icon: MdShoppingCart,
     },
   ];
 
@@ -173,7 +179,7 @@ export default function BuyerLanding() {
             Welcome to Kalarang, {appUser?.name ? capitalizeName(appUser.name) : "Art Lover"}
           </h1>
           <p className="hero-subtitle">
-            Your space to discover, explore, and collect original art.
+            Your space to discover, customize, and collect original art.
           </p>
         </div>
       </section>
@@ -187,13 +193,12 @@ export default function BuyerLanding() {
         <div className="vision-container">
           <h2 className="vision-title">Our Vision for Art Collectors</h2>
           <p className="vision-text">
-            Kalarang is built for people who value art beyond trends and endless scrolling. We believe discovering 
-            and collecting art should feel thoughtful and meaningful—not driven by algorithms, or popularity.
+            Kalarang connects you directly with talented artists who create original paintings, custom portraits,
+            and one-of-a-kind pieces made just for you. No middlemen, no mass-produced prints—just real art from real artists.
           </p>
           <p className="vision-text">
-            We have created a space where collectors can explore original art, 
-            connect directly with the artists behind the work, and invest in pieces that truly 
-            resonate with them.
+            Whether you're looking for a personalized portrait, a hand-painted commission, or a unique original painting
+            to own, Kalarang makes it easy to find the perfect artist and bring your vision to life.
           </p>
         </div>
       </section>

@@ -155,17 +155,31 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  
+
   /* Flexbox centering */
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   /* Background matching sidebar inactive state */
   background: rgba(255, 255, 255, 0.05);
-  
+
   /* Smooth transitions */
   transition: all 0.3s ease;
+
+  position: relative;
+}
+
+.sidebar-nav-unread-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
 }
 
 /* Active state for icon wrapper - gradient background */

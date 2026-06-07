@@ -36,7 +36,7 @@ export function useRealtimeDocument<T = DocumentData>(
         setLoading(false);
       },
       (err) => {
-        console.error(`Error listening to ${collectionName}/${documentId}:`, err);
+        // Set error state only; no console output
         setError(err as Error);
         setLoading(false);
       }

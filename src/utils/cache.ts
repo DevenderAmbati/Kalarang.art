@@ -172,16 +172,25 @@ export const cache = new Cache();
  */
 export const cacheKeys = {
   artworks: (limit?: number) => `artworks${limit ? `-${limit}` : ''}`,
-  discoverPaginated: () => `discover-paginated`,
+  /** Cache key for Discover default feed; include sort so Featured vs Newest don't mix. */
+  discoverPaginated: (sort: string = "featured") => `discover-paginated-${sort}`,
   homeFeedPaginated: (userId?: string) => userId ? `homefeed-paginated-${userId}` : `homefeed-paginated`,
   stories: (userId?: string) => userId ? `stories-${userId}` : `stories`,
   artwork: (id: string) => `artwork-${id}`,
   favorites: (userId: string) => `favorites-${userId}`,
+  likes: (userId: string) => `likes-${userId}`,
   favoriteArtworks: (userId: string) => `favorite-artworks-${userId}`,
   userProfile: (userId: string) => `user-${userId}`,
   artistWorks: (userId: string) => `artist-works-${userId}`,
   publishedWorks: (userId: string) => `published-works-${userId}`,
   galleryWorks: (userId: string) => `gallery-works-${userId}`,
+  /** Full page state for other user portfolio (profile + artworks) so back from card doesn't reload */
+  otherUserPortfolio: (userId: string) => `other-portfolio-${userId}`,
+  /** Open/browse commission list (shared across users). */
+  commissionsBrowse: () => `commissions-browse`,
+  commissionsBuyer: (userId: string) => `commissions-buyer-${userId}`,
+  commissionsArtistApps: (artistId: string) => `commissions-artist-apps-${artistId}`,
+  commissionsArtistHired: (artistId: string) => `commissions-artist-hired-${artistId}`,
 };
 
 /**
@@ -212,5 +221,15 @@ export const cacheTimes = {
   portfolio: {
     staleTime: 3 * 60 * 1000, // 3 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
+  },
+  // Other user portfolio page state – used when returning from artwork detail
+  otherUserPortfolio: {
+    staleTime: 3 * 60 * 1000, // 3 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  },
+  // Commission board lists — switching bottom-nav tabs should not refetch every time
+  commissionsBoard: {
+    staleTime: 10 * 60 * 1000, // 10 minutes “fresh”
+    cacheTime: 30 * 60 * 1000, // 30 minutes retained
   },
 };

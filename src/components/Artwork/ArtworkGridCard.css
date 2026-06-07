@@ -25,6 +25,18 @@
   z-index: 1;
 }
 
+/* Disable hover effects for owner's published tab */
+.artwork-grid-card.no-hover:hover {
+  transform: none;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Disable hover effects for interactive published tab (other users' portfolios) */
+.artwork-grid-card.interactive-hover:hover {
+  transform: none;
+  box-shadow: var(--shadow-sm);
+}
+
 /* Prevent hover transform when menu is open */
 .artwork-grid-card.menu-open {
   z-index: 9999;
@@ -33,6 +45,19 @@
 
 .artwork-grid-card.menu-open:hover {
   transform: none;
+}
+
+/* Ensure dropdown content area doesn't clip */
+.artwork-grid-card.menu-open .artwork-grid-card-content {
+  overflow: visible;
+}
+
+.artwork-grid-card.menu-open .artwork-grid-card-artist {
+  overflow: visible;
+}
+
+.artwork-grid-card.menu-open .artwork-grid-card-price-container {
+  overflow: visible;
 }
 
 /* Image Section */
@@ -58,6 +83,16 @@
 
 .artwork-grid-card:hover .artwork-grid-card-image {
   transform: scale(1.05);
+}
+
+/* Disable image zoom on hover for owner's published tab */
+.artwork-grid-card.no-hover:hover .artwork-grid-card-image {
+  transform: none;
+}
+
+/* Disable image zoom on hover for interactive published tab (other users' portfolios) */
+.artwork-grid-card.interactive-hover:hover .artwork-grid-card-image {
+  transform: none;
 }
 
 /* Title Overlay */
@@ -172,6 +207,38 @@
   pointer-events: none;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
+
+/* Favorites Badge (top right for published works) */
+.artwork-grid-card-favorites-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--color-primary);
+  padding: 6px 12px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.artwork-grid-card-favorites-badge svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.favorites-count {
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Content Section */
@@ -364,6 +431,205 @@
 
 .dropdown-item:not(:last-child) {
   border-bottom: 1px solid rgba(47, 164, 169, 0.1);
+}
+
+/* Engagement Stats (same as ArtworkCard for consistency) */
+.artwork-grid-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 0 8px;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.artwork-actions-engagement {
+  flex-wrap: nowrap;
+}
+
+.artwork-actions-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.artwork-actions-left--stats {
+  align-items: center;
+}
+
+.artwork-actions-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.artwork-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.artwork-stat--clickable {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--color-primary);
+  border-radius: 8px;
+  transition: color var(--transition-fast), background var(--transition-fast);
+  padding: 2px;
+}
+
+.artwork-stat--clickable:hover {
+  color: var(--color-primary-hover);
+  background-color: rgba(47, 164, 169, 0.1);
+}
+
+.artwork-stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  color: var(--color-primary);
+}
+
+.artwork-stat--clickable .artwork-stat-icon {
+  background: rgba(47, 164, 169, 0.15);
+  border-radius: 50%;
+  padding: 6px;
+  width: 34px;
+  height: 34px;
+  transition: all var(--transition-fast);
+}
+
+.artwork-stat--clickable:hover .artwork-stat-icon {
+  background: rgba(47, 164, 169, 0.25);
+  color: var(--color-primary);
+  transform: scale(1.05);
+}
+
+.artwork-stat-num {
+  min-width: 1ch;
+  font-variant-numeric: tabular-nums;
+}
+
+.action-icon {
+  background: rgba(47, 164, 169, 0.15);
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.action-icon:hover {
+  background: rgba(47, 164, 169, 0.25);
+  color: var(--color-primary);
+  transform: scale(1.05);
+}
+
+.action-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Like button specific styles */
+.action-icon.action-like {
+  transition: all var(--transition-fast);
+}
+
+.action-icon.action-like.active {
+  background: rgba(47, 164, 169, 0.15);
+  color: var(--color-primary);
+}
+
+.action-icon.action-like.animating {
+  animation: likePopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes likePopIn {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Interactive actions for other users' published works */
+.artwork-actions-interactive {
+  padding: 0 8px;
+}
+
+.artwork-actions-interactive .artwork-actions-left {
+  gap: 12px;
+}
+
+.artwork-actions-interactive .action-icon {
+  width: 34px;
+  height: 34px;
+  padding: 6px;
+}
+
+/* Price Badge in single strip */
+.artwork-grid-card-actions .artwork-grid-card-price {
+  background: var(--color-primary);
+  color: var(--color-text-primary-dark);
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: background-color var(--transition-base);
+  line-height: 1.2;
+}
+
+/* Menu Button in single strip */
+.artwork-grid-card-actions .artwork-grid-card-menu-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-royal);
+  transition: all var(--transition-base);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  margin-right: -8px;
+}
+
+.artwork-grid-card-actions .artwork-grid-card-menu-button:hover {
+  background: rgba(47, 164, 169, 0.1);
+  color: var(--color-primary);
+  transform: scale(1.1);
+}
+
+.artwork-grid-card-actions .artwork-grid-card-menu-button svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* Tablet Styles */

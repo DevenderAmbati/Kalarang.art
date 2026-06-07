@@ -1,6 +1,6 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useParams } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './toastStyles.css';
@@ -21,6 +21,8 @@ import Favourites from "./pages/user/Favourites";
 import Portfolio from "./pages/user/Portfolio";
 import OtherUserPortfolio from "./pages/user/OtherUserPortfolio";
 import Profile from "./pages/user/Profile";
+import Commissions from "./pages/user/Commissions";
+import AccountHub from "./pages/user/AccountHub";
 import CardDetail from "./pages/artwork/CardDetail";
 import CreateUsername from "./pages/auth/CreateUsername";
 import Explore from "./pages/feed/Explore";
@@ -34,15 +36,48 @@ import { Permission } from "./utils/permissions";
 import { ThemeProvider } from "./context/ThemeContext";
 import { logout } from "./services/authService";
 import ArtistLanding from "./pages/landing/ArtistLanding";
+import FoundingArtistsPage from "./pages/landing/FoundingArtistsPage";
 import BuyerLanding from "./pages/landing/BuyerLanding";
+import ClaimSketch from "./pages/landing/ClaimSketch";
 import { ScrollToTop } from "./components/Common/ScrollToTop";
 import PwaUpdatePrompt from "./components/PwaUpdatePrompt";
 
-// Persistent Feed Container Component
+/** Fallback: if /og/:id reaches the SPA (function rewrite miss), redirect to /card/:id */
+const OgRedirect: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/card/${id}`} replace />;
+};
+
+// Module-level cache for post-auth redirect to handle StrictMode double-render
+// This ensures both render calls see the same value
+let cachedPostAuthRedirect: string | null = null;
+let postAuthRedirectConsumed = false;
+
+/**
+ * Single shell for all 5 bottom-nav tabs + artwork detail.
+ * Each tab component is passed as a named prop so Layout keeps it mounted
+ * in its own scroll container — switching tabs just toggles visibility,
+ * scroll position is preserved natively.
+ */
 const PersistentFeedContainer: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+  const { appUser } = useAuth();
   const handleLogout = async () => {
     await logout();
   };
+
+  const postContent = useMemo(() => {
+    if (!appUser) return null;
+    if (appUser.role === 'artist') {
+      if (!appUser.username) return null;
+      return <Upload embedded />;
+    }
+    return <Commissions mode="form" />;
+  }, [appUser]);
+
+  const commissionsContent = useMemo(() => {
+    if (!appUser) return null;
+    return <Commissions mode="list" />;
+  }, [appUser]);
 
   return (
     <Layout 
@@ -50,11 +85,28 @@ const PersistentFeedContainer: React.FC<{ children?: React.ReactNode }> = ({ chi
       homeFeedComponent={<HomeFeed />}
       discoverComponent={<Discover />}
       favouritesComponent={<Favourites />}
+      commissionsComponent={commissionsContent}
+      postComponent={postContent}
     >
-      {children}
+      {children ?? <Outlet />}
     </Layout>
   );
 };
+
+/** Username gate for feed tabs only (must be inside ProtectedRoute). */
+const FeedTabGuard: React.FC = () => {
+  const { appUser } = useAuth();
+  if (appUser?.role === "artist" && !appUser?.username) {
+    return <Navigate to="/create-username" replace />;
+  }
+  return null;
+};
+
+const FeedTabProtected: React.FC = () => (
+  <ProtectedRoute>
+    <FeedTabGuard />
+  </ProtectedRoute>
+);
 
 // Main App Layout for static menu navigation
 const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -77,27 +129,20 @@ const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 function App() {
   const { firebaseUser, appUser, loading } = useAuth();
 
-  // Prevent pinch-zoom and gesture zoom across the app globally
-  // The artwork preview handles its own zoom internally via React events
+  // Prevent pinch-zoom and gesture zoom across the app globally.
+  // Pinch-zoom is prevented at the platform layer via:
+  //   - `touch-action: pan-x pan-y` on <html> (index.css)
+  //   - Safari's non-standard gesturestart/change/end events
+  // We deliberately do NOT attach non-passive touchmove listeners on document
+  // because iOS Safari refuses inner-container scrolling when one is present
+  // (it can't move scroll to the compositor when a JS handler may preventDefault).
   useEffect(() => {
-    const preventZoom = (e: TouchEvent) => {
-      // Always prevent multi-touch zoom at browser level
-      // The preview component handles its own zoom via React synthetic events
-      if (e.touches.length > 1) {
-        e.preventDefault();
-      }
-    };
-
     const preventGestureZoom = (e: Event) => {
       // Always prevent Safari gesture zoom at browser level
       e.preventDefault();
     };
 
-    // Prevent pinch-zoom on touchstart/touchmove
-    document.addEventListener('touchstart', preventZoom, { passive: false });
-    document.addEventListener('touchmove', preventZoom, { passive: false });
-    
-    // Prevent Safari gesture events
+    // Prevent Safari gesture events (pinch zoom)
     document.addEventListener('gesturestart', preventGestureZoom);
     document.addEventListener('gesturechange', preventGestureZoom);
     document.addEventListener('gestureend', preventGestureZoom);
@@ -111,8 +156,6 @@ function App() {
     document.addEventListener('wheel', preventWheelZoom, { passive: false });
 
     return () => {
-      document.removeEventListener('touchstart', preventZoom);
-      document.removeEventListener('touchmove', preventZoom);
       document.removeEventListener('gesturestart', preventGestureZoom);
       document.removeEventListener('gesturechange', preventGestureZoom);
       document.removeEventListener('gestureend', preventGestureZoom);
@@ -144,6 +187,7 @@ function App() {
     // Navigation handled by auth state change
   };
 
+
   const handleLogout = async () => {
     await logout();
   };
@@ -163,6 +207,25 @@ function App() {
     return null;
   }
 
+  // Read pending redirect synchronously during render using module-level cache
+  // This handles StrictMode double-render by caching the value
+  let postAuthRedirect: string | null = null;
+  if (isAuthenticated()) {
+    if (!postAuthRedirectConsumed) {
+      const r = sessionStorage.getItem('postAuthRedirect');
+      if (r) {
+        cachedPostAuthRedirect = r;
+        sessionStorage.removeItem('postAuthRedirect');
+        postAuthRedirectConsumed = true;
+      }
+    }
+    postAuthRedirect = cachedPostAuthRedirect;
+  } else {
+    // Reset when user logs out
+    cachedPostAuthRedirect = null;
+    postAuthRedirectConsumed = false;
+  }
+
   return (
     <>
       <div id="recaptcha-container"></div>
@@ -172,17 +235,6 @@ function App() {
           <PwaUpdatePrompt />
           <SidebarProvider>
             <ChatProvider>
-            <ToastContainer 
-              position="top-center"
-              autoClose={2000}
-              hideProgressBar={false}
-              newestOnTop={true}
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-            />
             <Routes>
 
               {/* Public routes */}
@@ -199,14 +251,21 @@ function App() {
 
               <Route path="/explore" element={<Explore />} />
 
+              {/* Fallback: if /og/:id reaches the SPA (function rewrite miss), send to artwork page */}
+              <Route path="/og/:id" element={<OgRedirect />} />
+
+              <Route path="/founding-artists" element={<FoundingArtistsPage />} />
+
+              <Route path="/free-sketch" element={<ClaimSketch />} />
+
               <Route
                 path="/login"
-                element={isAuthenticated() ? <Navigate to="/home" replace /> : <Login onLogin={handleLogin} />}
+                element={isAuthenticated() ? <Navigate to={postAuthRedirect ?? "/home"} replace /> : <Login onLogin={handleLogin} />}
               />
 
               <Route
                 path="/signup"
-                element={isAuthenticated() ? <Navigate to={appUser!.role === "artist" ? "/artist" : appUser!.role === "buyer" ? "/buyer" : "/home"} replace /> : <SignUp onSignUp={handleSignUp} />}
+                element={isAuthenticated() ? <Navigate to={postAuthRedirect ?? (appUser!.role === "artist" ? "/artist" : appUser!.role === "buyer" ? "/buyer" : "/home")} replace /> : <SignUp onSignUp={handleSignUp} />}
               />
 
               {/* Username creation route for artists */}
@@ -340,59 +399,37 @@ function App() {
                 }
               />
 
-              <Route
-                path="/home"
-                element={
-                  <ProtectedRoute>
-                    {needsUsernameCreation() ? (
-                      <Navigate to="/create-username" replace />
-                    ) : (
-                      <PersistentFeedContainer />
-                    )}
-                  </ProtectedRoute>
-                }
-              />
+              {/*
+                One persistent shell for feed tabs + artwork detail so /home|discover|favourites
+                and /card/:id share the same Layout instance (scroll + data stay put).
+              */}
+              <Route element={<PersistentFeedContainer />}>
+                <Route path="home" element={<FeedTabProtected />} />
+                <Route path="discover" element={<FeedTabProtected />} />
+                <Route path="favourites" element={<FeedTabProtected />} />
+                <Route path="card/:id" element={<CardDetail />} />
+                {/* Post and Commissions are mounted persistently via Layout props.
+                   These route entries just ensure the URL matches and auth guards run. */}
+                <Route path="post" element={<FeedTabProtected />} />
+                <Route path="commissions" element={<FeedTabProtected />} />
+              </Route>
 
               <Route
-                path="/discover"
+                path="/account"
                 element={
                   <ProtectedRoute>
-                    {needsUsernameCreation() ? (
-                      <Navigate to="/create-username" replace />
-                    ) : (
-                      <PersistentFeedContainer />
-                    )}
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/post"
-                element={
-                  <ProtectedRoute>
-                    <PermissionGuard 
-                      permission={Permission.CREATE_ARTWORK}
+                    <PermissionGuard
+                      permission={Permission.VIEW_ARTIST_PROFILE}
                       redirectTo="/home"
                     >
                       {needsUsernameCreation() ? (
                         <Navigate to="/create-username" replace />
                       ) : (
-                        <Upload />
+                        <MainAppLayout>
+                          <AccountHub />
+                        </MainAppLayout>
                       )}
                     </PermissionGuard>
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/favourites"
-                element={
-                  <ProtectedRoute>
-                    {needsUsernameCreation() ? (
-                      <Navigate to="/create-username" replace />
-                    ) : (
-                      <PersistentFeedContainer />
-                    )}
                   </ProtectedRoute>
                 }
               />
@@ -420,15 +457,9 @@ function App() {
               <Route
                 path="/portfolio/:userId"
                 element={
-                  <ProtectedRoute>
-                    {needsUsernameCreation() ? (
-                      <Navigate to="/create-username" replace />
-                    ) : (
-                      <PersistentFeedContainer>
-                        <OtherUserPortfolio />
-                      </PersistentFeedContainer>
-                    )}
-                  </ProtectedRoute>
+                <PersistentFeedContainer>
+                  <OtherUserPortfolio />
+                </PersistentFeedContainer>
                 }
               />
 
@@ -446,22 +477,26 @@ function App() {
                 }
               />
 
-              <Route
-                path="/card/:id"
-                element={
-                  <ProtectedRoute>
-                    <PersistentFeedContainer>
-                      <CardDetail />
-                    </PersistentFeedContainer>
-                  </ProtectedRoute>
-                }
-              />
-
             </Routes>
             </ChatProvider>
           </SidebarProvider>
         </Router>
       </ThemeProvider>
+      {createPortal(
+        <ToastContainer
+          position="top-center"
+          autoClose={2000}
+          hideProgressBar={false}
+          newestOnTop={true}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          style={{ zIndex: 2147483647 }}
+        />,
+        document.body
+      )}
     </>
   );
 }

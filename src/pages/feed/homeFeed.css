@@ -1,14 +1,72 @@
+/* Home feed: no card lift / image zoom on ArtworkCard hover */
+.home-feed .artwork-card:hover {
+  transform: translateZ(0);
+  box-shadow: 0 2px 8px rgba(11, 31, 42, 0.08);
+}
+
+.home-feed .artwork-card:hover .artwork-image {
+  transform: translateZ(0);
+}
+
+/* Tighter card header (avatar + artist row) on home feed */
+.home-feed .artwork-card-header {
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+/* Following + Creations: icon strokes / default color teal (not muted grey) */
+.home-feed .artwork-actions .action-icon {
+  color: var(--color-primary);
+  background: rgba(47, 164, 169, 0.15);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  padding: 6px;
+}
+
+.home-feed .artwork-actions .artwork-actions-left {
+  gap: 12px;
+}
+
+.home-feed .artwork-actions .action-icon:hover {
+  background: rgba(47, 164, 169, 0.25);
+}
+
+.home-feed .artwork-actions .action-icon.active:hover {
+  color: var(--color-primary);
+}
+
+.home-feed .artwork-stat--clickable,
+.home-feed .artwork-stat--clickable .artwork-stat-icon {
+  color: var(--color-primary);
+}
+
+.home-feed .artwork-stat--clickable:hover .artwork-stat-icon {
+  color: var(--color-primary);
+}
+
+.home-feed .artwork-actions .action-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.home-feed .artwork-actions .action-icon:focus-visible,
+.home-feed .artwork-stat--clickable:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* Stories Section */
 .stories-section {
-  margin-bottom: 0rem;
-  margin-top: 0rem;
+  margin-bottom: 0.25rem;
+  margin-top: 3.5rem;
 }
 
 .stories-container {
   display: flex;
   gap: 1rem;
   overflow-x: auto;
-  padding: 0.75rem 0 0.5rem 1rem;
+  padding: 0.75rem 0 0.25rem 1rem;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
@@ -37,8 +95,8 @@
 
 .story-square {
   position: relative;
-  width: 90px;
-  height: 90px;
+  width: 110px;
+  height: 110px;
   border-radius: 8px;
   overflow: hidden;
   background: #ffffff;
@@ -60,7 +118,6 @@
 }
 
 .story-square.viewed {
-  opacity: 0.8;
   padding: 7px;
 }
 
@@ -86,7 +143,6 @@
 }
 
 .story-square.own-story.viewed {
-  opacity: 0.7;
   padding: 7px;
 }
 
@@ -137,11 +193,12 @@
 }
 
 .story-name {
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   color: var(--color-text-primary-light);
   text-align: center;
-  max-width: 90px;
+  max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -158,25 +215,25 @@
 
   .stories-container {
     gap: 0.75rem;
-    padding: 0.25rem 0 0.25rem 0.5rem;
+    padding: 0.25rem 0 0.5rem 0.5rem;
   }
 
   .story-square {
-    width: 75px;
-    height: 75px;
+    width: 90px;
+    height: 90px;
     border-radius: 8px;
   }
 
   .story-user-icon {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     bottom: 4px;
     left: 4px;
   }
 
   .story-name {
     font-size: 0.75rem;
-    max-width: 75px;
+    max-width: 90px;
   }
 }
 
@@ -189,25 +246,25 @@
 
   .stories-container {
     gap: 0.75rem;
-    padding: 0.25rem 0 0.25rem 0.5rem;
+    padding: 0.25rem 0 0.5rem 0.5rem;
   }
 
   .story-square {
-    width: 75px;
-    height: 75px;
+    width: 85px;
+    height: 85px;
     border-radius: 8px;
   }
 
   .story-user-icon {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     bottom: 4px;
     left: 4px;
   }
 
   .story-name {
-    font-size: 0.75rem;
-    max-width: 75px;
+    font-size: 0.65rem;
+    max-width: 85px;
   }
 }
 
@@ -215,7 +272,18 @@
 @media (max-width: 480px) {
   .stories-container {
     gap: 0.5rem;
-    padding: 0.25rem 0 0.25rem 0.5rem;
+    padding: 0.25rem 0 0.5rem 0.5rem;
+  }
+}
+
+/* Extra small screens - reduce padding for stories */
+@media (max-width: 370px) {
+  .stories-container {
+    padding: 0.25rem 0 0.5rem 0.25rem;
+  }
+  
+  .stories-heading {
+    padding: 0 0.25rem;
   }
 }
 
@@ -589,21 +657,54 @@
   }
 }
 
+/* Artist feed tabs: reuse commission-main-tabs* from Commissions.css (imported in HomeFeed.tsx) */
+
 /* Artwork Grid Section - HomeFeed Specific */
 .homefeed-artwork-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.5rem;
-  padding: 1.5rem 1rem;
-  margin-top: -1rem;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  width: 100%;
+  padding: 0 6px;
+  padding-bottom: 10px;
+  box-sizing: border-box;
+  overflow: visible;
+  margin-top: 0.5rem;
+}
+
+/* Following feed: less space between stories strip and first card row (Creations / no-stories layouts unchanged) */
+.home-feed .stories-section:has(+ .homefeed-artwork-grid) {
+  margin-bottom: 1rem;
+}
+
+.home-feed .stories-section + .homefeed-artwork-grid {
+  padding-top: 0.4rem !important;
+}
+
+/* Desktop Large - multi column for HomeFeed */
+@media (min-width: 1440px) {
+  .homefeed-artwork-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+    padding: 0 16px;
+  }
+}
+
+/* Desktop - multi column for HomeFeed */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .homefeed-artwork-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 0 12px;
+  }
 }
 
 /* Tablet */
 @media (min-width: 640px) and (max-width: 1023px) {
   .homefeed-artwork-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
-    padding: 1rem 0.75rem;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 8px;
   }
 }
 
@@ -611,15 +712,25 @@
 @media (max-width: 639px) {
   .homefeed-artwork-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: 16px;
+    padding: 0 6px;
   }
 }
 
-/* Spacing and font adjustments for extra small screens */
-@media (max-width: 480px) {
+/* Extra small screens */
+@media (max-width: 370px) {
   .homefeed-artwork-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+    padding: 0 4px;
+  }
+  
+  .stories-section {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+  
+  .stories-container {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
   }
 }
 
@@ -669,6 +780,50 @@
   margin-bottom: 2rem;
   max-width: 500px;
   color: rgba(255, 255, 255, 0.9);
+}
+
+.default-story-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+  width: 100%;
+  max-width: 360px;
+}
+
+.default-story-step {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  text-align: left;
+}
+
+.default-story-step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.default-story-step p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #fff;
+  line-height: 1.4;
+}
+
+.default-story-step strong {
+  color: #fff;
 }
 
 .default-story-features {
@@ -758,8 +913,297 @@
   }
 }
 
-/* Spinner Animation */
+/* Spinner Animation **/
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* ── Customized feed ── */
+.homefeed-customized-feed {
+  padding: 0.25rem 0 1rem;
+}
+
+.homefeed-customized-load-more {
+  display: block;
+  margin: 1rem auto 0;
+  padding: 0.55rem 1.5rem;
+  border-radius: 99px;
+  border: 1.5px solid var(--color-primary, #6366f1);
+  background: transparent;
+  color: var(--color-primary, #6366f1);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.homefeed-customized-load-more:hover {
+  background: var(--primary-alpha-10, rgba(99,102,241,0.08));
+}
+
+/* ── Customized artist link button inside artwork-title slot ── */
+.customized-artist-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  color: var(--color-royal);
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customized-artist-btn:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+.artwork-description:has(.customized-artist-btn) p {
+  height: auto;
+  -webkit-line-clamp: unset;
+  display: block;
+  overflow: visible;
+}
+
+/* ── Customized card (legacy - kept for compat) ── */
+.customized-card {
+  background: var(--color-bg-white, #fff);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(11, 31, 42, 0.08);
+  transition: box-shadow 0.18s;
+}
+
+.customized-card:hover {
+  box-shadow: 0 6px 20px rgba(11, 31, 42, 0.13);
+}
+
+.customized-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 10px 12px 8px;
+}
+
+.customized-card-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid var(--color-border, #e5e7eb);
+}
+
+.customized-card-buyer-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #111);
+  line-height: 1.2;
+}
+
+.customized-card-image-wrap {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--color-bg-surface, #f5f5f5);
+}
+
+.customized-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.customized-card-body {
+  padding: 10px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.customized-card-artist-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-primary, #6366f1);
+  text-align: left;
+  line-height: 1.3;
+  transition: opacity 0.15s;
+}
+
+.customized-card-artist-link:hover {
+  opacity: 0.75;
+}
+
+.customized-card-description {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary, #555);
+  line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Home Feed Tab Switcher - Separate from Commission tabs */
+.homefeed-tabs-fixed {
+  position: fixed;
+  top: var(--header-height, 56px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  background: transparent;
+  padding: 0.35rem 0.75rem 0.25rem;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.homefeed-tabs-fixed .homefeed-tabs {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.22rem;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(36px) saturate(1.25);
+  -webkit-backdrop-filter: blur(36px) saturate(1.25);
+  border: 1.75px solid rgba(47, 164, 169, 0.38);
+  border-radius: 10px;
+  padding: 0.2rem;
+  min-width: fit-content;
+  max-width: calc(100% - 2rem);
+  box-sizing: border-box;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 4px 18px rgba(11, 31, 42, 0.07);
+  justify-self: center;
+  grid-column: 2;
+}
+
+.homefeed-tabs-fixed.pill-tabs-hidden {
+  transform: translateY(calc(-100% - var(--header-height, 56px)));
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.homefeed-tabs-spacer {
+  height: 0;
+}
+
+.homefeed-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 96px;
+  min-height: 34px;
+  box-sizing: border-box;
+  padding: 0.35rem 0.65rem;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-smooth);
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+}
+
+.homefeed-tab:not(.active):hover {
+  background: var(--primary-alpha-10);
+  color: var(--color-primary);
+}
+
+.homefeed-tab.active {
+  background: var(--gradient-primary);
+  color: var(--color-text-primary-dark);
+  box-shadow: var(--shadow-md);
+  border: none;
+}
+
+.homefeed-tab.active:hover {
+  background: var(--gradient-primary-hover);
+  box-shadow: var(--shadow-lg);
+}
+
+.homefeed-tab.active:active {
+  box-shadow: var(--shadow-md);
+}
+
+.homefeed-tab:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (min-width: 1024px) {
+  .homefeed-tabs-fixed .homefeed-tabs {
+    padding: 0.18rem;
+    gap: 0.2rem;
+    border-radius: 9px;
+  }
+
+  .homefeed-tab {
+    min-height: 32px;
+    min-width: 100px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    border-radius: 6px;
+  }
+
+  .homefeed-tabs-spacer {
+    height: 0;
+  }
+}
+
+/* Gap for artists in Customized tab (replaces buyer CTA button spacing) */
+.homefeed-customized-artist-gap {
+  height: 3.5rem;
+}
+
+/* Buyer CTA button in Customized tab */
+.homefeed-create-request-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 0 1rem;
+  margin-top: 3.5rem;
+  margin-bottom: 0.65rem;
+  box-sizing: border-box;
+}
+
+.homefeed-create-request-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem;
+  background: var(--gradient-primary);
+  color: var(--color-text-primary-dark);
+  border: none;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: background var(--transition-base), box-shadow var(--transition-base);
+  white-space: nowrap;
+}
+
+.homefeed-create-request-btn:hover {
+  background: var(--gradient-primary-hover);
+  box-shadow: var(--shadow-lg);
 }

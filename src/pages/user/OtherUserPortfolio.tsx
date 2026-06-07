@@ -10,32 +10,39 @@ import { logout } from '../../services/authService';
 import { useAuth } from '../../context/AuthContext';
 import { PortfolioProvider } from '../../context/PortfolioContext';
 import { getUserProfile, getUserStats } from '../../services/userService';
+import { getReviewsForArtist, CommissionReview } from '../../services/reviewService';
+import ReviewsModal from '../../components/Modals/ReviewsModal';
 import { followArtist, unfollowArtist, isFollowingArtist } from '../../services/interactionService';
 import { toast } from 'react-toastify';
 import { getArtworksByArtist } from '../../services/artworkService';
 import LoadingState from '../../components/State/LoadingState';
-import lineArt1Animation from '../../animations/Line art (1).json';
+import { cache, cacheKeys, cacheTimes } from '../../utils/cache';
 import './Portfolio.css';
 
 const OtherUserPortfolio: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const { appUser } = useAuth();
+  const { appUser, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('published');
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [artistRating, setArtistRating] = useState<{ avg: number; count: number } | undefined>(undefined);
+  const [artistReviews, setArtistReviews] = useState<CommissionReview[]>([]);
+  const [reviewsModalOpen, setReviewsModalOpen] = useState(false);
   const [publishedArtworks, setPublishedArtworks] = useState<any[]>([]);
   const [galleryArtworks, setGalleryArtworks] = useState<any[]>([]);
   
   const [profileUser, setProfileUser] = useState({
     name: 'Artist Name',
     username: undefined as string | undefined,
+    isFoundingArtist: undefined as boolean | undefined,
     avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
     bannerImage: '/logo.jpeg',
     stats: {
       followers: 0,
       artworks: 0,
       following: 0,
+      customized: 0,
     },
     bio: '',
     artStyle: [] as string[],
@@ -59,14 +66,51 @@ const OtherUserPortfolio: React.FC = () => {
       return;
     }
 
+    // Wait for auth to initialize before loading profile
+    if (authLoading) {
+      return;
+    }
+
     // If viewing own profile, redirect to /portfolio
     if (appUser && userId === appUser.uid) {
       navigate('/portfolio');
       return;
     }
 
+    // Restore from cache when returning from artwork detail to avoid full page reload
+    const cacheKey = cacheKeys.otherUserPortfolio(userId);
+    const { data: cached, exists } = cache.get<{
+      profileUser: typeof profileUser;
+      publishedArtworks: any[];
+      galleryArtworks: any[];
+      isFollowing: boolean;
+    }>(cacheKey);
+
+    if (exists && cached) {
+      setProfileUser(cached.profileUser);
+      setPublishedArtworks(cached.publishedArtworks);
+      setGalleryArtworks(cached.galleryArtworks);
+      setIsFollowing(cached.isFollowing);
+      setIsLoadingProfile(false);
+      // Refetch in background to keep data fresh (e.g. new follows, stats)
+      loadUserProfile(true);
+      return;
+    }
+
     loadUserProfile();
-  }, [userId, appUser]);
+  }, [userId, appUser, authLoading]);
+
+  // Fetch artist rating
+  useEffect(() => {
+    if (!userId) return;
+    getReviewsForArtist(userId).then((reviews) => {
+      const valid = reviews.filter(r => typeof r.rating === 'number' && !isNaN(r.rating));
+      if (valid.length === 0) return;
+      const avg = valid.reduce((sum, r) => sum + r.rating, 0) / valid.length;
+      setArtistRating({ avg, count: valid.length });
+      setArtistReviews(valid);
+    }).catch(() => {});
+  }, [userId]);
 
   // Set document title with artist's first name
   useEffect(() => {
@@ -78,27 +122,34 @@ const OtherUserPortfolio: React.FC = () => {
     };
   }, [profileUser.name]);
 
-  const loadUserProfile = async () => {
+  const loadUserProfile = async (backgroundRefetch = false) => {
     if (!userId) return;
 
     try {
-      setIsLoadingProfile(true);
-      
+      if (!backgroundRefetch) setIsLoadingProfile(true);
+
       // Load user profile
       const profile = await getUserProfile(userId);
       
       if (!profile) {
-        toast.error('User not found');
-        navigate('/home');
+        if (!backgroundRefetch) {
+          toast.error('User not found');
+        }
         return;
       }
 
-      // Fetch real-time stats
-      const stats = await getUserStats(userId);
+      // Fetch real-time stats (may partially fail for unauthenticated users)
+      let stats = { followers: 0, following: 0, artworks: 0, customized: 0 };
+      try {
+        stats = await getUserStats(userId);
+      } catch {
+        // Stats might fail for non-authenticated users, use defaults
+      }
 
       setProfileUser({
         name: profile.name,
         username: profile.username,
+        isFoundingArtist: profile.isFoundingArtist,
         avatar: profile.avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
         bannerImage: profile.bannerImage || '/logo.jpeg',
         stats: stats,
@@ -115,22 +166,62 @@ const OtherUserPortfolio: React.FC = () => {
       });
 
       // Check if current user is following this artist
+      let following = false;
       if (appUser) {
-        const following = await isFollowingArtist(appUser.uid, userId);
-        setIsFollowing(following);
+        try {
+          following = await isFollowingArtist(appUser.uid, userId);
+          setIsFollowing(following);
+        } catch {
+          // Following check might fail, use default
+        }
       }
 
       // Load artworks
-      const artworks = await getArtworksByArtist(userId);
-      const published = artworks.filter(art => art.published);
+      let artworks: any[] = [];
+      let published: any[] = [];
+      try {
+        artworks = await getArtworksByArtist(userId);
+        published = artworks.filter(art => art.published);
+      } catch {
+        // Artworks might fail, use empty array
+      }
       
       setPublishedArtworks(published);
-      // Gallery shows all published artworks for other users (unpublished are private drafts)
-      setGalleryArtworks(published);
+      // Gallery shows all artworks including unpublished and commissioned works
+      setGalleryArtworks(artworks);
 
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-      toast.error('Failed to load profile');
+      // Cache page state so returning from artwork detail doesn't trigger full reload
+      const { staleTime, cacheTime } = cacheTimes.otherUserPortfolio;
+      cache.set(
+        cacheKeys.otherUserPortfolio(userId),
+        {
+          profileUser: {
+            name: profile.name,
+            username: profile.username,
+            isFoundingArtist: profile.isFoundingArtist,
+            avatar: profile.avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
+            bannerImage: profile.bannerImage || '/logo.jpeg',
+            stats: stats,
+            bio: profile.bio || '',
+            artStyle: profile.artStyle || [],
+            philosophy: profile.philosophy || '',
+            achievements: profile.achievements || [],
+            exhibitions: profile.exhibitions || [],
+            education: profile.education || [],
+            commissionStatus: profile.commissionStatus,
+            commissionDescription: profile.commissionDescription || '',
+            commissionCtaText: profile.commissionCtaText || 'Get in Touch',
+            links: profile.links || [],
+          },
+          publishedArtworks: published,
+          galleryArtworks: artworks,
+          isFollowing: following,
+        },
+        staleTime,
+        cacheTime
+      );
+    } catch {
+      // Some data might have failed to load, but we still show what we have
     } finally {
       setIsLoadingProfile(false);
     }
@@ -144,7 +235,6 @@ const OtherUserPortfolio: React.FC = () => {
         navigate('/', { replace: true });
       }, 400);
     } catch (error) {
-      console.error('Logout error:', error);
     }
   };
 
@@ -163,7 +253,7 @@ const OtherUserPortfolio: React.FC = () => {
 
   const handleGetInTouch = () => {
     if (!appUser || !userId) {
-      toast.error('Please log in to get in touch with artists');
+      navigate('/signup');
       return;
     }
 
@@ -177,15 +267,14 @@ const OtherUserPortfolio: React.FC = () => {
       name: profileUser.name,
       avatar: profileUser.avatar,
     };
-    const message = `Hi ${profileUser.name}, I'm interested in commissioning work and would like to learn more about your process and availability. Could you share the details?`;
     setCommissionReachOutContact(contact);
-    setCommissionReachOutMessage(message);
+    setCommissionReachOutMessage('');
     setChatDrawerOpen(true);
   };
 
   const handleFollow = async () => {
     if (!appUser || !userId) {
-      toast.error('Please log in to follow artists');
+      navigate('/signup');
       return;
     }
 
@@ -193,11 +282,9 @@ const OtherUserPortfolio: React.FC = () => {
       if (isFollowing) {
         await unfollowArtist(appUser.uid, userId);
         setIsFollowing(false);
-        toast.success('Unfollowed artist');
       } else {
         await followArtist(appUser.uid, userId, appUser.name, appUser.avatar);
         setIsFollowing(true);
-        toast.success('Following artist');
       }
       
       // Refresh stats after follow/unfollow
@@ -210,7 +297,6 @@ const OtherUserPortfolio: React.FC = () => {
       // Broadcast change to other components
       window.dispatchEvent(new CustomEvent('follow-changed', { detail: { userId: appUser.uid } }));
     } catch (error) {
-      console.error('Error toggling follow:', error);
       toast.error('Failed to update follow status');
     }
   };
@@ -277,10 +363,10 @@ const OtherUserPortfolio: React.FC = () => {
     );
   };
 
-  if (isLoadingProfile) {
+  if (authLoading || isLoadingProfile) {
     return (
       <LoadingState 
-        animation={lineArt1Animation}
+        variant="portfolio"
         message="Loading profile..." 
         fullHeight 
       />
@@ -298,12 +384,15 @@ const OtherUserPortfolio: React.FC = () => {
                 username: profileUser.username,
                 avatar: profileUser.avatar,
                 bannerImage: profileUser.bannerImage,
-                stats: profileUser.stats
+                stats: profileUser.stats,
+                isFoundingArtist: profileUser.isFoundingArtist
               }}
               onShareProfile={handleShareProfile}
               isOwner={false}
               isFollowing={isFollowing}
               onFollow={handleFollow}
+              rating={artistRating}
+              onRatingClick={() => setReviewsModalOpen(true)}
             />
             
             <div style={styles.tabSection} className="portfolio-tab-section">
@@ -340,9 +429,19 @@ const OtherUserPortfolio: React.FC = () => {
             }}
             initialContact={commissionReachOutContact}
             initialMessage={commissionReachOutMessage || undefined}
-            reachOutMetadata={{ artworkId: 'commission', artworkTitle: 'Commission inquiry' }}
+            reachOutMetadata={{ 
+              artworkId: 'commission', 
+              artworkTitle: 'Commission Inquiry',
+              artworkImage: '/sq_mobile1.png' 
+            }}
           />
         )}
+        <ReviewsModal
+          isOpen={reviewsModalOpen}
+          onClose={() => setReviewsModalOpen(false)}
+          reviews={artistReviews}
+          avgRating={artistRating?.avg ?? 0}
+        />
       </PortfolioProvider>
     </div>
   );
@@ -359,25 +458,25 @@ const styles = {
     justifyContent: 'center',
   },
   tabSection: {
-    marginTop: '1.5rem',
+    marginTop: '0.5rem',
   },
   tabContainer: {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     borderBottom: '1px solid var(--color-border)',
-    marginBottom: '2rem',
+    marginBottom: '1rem',
     gap: '0',
     overflowX: 'hidden' as const,
     paddingBottom: '0',
   },
   tabButton: {
     position: 'relative' as const,
-    padding: '1rem 2rem',
+    padding: '0.65rem 1.25rem',
     border: 'none',
     backgroundColor: 'transparent',
     color: 'var(--color-text-secondary)',
-    fontSize: '0.95rem',
+    fontSize: '0.88rem',
     fontWeight: 500,
     cursor: 'pointer',
     transition: 'all 0.3s ease',

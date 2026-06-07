@@ -1,0 +1,369 @@
+/* Claim Sketch — extends signup-page styles. Only custom widgets live here. */
+
+.claim-sketch-section-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 0.4rem;
+  letter-spacing: 0.02em;
+}
+
+/* Textarea variant of login-input */
+.claim-sketch-textarea {
+  resize: vertical;
+  min-height: 70px;
+  padding-top: 0.85rem !important;
+  padding-bottom: 0.85rem !important;
+  line-height: 1.4;
+}
+
+/* ── Image upload ── */
+.claim-sketch-upload-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  width: 100%;
+  min-height: 110px;
+  border: 2px dashed var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-light);
+  color: var(--color-primary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  padding: 0.85rem;
+}
+
+.claim-sketch-upload-btn:hover {
+  border-color: var(--color-primary);
+  background: var(--primary-alpha-5, rgba(47, 164, 169, 0.05));
+}
+
+.claim-sketch-upload-hint {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.claim-sketch-image-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.claim-sketch-image-preview img {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  object-fit: contain;
+}
+
+.claim-sketch-image-actions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.claim-sketch-image-btn {
+  padding: 0.35rem 0.8rem;
+  border: 1.5px solid var(--color-primary);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.claim-sketch-image-btn:hover {
+  background: var(--primary-alpha-10, rgba(47, 164, 169, 0.1));
+}
+
+.claim-sketch-image-btn--danger {
+  border-color: rgba(220, 38, 38, 0.5);
+  color: #DC2626;
+}
+
+.claim-sketch-image-btn--danger:hover {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+/* ── Format radio cards ── */
+.claim-sketch-copy-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.claim-sketch-copy-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.7rem 0.8rem;
+  border: 2px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg-white);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.claim-sketch-copy-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.claim-sketch-copy-option:hover {
+  border-color: var(--color-primary);
+  background: var(--primary-alpha-5, rgba(47, 164, 169, 0.05));
+}
+
+.claim-sketch-copy-option.selected {
+  border-color: var(--color-primary);
+  background: var(--primary-alpha-10, rgba(47, 164, 169, 0.1));
+}
+
+.claim-sketch-copy-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-royal, var(--color-text-dark));
+}
+
+.claim-sketch-copy-sub {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  line-height: 1.35;
+}
+
+/* ── Payment block ── */
+.claim-sketch-payment-block {
+  border: 1.5px solid var(--color-border);
+  border-radius: 12px;
+  padding: 0.85rem 0.9rem;
+  background: var(--color-bg-light);
+}
+
+.claim-sketch-payment-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.claim-sketch-payment-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-royal, var(--color-text-dark));
+}
+
+.claim-sketch-payment-sub {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.claim-sketch-payment-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.claim-sketch-qr-wrap {
+  position: relative;
+  padding: 0.4rem;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.claim-sketch-qr {
+  width: 130px;
+  height: 130px;
+  display: block;
+}
+
+.claim-sketch-qr-amount {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.78rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  box-shadow: 0 3px 10px rgba(47, 164, 169, 0.35);
+}
+
+.claim-sketch-upi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.claim-sketch-upi-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.claim-sketch-upi-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.claim-sketch-upi-id {
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-royal, var(--color-text-dark));
+  word-break: break-all;
+}
+
+.claim-sketch-upi-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.claim-sketch-upi-copy:hover {
+  background: var(--primary-alpha-10, rgba(47, 164, 169, 0.1));
+}
+
+.claim-sketch-upi-app-btn {
+  display: inline-block;
+  padding: 0.45rem 0.8rem;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  text-align: center;
+  transition: background 0.2s ease, transform 0.15s ease;
+  width: fit-content;
+}
+
+.claim-sketch-upi-app-btn:hover {
+  background: var(--color-primary-dark, var(--color-primary));
+  transform: translateY(-1px);
+}
+
+.claim-sketch-payment-screenshot {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.claim-sketch-payment-screenshot-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  letter-spacing: 0.02em;
+}
+
+/* ── Disclaimer + success ── */
+.claim-sketch-disclaimer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin-top: 0.25rem;
+}
+
+.claim-sketch-success-inner {
+  text-align: center;
+  padding: 0.5rem 0.25rem 0.75rem;
+}
+
+.claim-sketch-success-icon {
+  display: inline-flex;
+  color: var(--color-primary);
+  margin-bottom: 0.5rem;
+}
+
+.claim-sketch-success-inner h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-royal, var(--color-text-dark));
+  margin: 0 0 0.4rem;
+}
+
+.claim-sketch-success-inner p {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+  margin: 0 0 0.85rem;
+}
+
+.claim-sketch-success-info {
+  display: flex;
+  justify-content: center;
+  padding: 0.55rem 0.8rem;
+  background: rgba(37, 211, 102, 0.08);
+  border: 1px solid rgba(37, 211, 102, 0.3);
+  border-radius: 10px;
+  margin-bottom: 0.85rem;
+}
+
+.claim-sketch-success-info span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1c8f4a;
+}
+
+/* ── Mobile ── */
+@media (max-width: 639px) {
+  .claim-sketch-payment-grid {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: left;
+  }
+  .claim-sketch-qr {
+    width: 160px;
+    height: 160px;
+  }
+  .claim-sketch-upi {
+    width: 100%;
+  }
+  .claim-sketch-copy-options {
+    grid-template-columns: 1fr;
+  }
+}

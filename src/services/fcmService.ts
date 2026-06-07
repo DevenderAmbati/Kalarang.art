@@ -26,7 +26,6 @@ async function getMessagingInstance(): Promise<Messaging | null> {
     messagingInstance = getMessaging(app);
     return messagingInstance;
   } catch (error) {
-    console.error("[FCM] Failed to initialize messaging:", error);
     return null;
   }
 }
@@ -86,7 +85,6 @@ export async function enableNotifications(userId: string): Promise<{ success: bo
 
     return { success: true, token };
   } catch (error: any) {
-    console.error("[FCM] enableNotifications error:", error);
     return { success: false, error: error.message || "Failed to enable notifications." };
   }
 }
@@ -161,4 +159,27 @@ function getPlatform(): string {
   if (/Win/.test(ua)) return "windows";
   if (/Linux/.test(ua)) return "linux";
   return "unknown";
+}
+
+/**
+ * Tell service workers the chat thread currently visible so FCM can suppress
+ * duplicate notifications for that thread (pair chats + commission chats).
+ */
+export function notifyServiceWorkerActiveChatId(chatId: string | null): void {
+  if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: "SET_ACTIVE_CHAT",
+      chatId,
+    });
+  }
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => {
+      if (registration.active) {
+        registration.active.postMessage({
+          type: "SET_ACTIVE_CHAT",
+          chatId,
+        });
+      }
+    });
+  });
 }

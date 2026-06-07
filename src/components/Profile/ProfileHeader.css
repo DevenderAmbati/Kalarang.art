@@ -30,10 +30,7 @@
   overflow: hidden;
   margin-top: -8px;
 
-  /* force consistent ratio everywhere */
   aspect-ratio: 4.5 / 1;
-
-  /* remove fixed heights */
   height: auto;
 }
 
@@ -65,7 +62,7 @@
   }
 }
 
-/* Spacing and font adjustments for extra small screens */
+/* Reduce banner height only at 400px and below */
 @media (max-width: 400px) {
   .profile-banner {
     aspect-ratio: 2.5 / 1;
@@ -218,6 +215,10 @@
   outline-offset: 2px;
 }
 
+.profile-avatar-initials {
+  font-size: 2.5rem;
+}
+
 .banner-edit-btn {
   position: absolute;
   top: 0.5rem;
@@ -265,8 +266,15 @@
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--color-text-primary-light);
+}
+
+.founding-artist-badge {
+  display: inline-block;
+  height: 2rem;
+  width: auto;
+  object-fit: contain;
+  vertical-align: middle;
   margin: 0;
-  line-height: 1.2;
 }
 
 /* Stats Section */
@@ -274,9 +282,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.5rem;
-  margin: 2rem 0;
-  padding: 1.5rem;
+  gap: 1rem;
+  margin: 1rem auto;
+  padding: 0.75rem 1rem;
   background: var(--color-bg-light);
   border-radius: 12px;
   border: 1px solid var(--color-border-light);
@@ -310,12 +318,78 @@
   background: var(--color-border);
 }
 
-/* Action Buttons */
+/* Action Buttons - same size for Share and Edit */
 .action-buttons {
   display: flex;
   gap: 1rem;
   justify-content: center;
   flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+.action-buttons .btn {
+  width: 160px;
+  min-width: 160px;
+  height: 48px;
+  box-sizing: border-box;
+}
+
+/* Desktop — shorter banner, tighter header (must follow base rules for cascade) */
+@media (min-width: 1024px) {
+  .profile-header {
+    margin-bottom: 0.5rem;
+    margin-top: 0.1rem;
+  }
+
+  .profile-banner {
+    aspect-ratio: 6.5 / 1;
+  }
+
+  .banner-gradient {
+    height: 52px;
+  }
+
+  .profile-content {
+    padding: 0 1rem 0.65rem;
+  }
+
+  .avatar-section {
+    margin-top: -40px;
+    margin-bottom: 0.5rem;
+  }
+
+  .avatar-container {
+    margin-bottom: 0.4rem;
+  }
+
+  .stats-section {
+    gap: 0.35rem;
+    margin: 0.25rem auto;
+    padding: 0.35rem 0.5rem;
+  }
+
+  .stats-section .stat-number {
+    font-size: 1.2rem;
+  }
+
+  .stats-section .stat-label {
+    font-size: 0.7rem;
+  }
+
+  .stats-section .stat-divider {
+    height: 26px;
+  }
+
+  .action-buttons {
+    gap: 0.45rem;
+    margin: 0.25rem 0;
+  }
+
+  .action-buttons .btn {
+    height: 40px;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.875rem;
+  }
 }
 
 .btn {
@@ -385,7 +459,7 @@
 /* Responsive Design - Mobile */
 @media (max-width: 639px) {
   .profile-header {
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
   }
 
   .top-user-icon {
@@ -403,108 +477,59 @@
   }
 
   .profile-content {
-    padding: 0 1rem 1.5rem;
+    padding: 0 1rem 1rem;
   }
 
   .avatar-section {
-    margin-top: -50px;
-    margin-bottom: 1.5rem;
+    margin-top: -48px;
+    margin-bottom: 0.5rem;
   }
 
   .profile-avatar {
     width: 100px;
     height: 100px;
-    border-width: 4px;
+    border-width: 3px;
   }
 
   .avatar-container {
     min-width: 100px;
     min-height: 100px;
-  }
-
-  .avatar-edit-btn {
-    width: 28px;
-    height: 28px;
-  }
-
-  .edit-icon {
-    font-size: 0.75rem;
-  }
-
-  .user-name {
-    font-size: 1.5rem;
-  }
-
-  .stats-section {
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    margin: 1rem 0;
-  }
-
-  .stat-number {
-    font-size: 1.1rem;
-  }
-
-  .stat-label {
-    font-size: 0.65rem;
-  }
-
-  .stat-divider {
-    height: 24px;
-  }
-
-  .action-buttons {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .btn {
-    width: auto;
-    min-width: 120px;
-    padding: 0.75rem 1.25rem;
-    font-size: 0.9rem;
-  }
-}
-
-/* Reduce profile avatar below 500px - must come after 639px to override */
-@media (max-width: 500px) {
-  .profile-avatar {
-    width: 90px;
-    height: 90px;
-    border-width: 3px;
-  }
-
-  .avatar-container {
-    min-width: 90px;
-    min-height: 90px;
+    margin-bottom: 0.25rem;
     padding: 3px;
   }
 
-  .avatar-section {
-    margin-top: -55px;
+  .profile-avatar-initials {
+    font-size: 1.9rem !important;
   }
 
   .avatar-edit-btn {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
+    bottom: 2px;
+    right: 2px;
   }
-}
 
-/* Spacing and font adjustments for extra small screens */
-@media (max-width: 420px) {
+  .edit-icon {
+    font-size: 0.7rem;
+  }
+
+  .user-name {
+    font-size: 1.2rem;
+    margin-bottom: 0;
+  }
+
   .stats-section {
-    gap: 0.4rem;
-    padding: 0.5rem 0.75rem;
-    margin: 0.75rem 0;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    margin: 0.4rem auto;
   }
 
   .stat-number {
-    font-size: 0.95rem;
+    font-size: 1rem;
   }
 
   .stat-label {
-    font-size: 0.55rem;
+    font-size: 0.6rem;
   }
 
   .stat-divider {
@@ -512,13 +537,87 @@
   }
 
   .action-buttons {
-    gap: 0.5rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 0.5rem 0;
   }
 
-  .btn {
-    width: auto !important;
-    min-width: 100px !important;
-    padding: 0.65rem 1rem !important;
+  .action-buttons .btn {
+    width: 140px;
+    min-width: 140px;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.8rem !important;
+    height: 40px;
+  }
+
+  .action-buttons .btn .btn-icon {
+    font-size: 0.95rem !important;
+  }
+}
+
+/* Reduce profile avatar below 500px - must come after 639px to override */
+@media (max-width: 500px) {
+  .profile-avatar {
+    width: 88px;
+    height: 88px;
+    border-width: 2px;
+  }
+
+  .avatar-container {
+    min-width: 88px;
+    min-height: 88px;
+    padding: 2px;
+  }
+
+  .avatar-section {
+    margin-top: -44px;
+  }
+
+  .profile-avatar-initials {
+    font-size: 1.65rem !important;
+  }
+
+  .avatar-edit-btn {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* Spacing and font adjustments for extra small screens */
+@media (max-width: 420px) {
+  .stats-section {
+    gap: 0.35rem;
+    padding: 0.35rem 0.5rem;
+    margin: 0.3rem auto;
+  }
+
+  .stat-number {
+    font-size: 0.9rem;
+  }
+
+  .stat-label {
+    font-size: 0.5rem;
+  }
+
+  .stat-divider {
+    height: 18px;
+  }
+
+  .action-buttons {
+    gap: 0.4rem;
+    margin: 0.4rem 0;
+  }
+
+  .action-buttons .btn {
+    width: 120px !important;
+    min-width: 120px !important;
+    padding: 0.5rem 0.6rem !important;
+    font-size: 0.75rem !important;
+    height: 36px !important;
+  }
+
+  .action-buttons .btn .btn-icon {
     font-size: 0.85rem !important;
   }
 }
@@ -530,9 +629,48 @@
     gap: 0.4rem;
   }
 
-  .btn {
-    min-width: 0 !important;
-    padding: 0.5rem 0.65rem !important;
+  .action-buttons .btn {
+    width: 110px !important;
+    min-width: 110px !important;
+    padding: 0.5rem 0.5rem !important;
+    font-size: 0.7rem !important;
+  }
+
+  .action-buttons .btn .btn-icon {
+    font-size: 0.8rem !important;
+  }
+}
+
+/* Extra small screens - reduce stats bar size further */
+@media (max-width: 341px) {
+  .stats-section {
+    gap: 0.25rem;
+    padding: 0.3rem 0.4rem;
+    margin: 0.25rem auto;
+  }
+
+  .stat-number {
+    font-size: 0.8rem;
+  }
+
+  .stat-label {
+    font-size: 0.45rem;
+    letter-spacing: 0.02em;
+  }
+
+  .stat-divider {
+    height: 16px;
+  }
+
+  .action-buttons .btn {
+    width: 100px !important;
+    min-width: 100px !important;
+    padding: 0.45rem 0.4rem !important;
+    font-size: 0.65rem !important;
+    height: 34px !important;
+  }
+
+  .action-buttons .btn .btn-icon {
     font-size: 0.75rem !important;
   }
 }

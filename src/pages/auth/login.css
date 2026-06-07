@@ -1,5 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
+/* Prevent body/html/root scroll on auth pages (except signup which needs scroll) */
+html:has(.login-right-section:not(.signup-page)),
+body:has(.login-right-section:not(.signup-page)),
+#root:has(.login-right-section:not(.signup-page)) {
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
 * {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -34,11 +42,13 @@
   height: 100%;
   opacity: 0.4;
   z-index: 1;
+  pointer-events: none;
 }
 
 .login-pattern-svg {
   width: 100%;
   height: 100%;
+  pointer-events: none;
 }
 
 /* Geometric Shapes */
@@ -51,6 +61,7 @@
   background: linear-gradient(135deg, var(--primary-alpha-20), transparent);
   border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
   z-index: 1;
+  pointer-events: none;
 }
 
 .login-geometric-shape-2 {
@@ -62,6 +73,7 @@
   border: 3px solid var(--primary-alpha-20);
   border-radius: 40% 60% 60% 40% / 60% 30% 70% 40%;
   z-index: 1;
+  pointer-events: none;
 }
 
 .login-geometric-shape-3 {
@@ -73,6 +85,7 @@
   background: var(--accent-alpha-10);
   transform: rotate(25deg);
   z-index: 1;
+  pointer-events: none;
 }
 
 .login-geometric-shape-4 {
@@ -84,6 +97,7 @@
   border-radius: 50%;
   border: 2px solid var(--primary-alpha-20);
   z-index: 1;
+  pointer-events: none;
 }
 
 .login-left-content {
@@ -131,7 +145,7 @@
 }
 
 .login-hero-headline {
-  font-size: 2.0rem;
+  font-size: 2.8rem;
   font-weight: 900;
   color: var(--color-text-primary-dark);
   margin: -3rem 0 0.75rem 0;
@@ -276,6 +290,14 @@
   padding: 1rem 2rem 2rem;
   position: relative;
   overflow: hidden;
+}
+
+/* Special handling for signup page with long content */
+.login-right-section.signup-page {
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Decorative Background Shapes */
@@ -836,6 +858,15 @@ a:hover {
     align-items: center !important;
     padding: 1rem !important;
   }
+
+  /* Signup page specific overflow handling */
+  .login-right-section.signup-page {
+    justify-content: flex-start !important;
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-top: 2rem !important;
+  }
   
   /* Reduce login card size */
   .login-form-container {
@@ -967,6 +998,15 @@ a:hover {
     justify-content: center !important;
     align-items: center !important;
     padding: 1rem !important;
+  }
+
+  /* Signup page specific overflow handling */
+  .login-right-section.signup-page {
+    justify-content: flex-start !important;
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-top: 2rem !important;
   }
   
   /* Reduce login card size */
@@ -1176,7 +1216,7 @@ a:hover {
   }
   
   .login-hero-headline {
-    font-size: 1.5rem !important;
+    font-size: 2.4rem !important;
     margin: 0 0 0.75rem 0 !important;
   }
   
@@ -1396,6 +1436,54 @@ a:hover {
   }
   to {
     opacity: 1;
+  }
+}
+
+/* Extra small screens - reduce heading sizes further */
+@media (max-width: 470px) {
+  .login-hero-headline-about {
+    font-size: 2.2rem !important;
+  }
+}
+
+@media (max-width: 465px) {
+  .login-mobile-headline {
+    font-size: 1.1rem !important;
+  }
+  
+  .login-mobile-subtext {
+    font-size: 0.75rem !important;
+  }
+  
+  .login-hero-headline {
+    font-size: 1.25rem !important;
+  }
+  
+  .login-hero-subtext {
+    font-size: 0.8rem !important;
+  }
+}
+
+/* Extra extra small screens - reduce even more */
+@media (max-width: 403px) {
+  .login-mobile-headline {
+    font-size: 1rem !important;
+  }
+  
+  .login-mobile-subtext {
+    font-size: 0.7rem !important;
+  }
+  
+  .login-hero-headline {
+    font-size: 1.1rem !important;
+  }
+  
+  .login-hero-subtext {
+    font-size: 0.75rem !important;
+  }
+  
+  .login-hero-headline-about {
+    font-size: 1.8rem !important;
   }
 }
 

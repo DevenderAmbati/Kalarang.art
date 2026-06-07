@@ -16,6 +16,7 @@ html {
   -ms-touch-action: pan-x pan-y;
   /* Disable browser pull-to-refresh */
   overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
 }
 
 /* Global Base Styles */
@@ -78,6 +79,40 @@ body {
   perspective: 1000px;
   /* Disable browser pull-to-refresh */
   overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
+  /* iOS PWA bounce prevention */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* iOS Safari/PWA Overscroll Prevention.
+   MUST come after the base #root/body rules so the cascade picks these up;
+   otherwise the regular `#root { overflow: visible }` cancels the scroll
+   container and the page becomes un-scrollable on iOS. */
+@supports (-webkit-touch-callout: none) {
+  html {
+    position: fixed !important;
+    width: 100%;
+    height: 100%;
+    overflow: hidden !important;
+  }
+
+  body {
+    position: fixed !important;
+    width: 100%;
+    height: 100%;
+    overflow: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #root {
+    position: fixed !important;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none;
+  }
 }
 
 code {
@@ -182,6 +217,26 @@ input:focus, textarea:focus, select:focus {
   scrollbar-width: thin;
   scrollbar-color: var(--color-primary) var(--color-bg-light);
   scroll-behavior: smooth; /* Add smooth scrolling to all elements */
+}
+
+/* Hide scrollbar on mobile (when bottom navbar is visible) */
+@media (max-width: 639px) {
+  /* For Webkit browsers (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+  
+  /* For Firefox */
+  * {
+    scrollbar-width: none;
+  }
+  
+  /* For IE and Edge */
+  * {
+    -ms-overflow-style: none;
+  }
 }
 
 /* Spin animation for loading indicators */

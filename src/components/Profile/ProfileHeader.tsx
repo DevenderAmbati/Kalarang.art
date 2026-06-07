@@ -9,6 +9,7 @@ interface ProfileStats {
   followers: number;
   artworks: number;
   following: number;
+  customized: number;
 }
 
 interface User {
@@ -17,6 +18,7 @@ interface User {
   avatar?: string;
   bannerImage?: string;
   stats: ProfileStats;
+  isFoundingArtist?: boolean;
 }
 
 interface ProfileHeaderProps {
@@ -32,6 +34,8 @@ interface ProfileHeaderProps {
   onReachOut?: () => void;
   onFollowersClick?: () => void;
   onFollowingClick?: () => void;
+  rating?: { avg: number; count: number };
+  onRatingClick?: () => void;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -47,6 +51,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onReachOut,
   onFollowersClick,
   onFollowingClick,
+  rating,
+  onRatingClick,
 }) => {
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
@@ -97,12 +103,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return colors[index];
   };
 
-  // Debug log
-  console.log('ProfileHeader user data:', user);
-  console.log('Avatar URL:', user.avatar);
-  console.log('Banner URL:', user.bannerImage);
-  console.log('Using avatar source:', user.avatar || '/artist.png');
-
   return (
     <div className="profile-header">
       {isOwner && (
@@ -123,10 +123,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             src={user.bannerImage || '/logo.jpeg'}
             alt="Profile banner"
             className="banner-img"
-            onLoad={() => console.log('Banner image loaded successfully')}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
-              console.log('Banner image failed to load:', target.src);
               if (target.src !== '/logo.jpeg') {
                 target.src = '/logo.jpeg';
               }
@@ -150,7 +148,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         }}>
           {/* Avatar Section */}
           <div className="avatar-section" style={{
-            marginBottom: '1rem',
             position: 'relative',
             zIndex: 1,
             textAlign: 'center'
@@ -158,7 +155,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <div className="avatar-container" style={{
               position: 'relative',
               display: 'inline-block',
-              marginBottom: '0.5rem',
               background: 'white',
               borderRadius: '50%'
             }}>
@@ -172,16 +168,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   display: 'block',
                   backgroundColor: '#f3f4f6'
                 }}
-                onLoad={() => console.log('Avatar loaded successfully:', user.avatar || '/artist.png')}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  console.log('Avatar failed to load:', target.src);
                   // If it's not already the artist.png, try that as fallback
                   if (target.src.indexOf('/artist.png') === -1) {
-                    console.log('Falling back to artist.png');
                     target.src = '/artist.png';
                   } else {
-                    console.log('Even artist.png failed, using placeholder');
                     target.style.display = 'none';
                     // Show initials div as final fallback
                     const initialsDiv = target.nextElementSibling as HTMLElement;
@@ -198,7 +190,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: getAvatarBackgroundColor(user.name),
-                  fontSize: '2.5rem',
                   fontWeight: 'bold',
                   color: 'white',
                   textShadow: '0 1px 2px rgba(0,0,0,0.1)',
@@ -222,16 +213,35 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             
             {/* User Name */}
             <h1 className="user-name">{user.name}</h1>
-            {user.username && (
-              <p style={{
-                fontSize: '0.95rem',
-                color: 'var(--color-primary)',
+            {(user.username || user.isFoundingArtist) && (
+              <div className="profile-header-username-row" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
                 marginTop: '0.25rem',
                 marginBottom: '0.5rem',
-                fontWeight: 500
+                flexWrap: 'wrap'
               }}>
-                @{user.username}
-              </p>
+                {user.username && (
+                  <p style={{
+                    fontSize: '0.95rem',
+                    color: 'var(--color-primary)',
+                    margin: 0,
+                    fontWeight: 500
+                  }}>
+                    @{user.username}
+                  </p>
+                )}
+                {user.isFoundingArtist && (
+                  <img
+                    src="/founding badge.png"
+                    alt="Founding Artist"
+                    className="founding-artist-badge"
+                    title="Founding Artist"
+                  />
+                )}
+              </div>
             )}
           </div>
 
@@ -240,16 +250,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            gap: '1rem',
-            margin: '1rem auto',
-            padding: '0.75rem 1rem',
             backgroundColor: 'rgba(255, 255, 255, 0.9)',
             borderRadius: '12px',
             backdropFilter: 'blur(10px)',
             width: 'fit-content',
-            maxWidth: '400px'
+            maxWidth: '600px'
           }}>
-            <div 
+            <div
               className="stat-item"
               onClick={isOwner ? onFollowersClick : undefined}
               style={{
@@ -266,48 +273,42 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <span className="stat-number">{formatNumber(user.stats.followers)}</span>
               <span className="stat-label">Followers</span>
             </div>
-            <span style={{
-              fontSize: '1.5rem',
-              color: '#22d5c0ff',
-              lineHeight: 1,
-              margin: '0 0.3rem'
-            }}>|</span>
+            <span style={{ fontSize: '1.5rem', color: '#22d5c0ff', lineHeight: 1, margin: '0 0.3rem' }}>|</span>
             <div className="stat-item">
               <span className="stat-number">{formatNumber(user.stats.artworks)}</span>
               <span className="stat-label">Artworks</span>
             </div>
-            <span style={{
-              fontSize: '1.5rem',
-              color: '#22d5c0ff',
-              lineHeight: 1,
-              margin: '0 0.3rem'
-            }}>|</span>
-            <div 
-              className="stat-item"
-              onClick={isOwner ? onFollowingClick : undefined}
-              style={{
-                cursor: isOwner ? 'pointer' : 'default',
-                transition: 'transform 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                if (isOwner) e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                if (isOwner) e.currentTarget.style.transform = 'scale(1)';
-              }}
-            >
-              <span className="stat-number">{formatNumber(user.stats.following)}</span>
-              <span className="stat-label">Following</span>
+            <span style={{ fontSize: '1.5rem', color: '#22d5c0ff', lineHeight: 1, margin: '0 0.3rem' }}>|</span>
+            <div className="stat-item">
+              <span className="stat-number">{formatNumber(user.stats.customized)}</span>
+              <span className="stat-label">Customized</span>
             </div>
+            {rating && rating.count > 0 && (
+              <>
+                <span style={{ fontSize: '1.5rem', color: '#22d5c0ff', lineHeight: 1, margin: '0 0.3rem' }}>|</span>
+                <div
+                  className="stat-item"
+                  onClick={onRatingClick}
+                  style={{ cursor: onRatingClick ? 'pointer' : 'default', transition: 'transform 0.2s ease' }}
+                  onMouseEnter={(e) => { if (onRatingClick) e.currentTarget.style.transform = 'scale(1.05)'; }}
+                  onMouseLeave={(e) => { if (onRatingClick) e.currentTarget.style.transform = 'scale(1)'; }}
+                >
+                  <span className="stat-number" style={{ display: 'flex', alignItems: 'baseline', gap: '0.15rem' }}>
+                    <span style={{ color: '#f59e0b' }}>★</span>
+                    {rating.avg.toFixed(1)}
+                   
+                  </span>
+                  <span className="stat-label">{rating.count} {rating.count === 1 ? 'Rating' : 'Ratings'}</span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Action Buttons */}
           <div className="action-buttons" style={{
             display: 'flex',
             flexDirection: 'row',
-            gap: '0.75rem',
             justifyContent: 'center',
-            margin: '1rem 0',
             alignItems: 'center',
             width: '100%'
           }}>
@@ -322,9 +323,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 alignItems: 'center',
                 gap: '0.4rem',
                 justifyContent: 'center',
-                height: '48px',
-                whiteSpace: 'nowrap',
-                width: '160px'
+                whiteSpace: 'nowrap'
               }}
               onClick={onShareProfile}
               aria-label="Share profile"
@@ -351,9 +350,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 background: 'transparent',
                 color: 'var(--color-primary)',
                 justifyContent: 'center',
-                height: '48px',
-                whiteSpace: 'nowrap',
-                width: '160px'
+                whiteSpace: 'nowrap'
               }}
               onClick={isOwner ? onEditProfile : onFollow}
               aria-label={isOwner ? "Edit profile" : (isFollowing ? "Unfollow" : "Follow")}

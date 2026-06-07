@@ -8,11 +8,13 @@ import {
   query,
   where,
   getDocs,
+  getCountFromServer,
   onSnapshot,
   Unsubscribe,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, UploadMetadata } from "firebase/storage";
 import { AppUser } from "../types/user";
+import { compressImage } from "../utils/imageCompression";
 
 export interface UserProfile extends AppUser {
   bio?: string;
@@ -52,7 +54,7 @@ export async function uploadProfileImage(
   type: "avatar" | "banner"
 ): Promise<string> {
   const timestamp = Date.now();
-  const filename = `${type}_${timestamp}.jpg`;
+  const filename = `${type}_${timestamp}.webp`;
   const storageRef = ref(storage, `users/${userId}/${filename}`);
 
   // Handle blob URL (string) conversion
@@ -63,7 +65,16 @@ export async function uploadProfileImage(
     fileToUpload = file;
   }
 
-  await uploadBytes(storageRef, fileToUpload);
+  // Compress image before upload (converts to WebP)
+  const compressedFile = await compressImage(fileToUpload);
+
+  // Set cache headers for CDN optimization (1 year cache)
+  const metadata: UploadMetadata = {
+    contentType: 'image/webp',
+    cacheControl: 'public, max-age=31536000',
+  };
+
+  await uploadBytes(storageRef, compressedFile, metadata);
   const downloadURL = await getDownloadURL(storageRef);
   return downloadURL;
 }
@@ -99,6 +110,16 @@ export async function updateUserProfile(
     ...updates,
     updatedAt: serverTimestamp(),
   });
+}
+
+/**
+ * Get count of users with isFoundingArtist === true (for Founding Artists page x/100).
+ */
+export async function getFoundingArtistsCount(): Promise<number> {
+  const usersRef = collection(db, "users");
+  const q = query(usersRef, where("isFoundingArtist", "==", true));
+  const snapshot = await getCountFromServer(q);
+  return snapshot.data().count;
 }
 
 /**
@@ -174,6 +195,7 @@ export async function getUserStats(userId: string): Promise<{
   followers: number;
   following: number;
   artworks: number;
+  customized: number;
 }> {
   // Count followers (excluding self)
   const followersRef = collection(db, "follows");
@@ -192,7 +214,20 @@ export async function getUserStats(userId: string): Promise<{
   const artworksSnapshot = await getDocs(artworksQuery);
   const artworks = artworksSnapshot.size;
 
-  return { followers, following, artworks };
+  // Count completed commissions (artworks made for clients)
+  // This may fail for non-authenticated users due to Firestore rules
+  let customized = 0;
+  try {
+    const commissionsRef = collection(db, "commissions");
+    const commissionsQuery = query(commissionsRef, where("hiredArtistId", "==", userId), where("status", "==", "completed"));
+    const commissionsSnapshot = await getDocs(commissionsQuery);
+    customized = commissionsSnapshot.size;
+  } catch {
+    // Silently fail for unauthenticated users - they can't read completed commissions
+    customized = 0;
+  }
+
+  return { followers, following, artworks, customized };
 }
 
 /**
@@ -355,11 +390,11 @@ export async function searchUsers(searchQuery: string): Promise<Array<{
  */
 export function subscribeToUserStats(
   userId: string,
-  onUpdate: (stats: { followers: number; following: number; artworks: number }) => void,
+  onUpdate: (stats: { followers: number; following: number; artworks: number; customized: number }) => void,
   onError?: (error: Error) => void
 ): Unsubscribe {
   const unsubscribers: Unsubscribe[] = [];
-  let currentStats = { followers: 0, following: 0, artworks: 0 };
+  let currentStats = { followers: 0, following: 0, artworks: 0, customized: 0 };
   
   // Subscribe to followers
   const followersQuery = query(
@@ -397,7 +432,20 @@ export function subscribeToUserStats(
       onUpdate({ ...currentStats });
     }, onError)
   );
-  
+
+  // Subscribe to completed commissions
+  const commissionsQuery = query(
+    collection(db, "commissions"),
+    where("hiredArtistId", "==", userId),
+    where("status", "==", "completed")
+  );
+  unsubscribers.push(
+    onSnapshot(commissionsQuery, (snapshot) => {
+      currentStats.customized = snapshot.size;
+      onUpdate({ ...currentStats });
+    }, onError)
+  );
+
   // Return combined unsubscribe function
   return () => {
     unsubscribers.forEach(unsub => unsub());

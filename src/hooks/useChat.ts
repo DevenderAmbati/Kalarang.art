@@ -16,6 +16,7 @@ import {
   sendMessage as sendChatMessage,
   getMessages,
 } from '../services/chatService';
+import { uploadChatMessageImage } from '../services/chatImageUpload';
 
 const REALTIME_LIMIT = 20;
 const MAX_CACHED_CHATS = 10;
@@ -35,7 +36,13 @@ interface UseChatReturn {
   loading: boolean;
   sending: boolean;
   hasMore: boolean;
-  sendMessage: (text: string) => Promise<void>;
+  ready: boolean;
+  sendMessage: (
+    text: string,
+    artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number },
+    imageFile?: File,
+    hd?: boolean,
+  ) => Promise<void>;
   loadMore: () => Promise<void>;
 }
 
@@ -78,12 +85,20 @@ export function useChat(
     createOrGetChat(currentUserId, otherUserId)
       .then(() => {
         if (!cancelled) {
-          setChatId(getChatId(currentUserId, otherUserId));
+          const newChatId = getChatId(currentUserId, otherUserId);
+          setChatId(newChatId);
+          // Check if we have cached messages - if so, loading is done
+          const cached = messagesCache[newChatId];
+          if (cached) {
+            setLoading(false);
+          }
         }
       })
-      .catch((err) => {
-        console.error('[useChat] Failed to create/get chat:', err);
-        if (!cancelled) setLoading(false);
+      .catch(() => {
+        if (!cancelled) {
+          setLoading(false);
+          setChatId(null);
+        }
       });
 
     return () => {
@@ -118,12 +133,39 @@ export function useChat(
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const msgs: ChatMessage[] = snapshot.docs.map((d) => ({
-          id: d.id,
-          senderId: d.data().senderId,
-          text: d.data().text,
-          createdAt: d.data().createdAt as Timestamp | null,
-        }));
+        const msgs: ChatMessage[] = snapshot.docs.map((d) => {
+          const data = d.data();
+          // eslint-disable-next-line no-console
+          console.log('Message from Firestore:', {
+            id: d.id,
+            senderId: data.senderId,
+            seenBy: data.seenBy,
+            artworkId: data.artworkId,
+          });
+          return {
+            id: d.id,
+            senderId: data.senderId,
+            text: data.text,
+            createdAt: data.createdAt as Timestamp | null,
+            seenBy: data.seenBy || [],
+            artworkId: data.artworkId,
+            artworkTitle: data.artworkTitle,
+            artworkImage: data.artworkImage,
+            artworkPrice: data.artworkPrice,
+            imageUrl: data.imageUrl,
+            imageHd: data.imageHd,
+            messageType: data.messageType,
+            offerFinalPrice: data.offerFinalPrice,
+            offerDeliveryDate: data.offerDeliveryDate,
+            offerStatus: data.offerStatus,
+            addressName: data.addressName,
+            addressLine1: data.addressLine1,
+            addressLine2: data.addressLine2,
+            addressCity: data.addressCity,
+            addressPincode: data.addressPincode,
+            addressPhone: data.addressPhone,
+          };
+        });
 
         const ordered = msgs.reverse();
         setRealtimeMessages(ordered);
@@ -143,8 +185,7 @@ export function useChat(
           isInitialised.current = true;
         }
       },
-      (error) => {
-        console.error('[useChat] Listener error:', error);
+      () => {
         setLoading(false);
       }
     );
@@ -178,19 +219,28 @@ export function useChat(
   }, [chatId, hasMore]);
 
   const sendMessage = useCallback(
-    async (text: string) => {
-      if (!chatId || !currentUserId || !text.trim()) {
-        console.error('[useChat] Cannot send message - missing required data:', { chatId, currentUserId, hasText: !!text.trim() });
+    async (
+      text: string,
+      artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number },
+      imageFile?: File,
+      hd?: boolean,
+    ) => {
+      if (!chatId || !currentUserId) {
+        throw new Error('Cannot send message: missing required data');
+      }
+      const trimmed = text.trim();
+      if (!trimmed && !imageFile) {
         throw new Error('Cannot send message: missing required data');
       }
 
-      console.log('[useChat] Sending message:', { chatId, currentUserId, otherUserId });
       setSending(true);
       try {
-        await sendChatMessage(chatId, currentUserId, text.trim(), otherUserId);
-        console.log('[useChat] Message sent successfully');
+        let imageUrl: string | undefined;
+        if (imageFile) {
+          imageUrl = await uploadChatMessageImage(currentUserId, 'chats', chatId, imageFile, hd);
+        }
+        await sendChatMessage(chatId, currentUserId, trimmed, otherUserId, artworkMetadata, imageUrl, hd && !!imageFile);
       } catch (error) {
-        console.error('[useChat] Send error:', error);
         throw error;
       } finally {
         setSending(false);
@@ -212,5 +262,8 @@ export function useChat(
     });
   }, [olderMessages, realtimeMessages]);
 
-  return { messages, loading, sending, hasMore, sendMessage, loadMore };
+  // Chat is ready when chatId is set and initial messages have loaded
+  const ready = !!chatId && !loading;
+
+  return { messages, loading, sending, hasMore, ready, sendMessage, loadMore };
 }

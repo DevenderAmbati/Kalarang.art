@@ -14,6 +14,16 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Track the currently active chat ID (sent from the app)
+let activeChatId = null;
+
+// Listen for messages from the app about active chat
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SET_ACTIVE_CHAT") {
+    activeChatId = event.data.chatId;
+  }
+});
+
 // Chrome shows "This site has been updated in the background" if we receive a push
 // but never display a visible notification. Always show a notification and catch errors.
 function showSafeNotification(title, body, iconUrl, tag, url) {
@@ -27,15 +37,24 @@ function showSafeNotification(title, body, iconUrl, tag, url) {
   return self.registration.showNotification(String(title || "Kalarang"), options);
 }
 
+// Show notifications, but suppress for the currently active chat
 messaging.onBackgroundMessage((payload) => {
-  try {
-    const data = (payload && payload.data) || {};
-    const title = data.title || "Kalarang";
-    const body = data.body || "You have a new notification";
-    const iconUrl = self.location.origin + "/square%20logo.png";
-    const tag = data.chatId ? "chat_" + data.chatId : (data.type || "default");
-    const url = data.url || "/";
+  const data = (payload && payload.data) || {};
+  const title = data.title || "Kalarang";
+  const body = data.body || "You have a new notification";
+  const iconUrl = self.location.origin + "/square%20logo.png";
+  const tag = data.chatId ? "chat_" + data.chatId : (data.type || "default");
+  const url = data.url || "/";
+  const notificationType = data.type || "";
+  const chatId = data.chatId || "";
 
+  // If this is a chat notification for the currently active chat, suppress it
+  if (notificationType === "chat" && chatId && activeChatId === chatId) {
+    return;
+  }
+
+  // Show notification for all other cases
+  try {
     return showSafeNotification(title, body, iconUrl, tag, url).catch(() => {
       return showSafeNotification(title, body, null, tag, url);
     });

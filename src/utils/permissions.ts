@@ -22,6 +22,7 @@ export enum Permission {
   SAVE_FAVORITES = 'save_favorites',
   FOLLOW_ARTISTS = 'follow_artists',
   COMMENT_ARTWORK = 'comment_artwork',
+  CREATE_COMMISSION = 'create_commission',
   
   // Browse permissions
   VIEW_FEED = 'view_feed',
@@ -51,6 +52,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.SAVE_FAVORITES,
     Permission.FOLLOW_ARTISTS,
     Permission.COMMENT_ARTWORK,
+    Permission.CREATE_COMMISSION,
     
     // Browse
     Permission.VIEW_FEED,
@@ -67,6 +69,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.SAVE_FAVORITES,
     Permission.FOLLOW_ARTISTS,
     Permission.COMMENT_ARTWORK,
+    Permission.CREATE_COMMISSION,
     
     // Browse
     Permission.VIEW_FEED,
@@ -78,7 +81,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 // Define route permissions
 export const ROUTE_PERMISSIONS: Record<string, Permission> = {
   '/upload': Permission.CREATE_ARTWORK,
-  '/post': Permission.CREATE_ARTWORK,
+  '/post': Permission.CREATE_COMMISSION,
+  '/commissions': Permission.CREATE_COMMISSION,
   '/portfolio': Permission.VIEW_PORTFOLIO,
   '/artist': Permission.VIEW_ARTIST_PROFILE,
   '/buyer': Permission.VIEW_BUYER_PROFILE,
@@ -87,6 +91,7 @@ export const ROUTE_PERMISSIONS: Record<string, Permission> = {
   '/discover': Permission.VIEW_DISCOVER,
   '/favourites': Permission.SAVE_FAVORITES,
   '/profile': Permission.VIEW_BUYER_PROFILE,
+  '/account': Permission.VIEW_ARTIST_PROFILE,
 };
 
 // Utility function to check if a role has a permission

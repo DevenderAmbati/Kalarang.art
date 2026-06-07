@@ -123,15 +123,19 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
         
         // All validations passed, now signup
         await signup(formData.fullName, formData.email, formData.password, userType);
-        
+
+        // Dismiss all toasts after successful signup
+        toast.dismiss();
+        if (userType === 'buyer') {
+          sessionStorage.setItem('buyer_new_signup', '1');
+        }
         onSignUp();
-      } catch (error: any) {
-        console.error('Sign up failed:', error);
+      } catch (error: unknown) {
         setIsLoading(false);
         setRandomAnimation(null);
-        
+        const err = error as { code?: string };
         // Check if email already exists
-        if (error.code === 'auth/email-already-in-use') {
+        if (err.code === 'auth/email-already-in-use') {
           toast.error('This email is already registered.', {
             position: "top-right",
             autoClose: 3000,
@@ -173,6 +177,12 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
       
       // All validations passed, proceed with Google sign-in
       await signInWithGoogle(userType); // role = artist | buyer
+      
+      // Dismiss all toasts after successful signup
+      toast.dismiss();
+      if (userType === 'buyer') {
+        sessionStorage.setItem('buyer_new_signup', '1');
+      }
     } catch (err: any) {
       setIsLoading(false);
       setRandomAnimation(null);
@@ -261,7 +271,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
   }
 
   return (
-    <div className="login-right-section" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', width: '100%', position: 'relative', padding: '3rem 0' }}>
+    <div className="login-right-section signup-page" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', minHeight: '100vh', width: '100%', position: 'relative', padding: '3rem 0' }}>
       {/* Decorative geometric background shapes */}
       <div className="login-bg-shape-1"></div>
       <div className="login-bg-shape-2"></div>
@@ -313,7 +323,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
             alt="Kalarang Logo"
             className="login-mobile-logo"
           />
-          <h1 className="login-mobile-headline">Where Art Meets Its People</h1>
+          <h1 className="login-mobile-headline">Get your paintings customized</h1>
           <p className="login-mobile-subtext">Discover and share original art with the world.</p>
         </div>
 
@@ -372,9 +382,9 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
                 {showRoleGuideTooltip && (
                   <div className="role-guide-tooltip" role="tooltip" id="role-guide-tooltip">
                     <div className="role-guide-tooltip-title">Which role should I choose?</div>
-                    <p><strong>Artist</strong> — You create art and want to connect with buyers to sell your work. You can still discover and buy art from others.</p>
-                    <p><strong>Buyer</strong> — You're here to discover and buy art and connect with artists.</p>
-                    <p><strong>Do both?</strong> Choose <strong>Artist</strong> — you get the full experience to sell your work and buy from others.</p>
+                    <p><strong>Artist</strong> — You create art and want to connect with buyers to sell your work and take commission requests.</p>
+                    <p><strong>Buyer</strong> — You're here to discover and buy art, post commission requests to get customized artwork done.</p>
+                    <p><strong>Do both?</strong> Choose <strong>Artist</strong> — you get the full experience to sell your work and buy from others, but you can't post comission requests.</p>
                   </div>
                 )}
               </div>

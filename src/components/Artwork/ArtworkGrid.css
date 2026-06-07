@@ -5,10 +5,10 @@
   width: 100%;
   margin-top: 12px;
   padding: 0 6px;
+  padding-bottom: 10px; /* Space for bottom nav */
   box-sizing: border-box;
-  /* Performance optimizations */
-  contain: layout style;
-  content-visibility: auto;
+  contain: style;
+  overflow: visible;
 }
 
 /* Virtualized grid container */
@@ -62,9 +62,13 @@
     grid-template-columns: 1fr !important;
   }
 
-  /* Discover, Published, Favourites: 2 columns on mobile (default) */
+  /* All Published tabs: 1 column on mobile (own and other portfolios) */
+  .artwork-grid-published {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Discover, Favourites: 2 columns on mobile */
   .artwork-grid-discover,
-  .artwork-grid-published,
   .artwork-grid-favourites {
     grid-template-columns: repeat(2, 1fr) !important;
   }

@@ -50,8 +50,13 @@
   opacity: 0.5;
 }
 
-.gallery-tab-item:hover {
+.gallery-tab-item:hover:not(.published) {
   transform: translateY(-4px);
+}
+
+/* Published artworks are not clickable */
+.gallery-tab-item.published:hover {
+  transform: none;
 }
 
 /* Image Container */
@@ -69,6 +74,10 @@
   box-shadow: var(--shadow-lg);
 }
 
+.gallery-tab-item.published .gallery-tab-image-wrapper:hover {
+  box-shadow: var(--shadow-sm);
+}
+
 /* Gallery Images */
 .gallery-tab-image {
   width: 100%;
@@ -78,7 +87,7 @@
   transition: transform var(--transition-smooth);
 }
 
-.gallery-tab-item:hover .gallery-tab-image {
+.gallery-tab-item:hover:not(.published) .gallery-tab-image {
   transform: scale(1.02);
 }
 
@@ -99,7 +108,7 @@
   pointer-events: none;
 }
 
-.gallery-tab-item:hover .gallery-tab-image-overlay {
+.gallery-tab-item:hover:not(.published) .gallery-tab-image-overlay {
   opacity: 1;
 }
 

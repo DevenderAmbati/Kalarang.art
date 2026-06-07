@@ -1,12 +1,12 @@
 import React, { CSSProperties } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AiFillHome } from 'react-icons/ai';
-import { MdExplore, MdFavorite, MdChevronLeft, MdChevronRight } from 'react-icons/md';
+import { MdExplore, MdFavorite, MdChevronLeft, MdChevronRight, MdAssignment } from 'react-icons/md';
 import { BiUpload } from 'react-icons/bi';
-import { BsBriefcaseFill, BsPersonCircle } from 'react-icons/bs';
 import { IconType } from 'react-icons';
 import { useSidebar } from '../../context/SidebarContext';
 import { useAuth } from '../../context/AuthContext';
+import { useChatContext } from '../../context/ChatContext';
 import { canAccessRoute } from '../../utils/permissions';
 
 // Add keyframes animation
@@ -40,6 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { appUser } = useAuth();
+  const { hasCommissionUnread } = useChatContext();
   const [hoveredItem, setHoveredItem] = React.useState<string | null>(null);
   const { isCollapsed, toggleSidebar } = useSidebar();
 
@@ -59,11 +60,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   // All menu items
   const allMenuItems: Array<{ path: string; label: string; Icon: IconType }> = [
     { path: '/home', label: 'Home', Icon: AiFillHome },
-    { path: '/discover', label: 'Discover', Icon: MdExplore },
-    { path: '/post', label: 'Post', Icon: BiUpload },
+    { path: '/discover', label: 'Explore', Icon: MdExplore },
+    { path: '/post', label: 'Upload', Icon: BiUpload },
     { path: '/favourites', label: 'Favourites', Icon: MdFavorite },
-    { path: '/portfolio', label: 'Portfolio', Icon: BsBriefcaseFill },
-    { path: '/profile', label: 'Profile', Icon: BsPersonCircle },
+    { path: '/commissions', label: 'Commissions', Icon: MdAssignment },
   ];
 
   // Filter menu items based on permissions
@@ -108,7 +108,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
               ...(isCollapsed ? styles.logoCollapsed : {}),
             }}
             onError={(e) => {
-              console.log('Logo top.png failed to load');
               (e.target as HTMLImageElement).style.display = 'none';
             }}
           />
@@ -118,7 +117,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
               alt="Kalarang Test" 
               style={styles.testLogo}
               onError={(e) => {
-                console.log('Test top.png failed to load');
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
             />
@@ -171,8 +169,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
                 ...styles.iconWrapper,
                 ...(active ? styles.iconWrapperActive : {}),
                 ...(hovered && !active ? styles.iconWrapperHover : {}),
+                position: 'relative',
               }}>
                 <span style={styles.icon}>{React.createElement(item.Icon as any)}</span>
+                {item.path === '/commissions' && hasCommissionUnread && (
+                  <span style={styles.unreadDot} aria-label="Unread messages" />
+                )}
               </div>
               {!isCollapsed && <span style={styles.label}>{item.label}</span>}
               {active && !isCollapsed && <div style={styles.activeIndicator}></div>}
@@ -355,6 +357,17 @@ const styles: { [key: string]: CSSProperties } = {
     boxShadow: '0 0 8px rgba(95, 209, 216, 0.6)',
     position: 'absolute',
     right: '8px',
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: '4px',
+    right: '4px',
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    background: '#ef4444',
+    boxShadow: '0 0 0 2px rgba(0, 0, 0, 0.2)',
+    pointerEvents: 'none',
   },
   footer: {
     padding: '1.5rem',

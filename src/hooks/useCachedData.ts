@@ -81,11 +81,8 @@ export function useCachedData<T>({
           // If data is NOT stale, don't fetch
           if (!cached.isStale) {
             fetchingRef.current = false;
-            console.log('[Cache] Using cached data for:', cacheKey);
             return;
           }
-          // If data IS stale, continue to fetch in background
-          console.log('[Cache] Background refresh for stale data:', cacheKey);
         }
       }
 
@@ -94,7 +91,6 @@ export function useCachedData<T>({
         setIsLoading(true);
       }
 
-      console.log('[API] Fetching fresh data for:', cacheKey);
       // Fetch fresh data
       const freshData = await fetchFnRef.current();
       
@@ -161,12 +157,10 @@ export function useCachedData<T>({
     
     if (cached.exists && !cached.isStale) {
       // We have fresh cache, no need to fetch at all
-      console.log('[Cache] HIT - Using fresh cache for:', cacheKey);
       return;
     }
     
     // Only fetch if no cache or stale cache
-    console.log('[Cache] MISS or STALE - Fetching:', cacheKey);
     fetchData();
 
     return () => {
@@ -234,6 +228,25 @@ export function useFavorites(userId: string | undefined, enabled = true) {
 
   return useCachedData({
     cacheKey: userId ? cacheKeys.favorites(userId) : 'favorites-none',
+    fetchFn,
+    enabled: enabled && !!userId,
+    staleTime: cacheTimes.favorites.staleTime,
+    cacheTime: cacheTimes.favorites.cacheTime,
+  });
+}
+
+/**
+ * Hook for fetching liked artwork IDs with caching
+ */
+export function useLikes(userId: string | undefined, enabled = true) {
+  const fetchFn = useCallback(async () => {
+    if (!userId) return [];
+    const { getUserLikedArtworkIds } = await import('../services/interactionService');
+    return getUserLikedArtworkIds(userId);
+  }, [userId]);
+
+  return useCachedData({
+    cacheKey: userId ? cacheKeys.likes(userId) : 'likes-none',
     fetchFn,
     enabled: enabled && !!userId,
     staleTime: cacheTimes.favorites.staleTime,

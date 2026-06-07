@@ -16,6 +16,7 @@ export interface FilterPanelProps {
 const MEDIUMS = [
   'Acrylic',
   'Oil',
+  'Pastels',
   'Watercolor',
   'Digital',
   'Graphite',
@@ -78,7 +79,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   const handleReset = () => {
     const defaultFilters: FilterState = {
       mediums: [],
-      priceRange: { min: 100, max: 200000 },
+      priceRange: { min: 100, max: 10000000 },
       sizes: [],
     };
     setFilters(defaultFilters);
@@ -141,14 +142,14 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
               <div 
                 className="filter-range-progress"
                 style={{
-                  left: `${((filters.priceRange.min - 100) / (200000 - 100)) * 100}%`,
-                  width: `${((filters.priceRange.max - filters.priceRange.min) / (200000 - 100)) * 100}%`
+                  left: `${((filters.priceRange.min - 100) / (10000000 - 100)) * 100}%`,
+                  width: `${((filters.priceRange.max - filters.priceRange.min) / (10000000 - 100)) * 100}%`
                 }}
               ></div>
               <input
                 type="range"
                 min="100"
-                max="200000"
+                max="10000000"
                 step="100"
                 value={filters.priceRange.min}
                 onChange={(e) => {
@@ -162,7 +163,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
               <input
                 type="range"
                 min="100"
-                max="200000"
+                max="10000000"
                 step="100"
                 value={filters.priceRange.max}
                 onChange={(e) => {

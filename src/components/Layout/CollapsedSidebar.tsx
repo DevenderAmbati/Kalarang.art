@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AiFillHome } from 'react-icons/ai';
-import { MdExplore, MdFavorite, MdChevronRight } from 'react-icons/md';
+import { MdExplore, MdFavorite, MdChevronRight, MdAssignment } from 'react-icons/md';
 import { BiUpload } from 'react-icons/bi';
-import { BsBriefcaseFill, BsPersonCircle } from 'react-icons/bs';
 import { IconType } from 'react-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useChatContext } from '../../context/ChatContext';
 import { canAccessRoute } from '../../utils/permissions';
 import './CollapsedSidebar.css';
 
@@ -39,6 +39,7 @@ const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({ onExpand }) => {
   const location = useLocation();
   const { appUser } = useAuth();
   const { theme } = useTheme();
+  const { hasCommissionUnread } = useChatContext();
   const [hoveredItem, setHoveredItem] = React.useState<string | null>(null);
   const [, forceUpdate] = React.useReducer(x => x + 1, 0);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -61,11 +62,10 @@ const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({ onExpand }) => {
   // All navigation items
   const allNavItems: NavItem[] = [
     { path: '/home', label: 'Home', Icon: AiFillHome },
-    { path: '/discover', label: 'Discover', Icon: MdExplore },
-    { path: '/post', label: 'Post', Icon: BiUpload },
+    { path: '/discover', label: 'Explore', Icon: MdExplore },
+    { path: '/post', label: 'Upload', Icon: BiUpload },
     { path: '/favourites', label: 'Favourites', Icon: MdFavorite },
-    { path: '/portfolio', label: 'Portfolio', Icon: BsBriefcaseFill },
-    { path: '/profile', label: 'Profile', Icon: BsPersonCircle },
+    { path: '/commissions', label: 'Commissions', Icon: MdAssignment },
   ];
 
   // Filter menu items based on permissions
@@ -227,11 +227,14 @@ const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({ onExpand }) => {
               onMouseLeave={() => setHoveredItem(null)}
               aria-label={item.label}
             >
-              <div 
+              <div
                 className={`sidebar-icon-wrapper ${active ? 'active' : ''} ${hovered && !active ? 'hovered' : ''}`}
                 ref={(el: HTMLDivElement | null) => { iconWrapperRefs.current[item.path] = el; }}
               >
                 <span className="sidebar-nav-icon">{React.createElement(item.Icon as any)}</span>
+                {item.path === '/commissions' && hasCommissionUnread && (
+                  <span className="sidebar-nav-unread-dot" aria-label="Unread messages" />
+                )}
               </div>
             </Link>
           );

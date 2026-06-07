@@ -14,17 +14,53 @@ import {
   serverTimestamp,
   updateDoc,
   increment,
+  arrayUnion,
   Timestamp,
   DocumentSnapshot,
   Unsubscribe,
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { markArtworkAsSold } from './artworkService';
 
 export interface ChatMessage {
   id: string;
   senderId: string;
   text: string;
   createdAt: Timestamp | null;
+  seenBy?: string[]; // Array of user IDs who have seen this message
+  artworkId?: string;
+  artworkTitle?: string;
+  artworkImage?: string;
+  artworkPrice?: number;
+  /** Firebase Storage download URL (full quality for display + download) */
+  imageUrl?: string;
+  imageHd?: boolean;
+  messageType?: 'reachout_offer' | 'address_card';
+  offerFinalPrice?: string;
+  offerDeliveryDate?: string;
+  offerStatus?: 'pending' | 'accepted';
+  addressName?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  addressCity?: string;
+  addressPincode?: string;
+  addressPhone?: string;
+}
+
+export interface AcceptedOffer {
+  artworkId: string;
+  artworkTitle: string;
+  artworkImage?: string;
+  finalPrice?: string;
+  orderedAt?: Timestamp;
+  artistId?: string;
+  orderId?: string;
+}
+
+function generateOrderId(): string {
+  const ts = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `KLR-${ts}-${rand}`;
 }
 
 export interface Chat {
@@ -33,8 +69,24 @@ export interface Chat {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   lastMessage: string;
+  contextType?: 'commission' | 'artwork';
+  contextId?: string;
+  contextTitle?: string;
+  contextImage?: string;
   /** Unread count per participant uid (e.g. unreadFor['uid'] === 3). */
   unreadFor?: Record<string, number>;
+  /** artworkIds for which shipment has been confirmed by the artist. */
+  shippedArtworkIds?: string[];
+  /** Structured list of accepted offers (one per artwork). */
+  acceptedOffers?: AcceptedOffer[];
+  /** artworkId → tracking ID, written when artist confirms shipment. */
+  trackingIds?: Record<string, string>;
+  /** artworkId → shipped timestamp. */
+  shippedAt?: Record<string, Timestamp>;
+  /** True once any offer payment has been confirmed on this chat. */
+  offerPaymentDone?: boolean;
+  /** artworkIds for which payment has been confirmed (Buy Now or accepted offer). */
+  paidArtworkIds?: string[];
 }
 
 const MESSAGES_PER_PAGE = 20;
@@ -54,13 +106,17 @@ export function getChatId(uid1: string, uid2: string): string {
  */
 export async function createOrGetChat(
   buyerId: string,
-  artistId: string
+  artistId: string,
+  context?: {
+    type?: 'commission' | 'artwork';
+    id?: string;
+    title?: string;
+    image?: string;
+  }
 ): Promise<string> {
   const chatId = getChatId(buyerId, artistId);
   const chatRef = doc(db, 'chats', chatId);
-  
-  console.log('[chatService] createOrGetChat called:', { buyerId, artistId, chatId });
-  
+
   try {
     // First check if the chat already exists
     const chatSnap = await getDoc(chatRef);
@@ -74,12 +130,21 @@ export async function createOrGetChat(
         lastMessage: '',
         unreadFor: {},
       });
-      console.log('[chatService] New chat document created:', chatId);
-    } else {
-      console.log('[chatService] Chat document already exists:', chatId);
+    } else if (context?.type === 'commission' && context.id) {
+      // Preserve existing pair-chat behavior but attach commission context
+      // so commission pages can discover relevant threads.
+      await setDoc(
+        chatRef,
+        {
+          contextType: 'commission',
+          contextId: context.id,
+          contextTitle: context.title || '',
+          contextImage: context.image || '',
+        },
+        { merge: true }
+      );
     }
   } catch (error) {
-    console.error('[chatService] Error creating/getting chat:', error);
     throw error;
   }
 
@@ -94,20 +159,51 @@ export async function sendMessage(
   chatId: string,
   senderId: string,
   text: string,
-  otherUserId?: string
+  otherUserId?: string,
+  artworkMetadata?: { artworkId?: string; artworkTitle?: string; artworkImage?: string; artworkPrice?: number },
+  imageUrl?: string,
+  imageHd?: boolean,
 ): Promise<void> {
-  console.log('[chatService] sendMessage called:', { chatId, senderId, textLength: text.length, otherUserId });
   const messagesRef = collection(db, 'chats', chatId, 'messages');
+  const trimmed = text.trim();
+  if (!trimmed && !imageUrl) {
+    throw new Error('Message must include text or an image.');
+  }
 
   try {
-    await addDoc(messagesRef, {
+    const messageData: any = {
       senderId,
-      text,
+      text: trimmed,
       createdAt: serverTimestamp(),
-    });
-    console.log('[chatService] Message document created successfully');
+    };
+
+    if (imageUrl) {
+      messageData.imageUrl = imageUrl;
+      if (imageHd) messageData.imageHd = true;
+    }
+    
+    if (artworkMetadata?.artworkId) {
+      messageData.artworkId = artworkMetadata.artworkId;
+      messageData.artworkTitle = artworkMetadata.artworkTitle;
+      messageData.artworkImage = artworkMetadata.artworkImage;
+      // Only include price if it's defined - Firestore doesn't accept undefined values
+      if (artworkMetadata.artworkPrice !== undefined) {
+        messageData.artworkPrice = artworkMetadata.artworkPrice;
+      }
+      // eslint-disable-next-line no-console
+      console.log('Saving message with artwork metadata:', {
+        artworkId: messageData.artworkId,
+        artworkTitle: messageData.artworkTitle,
+        artworkImage: messageData.artworkImage,
+        artworkPrice: messageData.artworkPrice,
+      });
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('No artwork metadata provided to sendMessage');
+    }
+    
+    await addDoc(messagesRef, messageData);
   } catch (error) {
-    console.error('[chatService] Error creating message document:', error);
     throw error;
   }
 
@@ -132,11 +228,124 @@ export async function sendMessage(
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Firestore UpdateData accepts dynamic keys
     await updateDoc(chatRef, updateData as any);
-    console.log('[chatService] Chat document updated successfully');
   } catch (error) {
-    console.error('[chatService] Error updating chat document:', error);
     throw error;
   }
+}
+
+/** Artist sends a price offer inside a regular (reach-out) chat. */
+export async function sendReachOutOfferMessage(
+  chatId: string,
+  senderId: string,
+  artworkId: string,
+  artworkTitle: string | undefined,
+  artworkImage: string | undefined,
+  finalPrice: string,
+  deliveryDate?: string,
+): Promise<void> {
+  const fp = finalPrice.trim();
+  if (!fp) throw new Error('Please enter a final price.');
+
+  const messagesRef = collection(db, 'chats', chatId, 'messages');
+  const messageData: any = {
+    senderId,
+    text: `Offer: ₹${fp}`,
+    messageType: 'reachout_offer',
+    offerFinalPrice: fp,
+    artworkId,
+    artworkTitle: artworkTitle || '',
+    artworkImage: artworkImage || '',
+    seenBy: [senderId],
+    createdAt: serverTimestamp(),
+  };
+  if (deliveryDate?.trim()) {
+    messageData.offerDeliveryDate = deliveryDate.trim();
+  }
+  await addDoc(messagesRef, messageData);
+
+  const chatRef = doc(db, 'chats', chatId);
+  const chatSnap = await getDoc(chatRef);
+  const participants = chatSnap.exists() ? (chatSnap.data().participants as string[]) : [];
+  const otherUserId = participants.find((p) => p !== senderId);
+  const updateData: Record<string, unknown> = {
+    lastMessage: `Offer: ₹${fp}`,
+    updatedAt: serverTimestamp(),
+    [`unreadFor.${senderId}`]: 0,
+  };
+  if (otherUserId) updateData[`unreadFor.${otherUserId}`] = increment(1);
+  await updateDoc(chatRef, updateData as any);
+}
+
+/** Buyer accepts an artist's reach-out offer — marks the message accepted and saves payment info on the chat. */
+export async function acceptReachOutOffer(
+  chatId: string,
+  messageId: string,
+  paymentAmount: string,
+  artworkMetadata?: { artworkId: string; artworkTitle: string; artworkImage?: string; artistId?: string },
+  paymentScreenshotUrl?: string,
+): Promise<void> {
+  const msgRef = doc(db, 'chats', chatId, 'messages', messageId);
+  await updateDoc(msgRef, { offerStatus: 'accepted' } as any);
+  const chatRef = doc(db, 'chats', chatId);
+  const updateData: Record<string, unknown> = {
+    offerAccepted: true,
+    offerPaymentAmount: paymentAmount,
+    offerPaymentDone: true,
+    updatedAt: serverTimestamp(),
+  };
+  if (paymentScreenshotUrl) {
+    updateData.paymentScreenshotUrl = paymentScreenshotUrl;
+  }
+  if (artworkMetadata) {
+    updateData[`acceptedOffers`] = arrayUnion({
+      artworkId: artworkMetadata.artworkId,
+      artworkTitle: artworkMetadata.artworkTitle,
+      artworkImage: artworkMetadata.artworkImage ?? '',
+      finalPrice: paymentAmount,
+      orderedAt: Timestamp.now(),
+      artistId: artworkMetadata.artistId ?? '',
+      orderId: generateOrderId(),
+    });
+    updateData['paidArtworkIds'] = arrayUnion(artworkMetadata.artworkId);
+    // Mark artwork as sold (non-blocking)
+    markArtworkAsSold(artworkMetadata.artworkId).catch(() => {});
+  }
+  await updateDoc(chatRef, updateData as any);
+}
+
+/** Sends a structured address card message in a regular chat. */
+export async function sendAddressCard(
+  chatId: string,
+  senderId: string,
+  address: { name: string; line1: string; line2: string; city: string; pincode: string; phone: string },
+  otherUserId?: string,
+): Promise<void> {
+  const messagesRef = collection(db, 'chats', chatId, 'messages');
+  await addDoc(messagesRef, {
+    senderId,
+    text: 'Delivery address',
+    messageType: 'address_card',
+    addressName: address.name,
+    addressLine1: address.line1,
+    addressLine2: address.line2,
+    addressCity: address.city,
+    addressPincode: address.pincode,
+    addressPhone: address.phone,
+    seenBy: [senderId],
+    createdAt: serverTimestamp(),
+  });
+  const chatRef = doc(db, 'chats', chatId);
+  const resolvedOther = otherUserId ?? (() => {
+    // otherUserId may be known at call-site; skip getDoc for perf
+    return undefined;
+  })();
+  const updateData: Record<string, unknown> = {
+    lastMessage: 'Delivery address',
+    updatedAt: serverTimestamp(),
+    [`unreadFor.${senderId}`]: 0,
+  };
+  if (resolvedOther) updateData[`unreadFor.${resolvedOther}`] = increment(1);
+  await updateDoc(chatRef, updateData as any);
 }
 
 /**
@@ -159,6 +368,23 @@ export async function getMessages(
     id: d.id,
     senderId: d.data().senderId,
     text: d.data().text,
+    seenBy: d.data().seenBy || [],
+    artworkId: d.data().artworkId,
+    artworkTitle: d.data().artworkTitle,
+    artworkImage: d.data().artworkImage,
+    artworkPrice: d.data().artworkPrice,
+    imageUrl: d.data().imageUrl,
+    imageHd: d.data().imageHd,
+    messageType: d.data().messageType,
+    offerFinalPrice: d.data().offerFinalPrice,
+    offerDeliveryDate: d.data().offerDeliveryDate,
+    offerStatus: d.data().offerStatus,
+    addressName: d.data().addressName,
+    addressLine1: d.data().addressLine1,
+    addressLine2: d.data().addressLine2,
+    addressCity: d.data().addressCity,
+    addressPincode: d.data().addressPincode,
+    addressPhone: d.data().addressPhone,
     createdAt: d.data().createdAt,
   }));
 
@@ -172,10 +398,55 @@ export async function getMessages(
 
 /**
  * Sets unread count for the given user in the chat to 0 (e.g. when they open the chat).
+ * Silently no-ops if the chat document doesn't exist yet (new conversation).
  */
 export async function markChatRead(chatId: string, userId: string): Promise<void> {
   const chatRef = doc(db, 'chats', chatId);
+  const snap = await getDoc(chatRef);
+  if (!snap.exists()) return;
   await updateDoc(chatRef, { [`unreadFor.${userId}`]: 0 } as any);
+}
+
+/**
+ * Marks messages as seen by the given user.
+ * Updates all messages in the chat where the user is not the sender and hasn't seen yet.
+ */
+export async function markMessagesAsSeen(
+  chatId: string,
+  userId: string
+): Promise<void> {
+  const messagesRef = collection(db, 'chats', chatId, 'messages');
+  // Fetch recent messages (limit to avoid excessive reads)
+  const q = query(
+    messagesRef,
+    orderBy('createdAt', 'desc'),
+    limit(50)
+  );
+  
+  try {
+    const snapshot = await getDocs(q);
+    let updatedCount = 0;
+    
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      const seenBy = data.seenBy || [];
+      
+      // Only update if user is not the sender and hasn't seen this message yet
+      if (data.senderId !== userId && !seenBy.includes(userId)) {
+        const messageRef = doc(db, 'chats', chatId, 'messages', docSnap.id);
+        await updateDoc(messageRef, {
+          seenBy: arrayUnion(userId)
+        });
+        updatedCount++;
+      }
+    }
+    
+    // eslint-disable-next-line no-console
+    console.log(`Marked ${updatedCount} messages as seen by ${userId} in chat ${chatId}`);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Error marking messages as seen:', error);
+  }
 }
 
 const CHATS_QUERY_LIMIT = 50;
@@ -206,10 +477,21 @@ export function subscribeToUserChats(
         createdAt: data.createdAt,
         updatedAt: data.updatedAt,
         lastMessage: data.lastMessage ?? '',
+        contextType: data.contextType,
+        contextId: data.contextId,
+        contextTitle: data.contextTitle,
+        contextImage: data.contextImage,
         unreadFor: data.unreadFor ?? {},
+        shippedArtworkIds: data.shippedArtworkIds ?? [],
+        acceptedOffers: data.acceptedOffers ?? [],
+        trackingIds: data.trackingIds ?? {},
+        offerPaymentDone: data.offerPaymentDone ?? false,
+        paidArtworkIds: data.paidArtworkIds ?? [],
       };
     });
     callback(chats);
+  }, () => {
+    // Silently ignore listener errors — stale auth or transient network issues
   });
 }
 
@@ -245,4 +527,206 @@ export function subscribeToUserChatCount(
   return onSnapshot(q, (snapshot) => {
     callback(snapshot.docs.length);
   });
+}
+
+/**
+ * Marks an artwork as shipped on the chat doc so the artist's card is
+ * hidden persistently (survives page refresh). Buyer side is unaffected.
+ */
+export async function markArtworkShipped(chatId: string, artworkId: string, trackingId: string): Promise<void> {
+  const chatRef = doc(db, 'chats', chatId);
+  await updateDoc(chatRef, {
+    shippedArtworkIds: arrayUnion(artworkId),
+    [`trackingIds.${artworkId}`]: trackingId,
+    [`shippedAt.${artworkId}`]: serverTimestamp(),
+  } as any);
+}
+
+export interface BuyerOrder {
+  chatId: string;
+  artistId?: string;
+  buyerId?: string;
+  artworkId: string;
+  artworkTitle: string;
+  artworkImage?: string;
+  finalPrice?: string;
+  status: 'in_progress' | 'completed';
+  trackingId?: string;
+  orderedAt?: Timestamp;
+  shippedAt?: Timestamp;
+  orderId?: string;
+}
+
+// Generic alias for BuyerOrder (works for both buyers and artists)
+export type UserOrder = BuyerOrder;
+
+/**
+ * Returns all readymade artwork orders for a user (buyer or artist), derived from chats
+ * that have at least one accepted reach-out offer.
+ * - For buyers: returns orders they placed
+ * - For artists: returns orders they need to fulfill
+ */
+/**
+ * Direct "Buy Now" flow — creates/gets the chat, records payment, sends
+ * automated message + address card. Returns the chatId.
+ */
+export async function processBuyNow(
+  buyerId: string,
+  artistId: string,
+  artworkId: string,
+  artworkTitle: string,
+  artworkImage: string | undefined,
+  price: string,
+  address: { name: string; line1: string; line2: string; city: string; pincode: string; phone: string },
+  paymentScreenshotUrl?: string,
+): Promise<string> {
+  const chatId = await createOrGetChat(buyerId, artistId);
+  const chatRef = doc(db, 'chats', chatId);
+  const orderId = generateOrderId();
+  const chatUpdate: Record<string, unknown> = {
+    offerPaymentDone: true,
+    offerPaymentAmount: price,
+    paidArtworkIds: arrayUnion(artworkId),
+    updatedAt: serverTimestamp(),
+    acceptedOffers: arrayUnion({
+      artworkId,
+      artworkTitle,
+      artworkImage: artworkImage ?? '',
+      finalPrice: price,
+      orderedAt: Timestamp.now(),
+      artistId,
+      orderId,
+    }),
+  };
+  if (paymentScreenshotUrl) {
+    chatUpdate.paymentScreenshotUrl = paymentScreenshotUrl;
+  }
+  await updateDoc(chatRef, chatUpdate as any);
+
+  // Automated chat message — includes artwork metadata so the context card appears in chat
+  await sendMessage(
+    chatId,
+    buyerId,
+    `I have paid ₹${price} for the painting "${artworkTitle}". Please ship it to the below address.`,
+    artistId,
+    { artworkId, artworkTitle, artworkImage, artworkPrice: Number(price) },
+  );
+
+  // Send payment screenshot as a chat message if available
+  if (paymentScreenshotUrl) {
+    await sendMessage(
+      chatId,
+      buyerId,
+      '💳 Payment screenshot',
+      artistId,
+      undefined,
+      paymentScreenshotUrl,
+    );
+  }
+
+  // Address card message
+  await sendAddressCard(chatId, buyerId, address, artistId);
+
+  // Mark artwork as sold (non-blocking — don't fail the purchase if this errors)
+  markArtworkAsSold(artworkId).catch(() => {});
+
+  return chatId;
+}
+
+export async function getBuyerOrders(userId: string): Promise<BuyerOrder[]> {
+  const chatsRef = collection(db, 'chats');
+  const q = query(
+    chatsRef,
+    where('participants', 'array-contains', userId),
+    orderBy('updatedAt', 'desc'),
+  );
+  const snapshot = await getDocs(q);
+  const orders: BuyerOrder[] = [];
+  for (const d of snapshot.docs) {
+    const data = d.data();
+    const accepted: AcceptedOffer[] = data.acceptedOffers ?? [];
+    if (accepted.length === 0) continue;
+    const shipped: string[] = data.shippedArtworkIds ?? [];
+    const trackingIds: Record<string, string> = data.trackingIds ?? {};
+    const shippedAtMap: Record<string, Timestamp> = data.shippedAt ?? {};
+    const participants = data.participants as [string, string];
+    
+    for (const offer of accepted) {
+      // Determine buyerId: the participant who is NOT the artist
+      const buyerId = participants.find(p => p !== offer.artistId) || userId;
+      
+      // Only include if userId is the buyer (not the artist)
+      if (buyerId === userId) {
+        orders.push({
+          chatId: d.id,
+          artistId: offer.artistId,
+          buyerId: buyerId,
+          artworkId: offer.artworkId,
+          artworkTitle: offer.artworkTitle,
+          artworkImage: offer.artworkImage,
+          finalPrice: offer.finalPrice,
+          orderId: offer.orderId,
+          status: shipped.includes(offer.artworkId) ? 'completed' : 'in_progress',
+          trackingId: trackingIds[offer.artworkId],
+          orderedAt: offer.orderedAt,
+          shippedAt: shippedAtMap[offer.artworkId],
+        });
+      }
+    }
+  }
+  return orders;
+}
+
+/**
+ * Returns orders that the artist needs to fulfill/ship.
+ * These are orders where the userId is the artistId.
+ */
+export async function getArtistShippings(userId: string): Promise<BuyerOrder[]> {
+  const chatsRef = collection(db, 'chats');
+  const q = query(
+    chatsRef,
+    where('participants', 'array-contains', userId),
+    orderBy('updatedAt', 'desc'),
+  );
+  const snapshot = await getDocs(q);
+  const shippings: BuyerOrder[] = [];
+  for (const d of snapshot.docs) {
+    const data = d.data();
+    const accepted: AcceptedOffer[] = data.acceptedOffers ?? [];
+    if (accepted.length === 0) continue;
+    const shipped: string[] = data.shippedArtworkIds ?? [];
+    const trackingIds: Record<string, string> = data.trackingIds ?? {};
+    const shippedAtMap: Record<string, Timestamp> = data.shippedAt ?? {};
+    const participants = data.participants as [string, string];
+    
+    for (const offer of accepted) {
+      // Only include if userId is the artist
+      if (offer.artistId === userId) {
+        const buyerId = participants.find(p => p !== offer.artistId);
+        shippings.push({
+          chatId: d.id,
+          artistId: offer.artistId,
+          buyerId: buyerId,
+          artworkId: offer.artworkId,
+          artworkTitle: offer.artworkTitle,
+          artworkImage: offer.artworkImage,
+          finalPrice: offer.finalPrice,
+          orderId: offer.orderId,
+          status: shipped.includes(offer.artworkId) ? 'completed' : 'in_progress',
+          trackingId: trackingIds[offer.artworkId],
+          orderedAt: offer.orderedAt,
+          shippedAt: shippedAtMap[offer.artworkId],
+        });
+      }
+    }
+  }
+  return shippings;
+}
+
+/**
+ * Generic alias for getting all orders (both as buyer and as artist).
+ * Returns orders from the perspective of the userId provided.
+ */
+export async function getUserOrders(userId: string): Promise<UserOrder[]> {
+  return getBuyerOrders(userId);
 }

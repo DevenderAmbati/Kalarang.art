@@ -1,0 +1,267 @@
+.reachout-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: reachoutFadeIn 0.2s ease-in;
+  backdrop-filter: blur(8px);
+  padding: 20px;
+}
+
+@keyframes reachoutFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.reachout-modal-content {
+  background: var(--color-bg-white);
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: reachoutSlideUp 0.3s ease-out;
+}
+
+@keyframes reachoutSlideUp {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.reachout-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.reachout-modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-royal);
+  margin: 0;
+}
+
+.reachout-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all var(--transition-base);
+}
+
+.reachout-modal-close:hover {
+  background: var(--color-bg-light);
+  color: var(--color-text-primary-light);
+}
+
+.reachout-artwork-card {
+  background: var(--color-bg-light);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  margin-bottom: 24px;
+}
+
+.reachout-artwork-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.reachout-artwork-image {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-bg-white);
+}
+
+.reachout-artwork-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.reachout-artwork-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.reachout-artwork-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary-light);
+  margin: 0 0 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reachout-artwork-description {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.reachout-artwork-arrow {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-base);
+}
+
+.reachout-artwork-card:hover .reachout-artwork-arrow {
+  color: var(--color-primary);
+  transform: translateX(4px);
+}
+
+.reachout-message-container {
+  margin-bottom: 24px;
+}
+
+.reachout-message-label {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-primary-light);
+  margin-bottom: 8px;
+}
+
+.reachout-message-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: var(--color-text-primary-light);
+  background: var(--color-bg-white);
+  resize: vertical;
+  font-family: inherit;
+  transition: all var(--transition-base);
+}
+
+.reachout-message-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(47, 164, 169, 0.1);
+}
+
+.reachout-message-input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.reachout-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.reachout-modal-btn {
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  border: none;
+}
+
+.reachout-modal-btn-cancel {
+  background: var(--color-bg-light);
+  color: var(--color-text-primary-light);
+  border: 1px solid var(--color-border);
+}
+
+.reachout-modal-btn-cancel:hover {
+  background: var(--color-border-light);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.reachout-modal-btn-send {
+  background: var(--color-primary);
+  color: var(--color-bg-white);
+}
+
+.reachout-modal-btn-send:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.reachout-modal-btn-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive styles */
+@media (max-width: 640px) {
+  .reachout-modal-content {
+    padding: 20px;
+    max-height: 95vh;
+  }
+
+  .reachout-modal-title {
+    font-size: 1.25rem;
+  }
+
+  .reachout-artwork-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .reachout-artwork-image {
+    width: 100%;
+    height: 200px;
+  }
+
+  .reachout-artwork-title {
+    white-space: normal;
+  }
+
+  .reachout-artwork-arrow {
+    display: none;
+  }
+
+  .reachout-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .reachout-modal-btn {
+    width: 100%;
+  }
+}

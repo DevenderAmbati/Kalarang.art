@@ -60,12 +60,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 1rem 1rem 1rem 1.25rem;
+  gap: 8px;
+  padding: 0.5rem 1rem 0.5rem 1.25rem;
   background: linear-gradient(90deg, #E8F4F5 0%, #c1f8fdff 100%);
   border-bottom: 1px solid rgba(47, 164, 169, 0.2);
   box-shadow: 0 4px 16px rgba(47, 164, 169, 0.15);
   flex-shrink: 0;
+  box-sizing: border-box;
+  min-height: var(--cd-layout-header-height, 0px);
 }
 
 .cd-drawer-title {
@@ -76,8 +78,8 @@
 }
 
 .cd-drawer-back {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   border: none;
   background: transparent;
@@ -97,14 +99,14 @@
 .cd-drawer-user {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
   flex: 1;
 }
 
 .cd-drawer-avatar {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--color-primary);
@@ -112,12 +114,33 @@
 }
 
 .cd-drawer-name {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--color-text-primary-light);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.cd-drawer-name-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-primary-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity var(--transition-fast);
+}
+
+.cd-drawer-name-link:hover {
+  opacity: 0.8;
 }
 
 .cd-drawer-close {
@@ -391,23 +414,33 @@
 }
 
 /* Bubbles — same font-weight for both sender and recipient */
-.cd-bubble {
+.cd-bubble-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   max-width: 80%;
+}
+
+.cd-bubble-wrapper-mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.cd-bubble {
   padding: 9px 13px;
   border-radius: 16px;
   word-break: break-word;
   font-weight: 400;
+  width: fit-content;
 }
 
 .cd-bubble-mine {
-  align-self: flex-end;
   background: var(--gradient-primary);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
 
 .cd-bubble-theirs {
-  align-self: flex-start;
   background: #E8F4F5;
   color: var(--color-royal);
   font-weight: 450;
@@ -441,6 +474,86 @@
   opacity: 0.85;
 }
 
+.cd-bubble-seen {
+  display: block;
+  font-size: 0.62rem;
+  margin-top: 2px;
+  margin-right: 4px;
+  color: var(--color-primary);
+  opacity: 0.8;
+  text-align: right;
+  font-weight: 500;
+}
+
+/* Artwork banner in messages */
+.cd-message-artwork-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+.cd-bubble-theirs .cd-message-artwork-banner {
+  background: rgba(47, 164, 169, 0.12);
+}
+
+.cd-message-artwork-image {
+  flex-shrink: 0;
+  width: 45px;
+  height: 45px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--color-bg-white);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.cd-message-artwork-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cd-message-artwork-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cd-message-artwork-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cd-bubble-mine .cd-message-artwork-title {
+  color: #fff;
+}
+
+.cd-bubble-theirs .cd-message-artwork-title {
+  color: var(--color-royal);
+}
+
+.cd-message-artwork-price {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.cd-bubble-mine .cd-message-artwork-price {
+  color: #fff;
+}
+
+.cd-bubble-theirs .cd-message-artwork-price {
+  color: var(--color-primary);
+}
+
 /* Input area */
 .cd-chat-input-area {
   display: flex;
@@ -465,6 +578,708 @@
   box-shadow: var(--shadow-lg);
 }
 
+/* Artwork banner for reach-out context */
+.cd-artwork-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, rgba(47, 164, 169, 0.08) 0%, rgba(47, 164, 169, 0.04) 100%);
+  border: 1px solid rgba(47, 164, 169, 0.2);
+  border-radius: 12px;
+}
+
+.cd-artwork-banner-image {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-bg-white);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.cd-artwork-banner-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cd-artwork-banner-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cd-artwork-banner-label {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.cd-artwork-banner-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-primary-light);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ================================================
+   Artwork cards collapsible drawer
+   ================================================ */
+
+.cd-cards-drawer {
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(47, 164, 169, 0.18);
+  background: var(--color-bg-light);
+}
+
+.cd-cards-drawer-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.cd-cards-drawer-toggle:hover {
+  background: var(--primary-alpha-10);
+}
+
+.cd-cards-drawer-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cd-cards-drawer-accepted-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 20px;
+  background: rgba(47, 164, 169, 0.12);
+  color: var(--color-primary);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.cd-cards-drawer-chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.cd-cards-drawer-chevron--open {
+  transform: rotate(180deg);
+}
+
+.cd-cards-drawer-body {
+  padding-bottom: 0.5rem;
+  overflow: hidden;
+}
+
+/* ================================================
+   Reach-out context card — mirrors commission chat design exactly
+   ================================================ */
+
+.cd-reachout-context-card {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  margin: 0.4rem 0.8rem 0;
+  padding: 0.45rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-light);
+  box-shadow: var(--commission-card-shadow);
+  flex-shrink: 0;
+}
+
+.cd-reachout-context-card--locked {
+  background: rgba(47, 164, 169, 0.06);
+  border-color: rgba(47, 164, 169, 0.3);
+}
+
+.cd-reachout-context-card img {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.cd-reachout-context-stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.cd-reachout-context-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.cd-reachout-context-label {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.cd-reachout-context-title {
+  margin: 0.1rem 0 0;
+  font-size: 0.84rem;
+  color: var(--color-royal);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cd-reachout-hire-btn {
+  flex-shrink: 0;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  line-height: 1.25;
+  border-radius: 10px;
+  border: 2px solid var(--color-primary);
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+}
+
+.cd-reachout-hire-btn:hover:not(:disabled) {
+  background: var(--primary-alpha-10);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.cd-reachout-hire-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+
+/* Offer form — mirrors commission-chat-offer-form */
+.cd-reachout-offer-form {
+  margin: 0 0.8rem 0.5rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-light);
+  background: var(--color-bg-white);
+  box-shadow: var(--commission-card-shadow);
+  flex-shrink: 0;
+}
+
+.cd-reachout-offer-form-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-royal);
+}
+
+.cd-reachout-offer-form-note {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary, #666);
+  background: rgba(47, 164, 169, 0.06);
+  border-left: 3px solid var(--color-primary, #2fa4a9);
+  border-radius: 4px;
+}
+
+.cd-reachout-offer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.cd-reachout-offer-field input {
+  padding: 0.42rem 0.6rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  background: var(--color-bg-light);
+  color: var(--color-text-dark);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.cd-reachout-offer-field input:focus {
+  border-color: var(--color-accent, #2fa4a9);
+  box-shadow: 0 0 0 2px var(--color-focus-glow);
+}
+
+.cd-reachout-offer-form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.35rem;
+}
+
+.cd-reachout-offer-cancel {
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--color-border-light);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.cd-reachout-offer-cancel:hover:not(:disabled) {
+  background: var(--color-bg-light);
+}
+
+.cd-reachout-offer-submit {
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--color-primary, #2fa4a9);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.cd-reachout-offer-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Address card message */
+.cd-address-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 180px;
+}
+
+.cd-address-card-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.72;
+  margin-bottom: 0.15rem;
+}
+
+.cd-address-card-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.cd-address-card-lines {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  opacity: 0.9;
+}
+
+.cd-address-card-phone {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin-top: 0.15rem;
+}
+
+/* Offer message bubble — mirrors commission-chat-bubble--offer */
+.cd-bubble-offer {
+  min-width: min(100%, 220px);
+}
+
+.cd-offer-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.cd-offer-card-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-royal);
+}
+
+.cd-bubble-mine .cd-offer-card-title {
+  color: #fff;
+}
+
+.cd-offer-card-status {
+  align-self: flex-start;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: var(--color-accent, #2fa4a9);
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+}
+
+.cd-offer-card-details {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.cd-offer-card-details li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding-bottom: 0.3rem;
+}
+
+.cd-offer-card-details li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.cd-offer-card-details span {
+  color: var(--color-text-muted);
+}
+
+.cd-offer-card-details strong {
+  color: var(--color-text-dark);
+  font-weight: 600;
+}
+
+.cd-bubble-mine .cd-offer-card-details li {
+  border-bottom-color: rgba(255, 255, 255, 0.25);
+}
+
+.cd-bubble-mine .cd-offer-card-details span {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.cd-bubble-mine .cd-offer-card-details strong {
+  color: #1a1a1a;
+}
+
+.cd-offer-accept-btn {
+  margin-top: 0.25rem;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: var(--color-primary, #2fa4a9);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.cd-offer-accept-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.cd-offer-accept-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ================================================
+   Accept-offer modal — shared classes used by the
+   payment/address modal (mirrors Commissions.css)
+   ================================================ */
+
+.commission-accept-offer-modal {
+  position: relative;
+  max-width: 380px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.commission-accept-offer-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--color-text-secondary, #888);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.15s, color 0.15s;
+}
+
+.commission-accept-offer-close:hover { background: rgba(0,0,0,0.06); color: var(--color-text-primary, #111); }
+.commission-accept-offer-close:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Address form */
+.commission-accept-address-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.commission-accept-address-form-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary, #666);
+  margin: 0 0 0.1rem;
+}
+
+.commission-accept-address-input {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--color-border-light, #e5e7eb);
+  border-radius: 7px;
+  background: var(--color-surface, #fff);
+  color: var(--color-text-primary, #111);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.commission-accept-address-input:focus { border-color: var(--color-primary, #2fa4a9); }
+.commission-accept-address-input:disabled { opacity: 0.6; }
+
+.cd-shipment-receipt-upload {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 10px 14px;
+  border: 1.5px dashed var(--color-border-light, #ccc);
+  border-radius: 10px;
+  background: var(--color-bg-light, #f7f7f7);
+  color: var(--color-text-muted, #888);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.cd-shipment-receipt-upload:hover:not(:disabled) {
+  border-color: var(--color-primary, #2fa4a9);
+  color: var(--color-primary, #2fa4a9);
+}
+
+.cd-shipment-receipt-upload:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cd-required {
+  color: #e53;
+  margin-left: 2px;
+}
+
+.cd-shipment-receipt-preview {
+  position: relative;
+  margin-top: 0.75rem;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-light, #ccc);
+  max-height: 160px;
+  background: var(--color-bg-light, #f7f7f7);
+}
+
+.cd-shipment-receipt-preview img {
+  display: block;
+  width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+}
+
+.cd-shipment-receipt-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.commission-accept-address-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.commission-accept-address-required-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #888);
+  margin: 0.75rem 0 0.15rem;
+  text-align: center;
+}
+
+/* Payment section */
+.commission-accept-offer-payment {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1.25rem 1rem 1rem;
+  margin-top: 0.5rem;
+  background: rgba(47, 164, 169, 0.06);
+  border: 1px solid rgba(47, 164, 169, 0.18);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.commission-accept-offer-payment-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-primary, #2fa4a9);
+  margin: 0;
+}
+
+.commission-accept-offer-amount {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--color-text-primary, #111);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.commission-accept-offer-upiid {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #555);
+  margin: 0;
+}
+
+.commission-accept-offer-upi-btn {
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+  margin-top: 0.4rem;
+  padding: 0.65rem 1rem;
+}
+
+.commission-accept-offer-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.75rem;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-light, #e5e7eb);
+  margin-top: 0.15rem;
+}
+
+.commission-accept-offer-qr-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #666);
+  margin: 0;
+}
+
+/* Payment confirmation block */
+.commission-make-payment-confirm-block {
+  margin-top: 1rem;
+}
+
+.commission-payment-confirm-tooltip-q {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #111);
+  margin: 0 0 0.65rem;
+  text-align: center;
+}
+
+.commission-hire-tooltip-confirm-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+/* Spinner (shared) */
+@keyframes cdInlineSpinnerSpin { to { transform: rotate(360deg); } }
+
+.commission-inline-spinner {
+  display: inline-block;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: cdInlineSpinnerSpin 0.65s linear infinite;
+  vertical-align: -0.12em;
+  flex-shrink: 0;
+}
+
+.commission-inline-spinner--outline {
+  border-color: rgba(47,164,169,0.35);
+  border-top-color: var(--color-accent, #2fa4a9);
+}
+
+.cd-emoji-picker-wrapper {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin-bottom: 4px;
+  z-index: 10;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
 .cd-emoji-picker-wrapper .epr-main {
   border: 1px solid var(--color-border);
   border-radius: 12px;
@@ -473,6 +1288,26 @@
 /* Hide emoji category headings (Smileys, People, etc.) */
 .cd-emoji-picker-wrapper .epr-emoji-category-label {
   display: none;
+}
+
+.cd-phone-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  margin-bottom: 6px;
+  background: #fff4e0;
+  border: 1px solid #f5a623;
+  border-radius: 8px;
+  color: #b45309;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.cd-phone-warning svg {
+  flex-shrink: 0;
+  color: #f5a623;
 }
 
 .cd-chat-input-row {
@@ -557,6 +1392,160 @@
 .cd-chat-send:disabled {
   opacity: 0.42;
   cursor: not-allowed;
+}
+
+.cd-chat-file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cd-pending-image {
+  position: relative;
+  align-self: stretch;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+  max-height: 160px;
+  background: var(--color-bg-light);
+}
+
+.cd-pending-image img {
+  display: block;
+  width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+}
+
+.cd-pending-image-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cd-chat-attach-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.cd-chat-attach-btn:hover:not(:disabled) {
+  color: var(--color-primary);
+  background: var(--primary-alpha-10);
+}
+
+.cd-chat-attach-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cd-chat-attachment {
+  position: relative;
+  margin-bottom: 6px;
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: min(280px, 72vw);
+}
+
+.cd-chat-attachment--clickable {
+  cursor: zoom-in;
+}
+
+.cd-chat-attachment-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 320px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.cd-chat-attachment-download {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast);
+}
+
+.cd-chat-attachment-download:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.cd-chat-attachment-download:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.cd-pending-image .commission-chat-hd-toggle {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  padding: 2px 8px;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.cd-pending-image .commission-chat-hd-toggle--active {
+  background: var(--color-primary, #6c63ff);
+  border-color: var(--color-primary, #6c63ff);
+}
+
+.cd-chat-attachment .commission-chat-hd-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* ================================================

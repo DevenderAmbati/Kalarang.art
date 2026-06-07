@@ -54,6 +54,10 @@
   margin-left: -1.5rem;
 }
 
+.landing-page .home-header .home-nav-links .home-nav-about {
+  margin-left: -0.5rem;
+}
+
 .landing-page .home-header .home-header-right {
   display: flex;
   align-items: center;
@@ -124,6 +128,14 @@
     gap: 0.75rem !important;
     padding: 0.75rem 1rem !important;
     margin-top: 0 !important;
+    transition: transform 0.28s ease, opacity 0.28s ease;
+    will-change: transform;
+  }
+
+  .landing-page .home-header.home-header-mobile-hidden {
+    transform: translateY(-110%);
+    opacity: 0.98;
+    pointer-events: none;
   }
 
   .landing-page .home-header .home-header-left {
@@ -137,7 +149,7 @@
   }
 
   .landing-page .home-header .home-nav-links {
-    gap: 0.5rem !important;
+    gap: 1.25rem !important;
     margin-left: 0 !important;
     top: 0 !important;
   }

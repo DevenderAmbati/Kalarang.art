@@ -13,6 +13,9 @@ export interface Artwork {
   artistId?: string;
   price: number;
   sold?: boolean;
+  likes?: number;
+  comments?: number;
+  favorites?: number;
 }
 
 export interface ArtworkGridProps {
@@ -29,6 +32,10 @@ export interface ArtworkGridProps {
   artworkIdsInStories?: Set<string>;
   currentUserId?: string;
   viewType?: 'homefeed' | 'discover' | 'published' | 'favourites';
+  onCommentClick?: (id: string) => void;
+  onShare?: (id: string) => void;
+  onLike?: (id: string) => void;
+  likedArtworks?: Set<string>;
 }
 
 const ArtworkGrid: React.FC<ArtworkGridProps> = ({ 
@@ -44,7 +51,11 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
   onAddToStory,
   artworkIdsInStories = new Set(),
   currentUserId,
-  viewType
+  viewType,
+  onCommentClick,
+  onShare,
+  onLike,
+  likedArtworks = new Set()
 }) => {
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
 
@@ -60,8 +71,9 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
     if (screenWidth >= 1440) return 4;
     if (screenWidth >= 1024) return 3;
     if (screenWidth >= 640) return 2;
-    // Mobile view: 1 column for homefeed, 2 columns for others
+    // Mobile view: 1 column for homefeed and all published tabs
     if (viewType === 'homefeed') return 1;
+    if (viewType === 'published') return 1;
     return 2;
   };
 
@@ -89,15 +101,26 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
           onAddToStory={onAddToStory}
           hasStory={artworkIdsInStories.has(artwork.id)}
           currentUserId={currentUserId}
+          viewType={viewType}
+          onCommentClick={onCommentClick}
+          onShare={onShare}
+          onLike={onLike}
+          isLiked={likedArtworks.has(artwork.id)}
         />
       </div>
     );
   };
 
-  // Fallback for small lists
-  if (artworks.length < 20) {
+  // Fallback for small lists, or for views where the parent has no fixed height for virtualized Grid
+  if (artworks.length < 20 || viewType === 'discover' || viewType === 'homefeed' || viewType === 'published' || viewType === 'favourites') {
+    const gridClasses = [
+      'artwork-grid',
+      viewType ? `artwork-grid-${viewType}` : '',
+      isOwner ? 'artwork-grid-owner' : ''
+    ].filter(Boolean).join(' ');
+    
     return (
-      <div className={`artwork-grid ${viewType ? `artwork-grid-${viewType}` : ''}`}>
+      <div className={gridClasses}>
         {artworks.map((artwork) => (
           <ArtworkGridCard
             key={artwork.id}
@@ -113,6 +136,11 @@ const ArtworkGrid: React.FC<ArtworkGridProps> = ({
             onAddToStory={onAddToStory}
             hasStory={artworkIdsInStories.has(artwork.id)}
             currentUserId={currentUserId}
+            viewType={viewType}
+            onCommentClick={onCommentClick}
+            onShare={onShare}
+            onLike={onLike}
+            isLiked={likedArtworks.has(artwork.id)}
           />
         ))}
       </div>

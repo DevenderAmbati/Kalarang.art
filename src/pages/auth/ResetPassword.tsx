@@ -33,20 +33,17 @@ const ResetPassword: React.FC = () => {
 
     try {
       // Use environment-based config
-      const baseUrl =
-        window.location.hostname.includes("staging")
-          ? "https://kalarang-staging.web.app"
-          : "https://kalarang.art";
 
+
+      const baseUrl = process.env.REACT_APP_BASE_URL || window.location.origin;
       await sendPasswordResetEmail(auth, email, {
-        url: `${baseUrl}/reset-password`,
-        handleCodeInApp: true
+        url: `${baseUrl}/login`,
+        handleCodeInApp: false
       });
       
       setIsSubmitted(true);
       setSuccessMessage(' If an account exists, a password reset link has been sent to your email!');
-    } catch (error: any) {
-      console.error('Password reset failed:', error);
+    } catch {
       setErrorMessage(' Oops! Something went wrong. Please try again.');
     }
   };
@@ -104,7 +101,7 @@ const ResetPassword: React.FC = () => {
               alt="Kalarang Logo"
               className="login-mobile-logo"
             />
-            <h1 className="login-mobile-headline">Where Art Meets Its People</h1>
+            <h1 className="login-mobile-headline">Get your paintings customized</h1>
             <p className="login-mobile-subtext">Recover your account and get back to creating.</p>
           </div>
 

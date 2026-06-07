@@ -16,17 +16,42 @@ import {
   Unsubscribe,
 } from "firebase/firestore";
 
+export type NotificationType =
+  | 'follow'
+  | 'reachout'
+  | 'favourite'
+  | 'like' // Artist: someone liked their artwork
+  | 'comment' // Artist: someone commented on their artwork
+  | 'comment_reply' // User (e.g. buyer): someone replied to their comment
+  | 'commission_application'   // Buyer: an artist applied to their commission
+  | 'commission_offer'         // Buyer: an artist sent an offer
+  | 'commission_offer_accepted' // Artist: buyer accepted their offer
+  | 'commission_completed'    // Artist: commission marked completed/closed
+  | 'ready_to_ship'           // Buyer: artist marked artwork as ready to ship
+  | 'full_payment_done'       // Artist: buyer confirmed full payment
+  | 'commission_shipped'      // Buyer: artist shipped the artwork
+  | 'review_received'         // Artist: buyer left a review
+  | 'review_reply'            // Buyer: artist replied to their review
+  | 'payment_failed_no_upi'   // Artist: buyer tried to pay but UPI ID not set
+  | 'new_commission_posted';  // Artist: a new commission request was posted
+
 export interface Notification {
   id: string;
-  type: 'follow' | 'reachout' | 'favourite';
-  recipientId: string; // Artist who receives the notification
-  actorId: string; // User who performed the action
+  type: NotificationType;
+  recipientId: string;
+  actorId: string;
   actorName: string;
   actorAvatar?: string;
-  artworkId?: string; // For favourite and reachout notifications
+  artworkId?: string;
   artworkTitle?: string;
   artworkImage?: string;
-  contactMethod?: 'whatsapp' | 'email'; // For reachout notifications
+  contactMethod?: 'whatsapp' | 'email';
+  commissionId?: string;
+  commissionTitle?: string;
+  /** New comment or reply text (truncated) */
+  commentSnippet?: string;
+  /** Original comment text when type is comment_reply (truncated) */
+  parentCommentSnippet?: string;
   timestamp: Date;
   isRead: boolean;
 }
@@ -36,14 +61,18 @@ export interface Notification {
  */
 export async function createNotification(
   recipientId: string,
-  type: 'follow' | 'reachout' | 'favourite',
+  type: NotificationType,
   actorId: string,
   actorName: string,
   actorAvatar?: string,
   artworkId?: string,
   artworkTitle?: string,
   artworkImage?: string,
-  contactMethod?: 'whatsapp' | 'email'
+  contactMethod?: 'whatsapp' | 'email',
+  commissionId?: string,
+  commissionTitle?: string,
+  commentSnippet?: string,
+  parentCommentSnippet?: string,
 ): Promise<void> {
   const notificationRef = doc(collection(db, "notifications"));
   await setDoc(notificationRef, {
@@ -56,6 +85,10 @@ export async function createNotification(
     artworkTitle: artworkTitle || null,
     artworkImage: artworkImage || null,
     contactMethod: contactMethod || null,
+    commissionId: commissionId || null,
+    commissionTitle: commissionTitle || null,
+    commentSnippet: commentSnippet || null,
+    parentCommentSnippet: parentCommentSnippet || null,
     timestamp: serverTimestamp(),
     isRead: false,
   });
@@ -90,6 +123,10 @@ export async function getUserNotifications(
       artworkTitle: data.artworkTitle,
       artworkImage: data.artworkImage,
       contactMethod: data.contactMethod,
+      commissionId: data.commissionId,
+      commissionTitle: data.commissionTitle,
+      commentSnippet: data.commentSnippet,
+      parentCommentSnippet: data.parentCommentSnippet,
       timestamp: (data.timestamp as Timestamp)?.toDate() || new Date(),
       isRead: data.isRead,
     } as Notification;
@@ -172,6 +209,10 @@ export function subscribeToNotifications(
         artworkTitle: data.artworkTitle,
         artworkImage: data.artworkImage,
         contactMethod: data.contactMethod,
+        commissionId: data.commissionId,
+        commissionTitle: data.commissionTitle,
+        commentSnippet: data.commentSnippet,
+        parentCommentSnippet: data.parentCommentSnippet,
         timestamp: (data.timestamp as Timestamp)?.toDate() || new Date(),
         isRead: data.isRead,
       } as Notification;
@@ -223,6 +264,5 @@ export async function deleteOldReadNotifications(userId: string): Promise<void> 
 
   if (querySnapshot.size > 0) {
     await batch.commit();
-    console.log(`Deleted ${querySnapshot.size} old read notifications`);
   }
 }
