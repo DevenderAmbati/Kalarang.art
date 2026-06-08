@@ -38,6 +38,7 @@ import { logout } from "./services/authService";
 import ArtistLanding from "./pages/landing/ArtistLanding";
 import FoundingArtistsPage from "./pages/landing/FoundingArtistsPage";
 import BuyerLanding from "./pages/landing/BuyerLanding";
+import ClaimSketch from "./pages/landing/ClaimSketch";
 import { ScrollToTop } from "./components/Common/ScrollToTop";
 import PwaUpdatePrompt from "./components/PwaUpdatePrompt";
 
@@ -254,6 +255,8 @@ function App() {
               <Route path="/og/:id" element={<OgRedirect />} />
 
               <Route path="/founding-artists" element={<FoundingArtistsPage />} />
+
+              <Route path="/free-sketch" element={<ClaimSketch />} />
 
               <Route
                 path="/login"

@@ -1430,16 +1430,18 @@ const HomeFeed: React.FC = () => {
   );
 
   const handleShare = (id: number | string) => {
+    const shareBase = process.env.NODE_ENV === 'production' ? window.location.origin : 'https://kalarang.art';
+    const shareUrl = `${shareBase}/og/${id}`;
     const sourceList = [...topUnseenArtworks, ...remainingUnseenArtworks, ...discoverArtworks, ...seenFollowedArtworks, ...seenDiscoverArtworks];
     const artwork = sourceList?.find((a) => a.id === id.toString());
     if (artwork && navigator.share) {
       navigator.share({
         title: artwork.title,
         text: `Check out "${artwork.title}" by ${artwork.artistName}`,
-        url: `${window.location.origin}/og/${id}`,
+        url: shareUrl,
       }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(`${window.location.origin}/og/${id}`);
+      navigator.clipboard.writeText(shareUrl);
       toast.success('Link copied to clipboard!');
     }
   };
@@ -1656,7 +1658,7 @@ const HomeFeed: React.FC = () => {
               className={`homefeed-tab${activeFeedTab === 'curated' ? ' active' : ''}`}
               onClick={() => setActiveFeedTab('curated')}
             >
-              Curated Art
+              Following
             </button>
             <button
               type="button"

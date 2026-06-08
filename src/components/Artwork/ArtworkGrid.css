@@ -7,9 +7,7 @@
   padding: 0 6px;
   padding-bottom: 10px; /* Space for bottom nav */
   box-sizing: border-box;
-  /* Performance optimizations */
   contain: style;
-  content-visibility: auto;
   overflow: visible;
 }
 

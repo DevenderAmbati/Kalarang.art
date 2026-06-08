@@ -217,6 +217,39 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.buyerId == request.auth.uid;
     }
 
+    // Free sketch claim requests — public-write offer flow.
+    // Reads/updates/deletes denied — admins manage via Firebase console.
+    match /freeSketchRequests/{requestId} {
+      allow read, update, delete: if false;
+      allow create: if
+        request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.whatsapp is string
+        && request.resource.data.whatsapp.size() >= 10
+        && request.resource.data.whatsapp.size() <= 15
+        && request.resource.data.orderId is string
+        && request.resource.data.orderId.size() > 0
+        && request.resource.data.orderId.size() <= 100
+        && request.resource.data.copyType in ['physical', 'digital']
+        && request.resource.data.referenceImagePath is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && (
+          (request.resource.data.copyType == 'digital'
+            && request.resource.data.keys().hasOnly(['name','whatsapp','orderId','copyType','referenceImagePath','status','createdAt']))
+          ||
+          (request.resource.data.copyType == 'physical'
+            && request.resource.data.keys().hasOnly(['name','whatsapp','orderId','copyType','referenceImagePath','status','createdAt','address','pincode','paymentScreenshotPath'])
+            && request.resource.data.address is string
+            && request.resource.data.address.size() > 0
+            && request.resource.data.address.size() <= 500
+            && request.resource.data.pincode is string
+            && request.resource.data.pincode.size() == 6
+            && request.resource.data.paymentScreenshotPath is string)
+        );
+    }
+
     // Default deny all other collections
     match /{document=**} {
       allow read, write: if false;

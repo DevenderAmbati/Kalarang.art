@@ -187,7 +187,8 @@ const CardDetail: React.FC = () => {
   };
 
   const handleShare = (artworkId: number) => {
-    const shareUrl = `${window.location.origin}/og/${id}`;
+    const shareBase = process.env.NODE_ENV === 'production' ? window.location.origin : 'https://kalarang.art';
+    const shareUrl = `${shareBase}/og/${id}`;
     if (navigator.share && artwork) {
       navigator.share({
         title: artwork.title,

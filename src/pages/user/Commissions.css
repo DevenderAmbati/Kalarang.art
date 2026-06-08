@@ -903,6 +903,21 @@
   overflow: hidden;
   border: 1px solid var(--color-border-light);
   background: var(--color-bg-light);
+  padding: 0;
+}
+
+.commission-posted-thumb-wrap--clickable {
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.commission-posted-thumb-wrap--clickable:hover {
+  opacity: 0.85;
+}
+
+.commission-posted-thumb-wrap--clickable:focus-visible {
+  outline: 2px solid var(--color-primary, #2FA4A9);
+  outline-offset: 2px;
 }
 
 .commission-posted-thumb {

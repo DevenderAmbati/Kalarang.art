@@ -975,11 +975,8 @@ const Discover: React.FC = () => {
                     </h3>
                   )}
                   <div ref={artworkGridShellRef}>
-                    {shouldVirtualizeGrid && topSpacerHeight > 0 && (
-                      <div style={{ height: `${topSpacerHeight}px` }} />
-                    )}
                     <ArtworkGrid
-                      artworks={virtualizedArtworks.map(artwork => ({
+                      artworks={displayedArtworks.map(artwork => ({
                         id: artwork.id,
                         title: artwork.title,
                         artworkImage: artwork.images[0],
@@ -995,9 +992,6 @@ const Discover: React.FC = () => {
                       savedArtworks={savedArtworks}
                       currentUserId={appUser?.uid}
                     />
-                    {shouldVirtualizeGrid && bottomSpacerHeight > 0 && (
-                      <div style={{ height: `${bottomSpacerHeight}px` }} />
-                    )}
                   </div>
                   {loadingMore && (
                     <div style={{ 

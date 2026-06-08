@@ -256,15 +256,17 @@ const PublishedWorks: React.FC<PublishedWorksProps> = ({
   };
 
   const handleShare = (id: string) => {
+    const shareBase = process.env.NODE_ENV === 'production' ? window.location.origin : 'https://kalarang.art';
+    const shareUrl = `${shareBase}/og/${id}`;
     const artwork = artworks?.find((a) => a.id === id);
     if (artwork && navigator.share) {
       navigator.share({
         title: artwork.title,
         text: `Check out "${artwork.title}" by ${artwork.artistName}`,
-        url: `${window.location.origin}/og/${id}`,
+        url: shareUrl,
       }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(`${window.location.origin}/og/${id}`);
+      navigator.clipboard.writeText(shareUrl);
       toast.success('Link copied to clipboard!');
     }
   };

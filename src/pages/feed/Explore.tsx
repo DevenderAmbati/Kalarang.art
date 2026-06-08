@@ -22,6 +22,7 @@ import './Explore.css';
 const CATEGORIES = ['All', 'Abstract', 'Landscape', 'Portrait', 'Modern', 'Craft', 'Digital', 'Sculpture'];
 
 const exploreCacheKey = (sort: ArtworkFeedSortOption) => `explore_artworks_${sort}`;
+const EXPLORE_SCROLL_KEY = 'exploreScrollTop';
 const getGridColumnCount = (width: number): number => {
   if (width >= 1440) return 4;
   if (width >= 1024) return 3;
@@ -32,6 +33,7 @@ const Explore: React.FC = () => {
   const navigate = useNavigate();
   const { appUser, loading: authLoading } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollRestoredRef = useRef(false);
 
   /* Lock document scroll so only the inner .explore-scroll-container scrolls */
   useEffect(() => {
@@ -212,6 +214,66 @@ const Explore: React.FC = () => {
     fetchArtworks();
     return () => { cancelled = true; };
   }, [needsFilteredQuery, queryOptions, sortOption, paginationOrderMode]);
+
+  // Restore scroll position once after artworks are rendered (when returning from /card/:id).
+  useEffect(() => {
+    if (scrollRestoredRef.current) return;
+    if (loading) return;
+    if (artworks.length === 0) return;
+    const saved = sessionStorage.getItem(EXPLORE_SCROLL_KEY);
+    if (!saved) {
+      scrollRestoredRef.current = true;
+      return;
+    }
+    const target = Number(saved);
+    if (!Number.isFinite(target) || target <= 0) {
+      sessionStorage.removeItem(EXPLORE_SCROLL_KEY);
+      scrollRestoredRef.current = true;
+      return;
+    }
+
+    // Retry across frames until scrollHeight is tall enough (images / virtual grid still settling).
+    let attempts = 0;
+    const maxAttempts = 60; // ~1s @ 60fps
+    let rafId = 0;
+    let cancelled = false;
+    const tryRestore = () => {
+      if (cancelled) return;
+      const el = scrollContainerRef.current;
+      if (!el) {
+        attempts++;
+        if (attempts < maxAttempts) {
+          rafId = window.requestAnimationFrame(tryRestore);
+        } else {
+          scrollRestoredRef.current = true;
+          sessionStorage.removeItem(EXPLORE_SCROLL_KEY);
+        }
+        return;
+      }
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      if (maxScroll >= target) {
+        el.scrollTop = target;
+        scrollRestoredRef.current = true;
+        sessionStorage.removeItem(EXPLORE_SCROLL_KEY);
+        return;
+      }
+      // Not tall enough yet — pin to current max so the user is at least near the spot
+      // and keep retrying as more content arrives.
+      if (maxScroll > 0) el.scrollTop = maxScroll;
+      attempts++;
+      if (attempts < maxAttempts) {
+        rafId = window.requestAnimationFrame(tryRestore);
+      } else {
+        scrollRestoredRef.current = true;
+        sessionStorage.removeItem(EXPLORE_SCROLL_KEY);
+      }
+    };
+    rafId = window.requestAnimationFrame(tryRestore);
+    return () => {
+      cancelled = true;
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, [loading, artworks.length]);
 
   const loadMoreArtworks = useCallback(async () => {
     if (!hasMore || loadingMore || !lastVisible) return;
@@ -609,20 +671,20 @@ const Explore: React.FC = () => {
                   <>
                     {debouncedSearchQuery.trim() && <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: 'var(--color-royal)', paddingLeft: '1rem' }}>Artworks</h3>}
                     <div ref={artworkGridShellRef}>
-                      {shouldVirtualizeGrid && topSpacerHeight > 0 && (
-                        <div style={{ height: `${topSpacerHeight}px` }} />
-                      )}
                       <ArtworkGrid
-                        artworks={virtualizedArtworks.map(a => ({ id: a.id, title: a.title, artworkImage: a.images[0], artistName: a.artistName, artistAvatar: a.artistAvatar || '/artist.png', artistId: a.artistId, price: a.price, sold: a.sold }))}
+                        artworks={displayedArtworks.map(a => ({ id: a.id, title: a.title, artworkImage: a.images[0], artistName: a.artistName, artistAvatar: a.artistAvatar || '/artist.png', artistId: a.artistId, price: a.price, sold: a.sold }))}
                         viewType="discover"
-                        onArtworkClick={(id) => { sessionStorage.setItem('artworkSourceRoute', '/explore'); navigate(`/card/${id}`); }}
+                        onArtworkClick={(id) => {
+                          sessionStorage.setItem('artworkSourceRoute', '/explore');
+                          if (scrollContainerRef.current) {
+                            sessionStorage.setItem(EXPLORE_SCROLL_KEY, String(scrollContainerRef.current.scrollTop));
+                          }
+                          navigate(`/card/${id}`);
+                        }}
                         onArtistClick={goToLogin}
                         onSave={goToLogin}
                         savedArtworks={savedArtworks}
                       />
-                      {shouldVirtualizeGrid && bottomSpacerHeight > 0 && (
-                        <div style={{ height: `${bottomSpacerHeight}px` }} />
-                      )}
                     </div>
                     {loadingMore && (
                       <div style={{ display: 'flex', justifyContent: 'center', padding: 20 }}>

@@ -1480,6 +1480,8 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
   const [shareToPublicImagePreview, setShareToPublicImagePreview] = useState<string | null>(null);
   const [shareToPublicText, setShareToPublicText] = useState('');
   const [shareToPublicBusy, setShareToPublicBusy] = useState(false);
+  const [refImagePreview, setRefImagePreview] = useState<string | null>(null);
+  const [refImageDownloadBusy, setRefImageDownloadBusy] = useState(false);
   const reviewsLoadedRef = useRef(false);
   const [artistActionBusy, setArtistActionBusy] = useState<{
     commissionId: string;
@@ -3890,7 +3892,23 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                           )}
                           </div>
 
-                          <div className="commission-posted-thumb-wrap">
+                          <div
+                            className={`commission-posted-thumb-wrap${item.referenceImages?.[0] ? ' commission-posted-thumb-wrap--clickable' : ''}`}
+                            role={item.referenceImages?.[0] ? 'button' : undefined}
+                            tabIndex={item.referenceImages?.[0] ? 0 : undefined}
+                            aria-label={item.referenceImages?.[0] ? `View reference image for ${item.title}` : undefined}
+                            onClick={() => {
+                              const url = item.referenceImages?.[0];
+                              if (url) setRefImagePreview(url);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                const url = item.referenceImages?.[0];
+                                if (url) setRefImagePreview(url);
+                              }
+                            }}
+                          >
                             {item.referenceImages?.[0] ? (
                               <img
                                 src={item.referenceImages[0]}
@@ -5131,6 +5149,22 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           </div>,
           document.body,
         )}
+
+      {refImagePreview && (
+        <ChatImageModal
+          url={refImagePreview}
+          downloading={refImageDownloadBusy}
+          onDownload={async () => {
+            setRefImageDownloadBusy(true);
+            try {
+              await downloadImageFromUrl(refImagePreview, suggestedChatImageFilename('kalarang-commission-ref'));
+            } finally {
+              setRefImageDownloadBusy(false);
+            }
+          }}
+          onClose={() => setRefImagePreview(null)}
+        />
+      )}
 
       {shareToPublicItem && createPortal(
         <div

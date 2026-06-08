@@ -1389,8 +1389,7 @@ exports.artworkOgRenderer = onRequest(
     const isCrawler = /WhatsApp\/\d|facebookexternalhit|twitterbot|TelegramBot|linkedinbot|slackbot|discordbot|googlebot|bingbot|applebot|pinterestbot|vkshare/i.test(userAgent);
 
     if (!isCrawler) {
-      // Regular browsers: send them straight to the SPA artwork page
-      res.redirect(301, `/card/${artworkId}`);
+      res.redirect(302, `/card/${artworkId}`);
       return;
     }
 
