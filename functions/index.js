@@ -1519,3 +1519,9 @@ exports.onCommissionCompleted = onDocumentWritten(
     }
   }
 );
+
+// ─── AI Art Advisor ───────────────────────────────────────────────────────────
+const artAdvisor = require("./artAdvisor");
+exports.artAdvisorChat = artAdvisor.artAdvisorChat;
+exports.syncArtworkEmbeddingOnWrite = artAdvisor.syncArtworkEmbeddingOnWrite;
+exports.backfillArtworkEmbeddings = artAdvisor.backfillArtworkEmbeddings;

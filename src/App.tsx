@@ -41,6 +41,8 @@ import BuyerLanding from "./pages/landing/BuyerLanding";
 import ClaimSketch from "./pages/landing/ClaimSketch";
 import { ScrollToTop } from "./components/Common/ScrollToTop";
 import PwaUpdatePrompt from "./components/PwaUpdatePrompt";
+import { ArtAdvisorProvider } from "./context/ArtAdvisorContext";
+import ArtAdvisorGate from "./context/ArtAdvisorGate";
 
 /** Fallback: if /og/:id reaches the SPA (function rewrite miss), redirect to /card/:id */
 const OgRedirect: React.FC = () => {
@@ -230,9 +232,11 @@ function App() {
     <>
       <div id="recaptcha-container"></div>
       <ThemeProvider>
+        <ArtAdvisorProvider>
         <Router>
           <ScrollToTop />
           <PwaUpdatePrompt />
+          <ArtAdvisorGate />
           <SidebarProvider>
             <ChatProvider>
             <Routes>
@@ -481,6 +485,7 @@ function App() {
             </ChatProvider>
           </SidebarProvider>
         </Router>
+        </ArtAdvisorProvider>
       </ThemeProvider>
       {createPortal(
         <ToastContainer
