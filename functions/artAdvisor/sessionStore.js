@@ -1,5 +1,4 @@
-const {MAX_MESSAGES_PER_SESSION, MAX_SESSIONS_PER_IP_PER_DAY, MAX_SESSION_HISTORY} = require("./constants");
-const logger = require("firebase-functions/logger");
+const {MAX_MESSAGES_PER_SESSION, MAX_SESSIONS_PER_IP_PER_DAY, MAX_STORED_MESSAGES} = require("./constants");
 
 async function getOrCreateSession(db, sessionId) {
   const ref = db.collection("advisorSessions").doc(sessionId);
@@ -9,6 +8,7 @@ async function getOrCreateSession(db, sessionId) {
   const session = {
     messages: [],
     commissionDraft: null,
+    discoveryProfile: {},
     discoverContext: {},
     intent: "unknown",
     messageCount: 0,
@@ -17,6 +17,11 @@ async function getOrCreateSession(db, sessionId) {
   };
   await ref.set(session);
   return {ref, session};
+}
+
+async function getSessionIfExists(db, sessionId) {
+  const snap = await db.collection("advisorSessions").doc(sessionId).get();
+  return snap.exists ? snap.data() : null;
 }
 
 async function checkRateLimits(db, session, clientIp) {
@@ -49,8 +54,8 @@ async function incrementMessageCount(db, sessionRef, clientIp) {
 
 async function saveSession(sessionRef, updates) {
   let messages = updates.messages || [];
-  if (messages.length > MAX_SESSION_HISTORY) {
-    messages = messages.slice(-MAX_SESSION_HISTORY);
+  if (messages.length > MAX_STORED_MESSAGES) {
+    messages = messages.slice(-MAX_STORED_MESSAGES);
   }
   await sessionRef.update({
     ...updates,
@@ -59,4 +64,10 @@ async function saveSession(sessionRef, updates) {
   });
 }
 
-module.exports = {getOrCreateSession, checkRateLimits, incrementMessageCount, saveSession};
+module.exports = {
+  getOrCreateSession,
+  getSessionIfExists,
+  checkRateLimits,
+  incrementMessageCount,
+  saveSession,
+};

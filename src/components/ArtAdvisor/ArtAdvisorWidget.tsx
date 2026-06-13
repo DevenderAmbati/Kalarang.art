@@ -1,36 +1,25 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { MdSmartToy, MdClose, MdImage, MdSend, MdMinimize } from "react-icons/md";
+import { MdSmartToy, MdClose, MdImage, MdSend, MdRefresh } from "react-icons/md";
 import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
 import { useArtAdvisor } from "../../context/ArtAdvisorContext";
 import { useDrawerBackNavigation } from "../../hooks/useDrawerBackNavigation";
 import {
   AdvisorMessage,
+  AdvisorProgressStep,
+  PendingCommissionField,
   sendAdvisorMessage,
+  hydrateAdvisorSession,
+  getAdvisorErrorMessage,
 } from "../../services/artAdvisorService";
 import { createCommissionRequest } from "../../services/commissionService";
 import ArtAdvisorMessageList from "./ArtAdvisorMessageList";
+import AdvisorProgressTracker from "./AdvisorProgressTracker";
 import "./ArtAdvisorWidget.css";
 
 const MAX_REFERENCE_IMAGES = 2;
-
-function extractQuickReplies(text: string): string[] {
-  const replies: string[] = [];
-  const lines = text.split("\n");
-  for (const line of lines) {
-    const match = line.match(/^[\s]*[-•*]\s+(.+)$/) || line.match(/^[\s]*\d+[.)]\s+(.+)$/);
-    if (match) {
-      let option = match[1].replace(/\*\*/g, "").trim();
-      if (option.length > 1 && option.length <= 60) {
-        replies.push(option);
-      }
-    }
-  }
-  if (replies.length < 2 || replies.length > 10) return [];
-  return replies;
-}
 
 const ArtAdvisorWidget: React.FC = () => {
   const { appUser } = useAuth();
@@ -38,12 +27,19 @@ const ArtAdvisorWidget: React.FC = () => {
   const {
     isOpen, setIsOpen,
     sessionId, messages, setMessages,
+    progress, setProgress,
+    setIntent,
+    isHydrated, setIsHydrated,
     referenceFiles, setReferenceFiles,
     pendingCommissionPayload, setPendingCommissionPayload,
+    resetSession,
   } = useArtAdvisor();
 
   const [input, setInput] = useState("");
+  const [inputPlaceholder, setInputPlaceholder] = useState("Type your answer, or ask me anything…");
+  const [pendingCommissionField, setPendingCommissionField] = useState<PendingCommissionField | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [isHydrating, setIsHydrating] = useState(false);
   const [isSubmittingCommission, setIsSubmittingCommission] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -73,6 +69,42 @@ const ArtAdvisorWidget: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isSending]);
 
+  // Restore the stored conversation on first open so reloads don't wipe the chat.
+  useEffect(() => {
+    if (!isOpen || isHydrated) return;
+    let cancelled = false;
+    setIsHydrating(true);
+    hydrateAdvisorSession(sessionId)
+      .then((data) => {
+        if (cancelled) return;
+        if (data.messages.length > 0) {
+          setMessages(
+            data.messages.map((m, i) => ({
+              id: `restored-${i}`,
+              role: m.role,
+              content: m.content,
+              quickReplies: m.quickReplies?.length ? m.quickReplies : undefined,
+              timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+            })),
+          );
+          setProgress(data.progress);
+          setIntent(data.intent);
+        }
+      })
+      .catch(() => {
+        // Hydration is best-effort; the user can still chat.
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsHydrating(false);
+          setIsHydrated(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, isHydrated, sessionId, setMessages, setProgress, setIntent, setIsHydrated]);
+
   const submitMessage = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || isSending) return;
@@ -97,8 +129,6 @@ const ArtAdvisorWidget: React.FC = () => {
         response.commissionSummary.referenceImageCount = referenceFiles.length;
       }
 
-      const quickReplies = extractQuickReplies(response.reply);
-
       const assistantMsg: AdvisorMessage = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
@@ -107,23 +137,31 @@ const ArtAdvisorWidget: React.FC = () => {
         artistRecommendations: response.artistRecommendations,
         commissionSummary: response.commissionSummary,
         action: response.action || undefined,
-        quickReplies: quickReplies.length > 0 ? quickReplies : undefined,
+        quickReplies: response.quickReplies?.length ? response.quickReplies : undefined,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
+      setProgress(response.progress);
+      setIntent(response.intent);
+      setPendingCommissionField(response.pendingCommissionField || null);
+      if (response.pendingCommissionField?.inputPlaceholder) {
+        setInputPlaceholder(response.pendingCommissionField.inputPlaceholder);
+      } else {
+        setInputPlaceholder("Type your answer, or ask me anything…");
+      }
 
       if (response.commissionPayload) {
         setPendingCommissionPayload(response.commissionPayload);
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      const message = getAdvisorErrorMessage(err);
       toast.error(message);
       setMessages((prev) => [
         ...prev,
         {
           id: `error-${Date.now()}`,
           role: "assistant",
-          content: "Sorry, I couldn't process that right now. Please try again in a moment.",
+          content: message,
           timestamp: new Date(),
         },
       ]);
@@ -135,8 +173,29 @@ const ArtAdvisorWidget: React.FC = () => {
   const handleSend = () => submitMessage(input);
 
   const handleSuggestion = (text: string) => {
-    setInput(text);
+    if (/^custom$/i.test(text.trim())) {
+      const placeholder = pendingCommissionField?.inputPlaceholder ||
+        `Enter ${pendingCommissionField?.label?.toLowerCase() || "your answer"}…`;
+      setInputPlaceholder(placeholder);
+      inputRef.current?.focus();
+      return;
+    }
+    if (text === "Use 📎 to attach") {
+      fileInputRef.current?.click();
+      return;
+    }
     submitMessage(text);
+  };
+
+  const handleEditStep = (step: AdvisorProgressStep) => {
+    submitMessage(step.editPrompt);
+  };
+
+  const handleNewChat = () => {
+    if (isSending) return;
+    resetSession();
+    setPendingCommissionField(null);
+    setInputPlaceholder("Type your answer, or ask me anything…");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -206,19 +265,25 @@ const ArtAdvisorWidget: React.FC = () => {
             <span className="aa-online-dot" aria-label="Online" />
           </div>
           <div className="aa-chat-header-text">
-            <h2 className="aa-chat-title">Kalarang AI</h2>
-            <p className="aa-chat-status">Art Advisor · Online</p>
+            <h2 className="aa-chat-title">Kala</h2>
+            <p className="aa-chat-status">Your art consultant · Online</p>
           </div>
         </div>
         <div className="aa-chat-header-actions">
-          <button type="button" className="aa-header-btn" onClick={handleClose} aria-label="Minimize">
-            {MdMinimize({})}
-          </button>
-          <button type="button" className="aa-header-btn" onClick={handleClose} aria-label="Close">
+          {messages.length > 0 && (
+            <button type="button" className="aa-header-btn" onClick={handleNewChat} aria-label="Start new chat" title="Start new chat">
+              {MdRefresh({})}
+            </button>
+          )}
+          <button type="button" className="aa-header-btn" onClick={handleClose} aria-label="Close" title="Close">
             {MdClose({})}
           </button>
         </div>
       </header>
+
+      {progress && progress.done > 0 && (
+        <AdvisorProgressTracker progress={progress} onEditStep={handleEditStep} disabled={isSending} />
+      )}
 
       <div className="aa-chat-body">
         <ArtAdvisorMessageList
@@ -227,6 +292,7 @@ const ArtAdvisorWidget: React.FC = () => {
           onSuggestionClick={handleSuggestion}
           isSubmittingCommission={isSubmittingCommission}
           isTyping={isSending}
+          isRestoring={isHydrating}
         />
         <div ref={messagesEndRef} />
       </div>
@@ -262,7 +328,7 @@ const ArtAdvisorWidget: React.FC = () => {
           <textarea
             ref={inputRef}
             className="aa-input"
-            placeholder="Ask me anything about art…"
+            placeholder={inputPlaceholder}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}

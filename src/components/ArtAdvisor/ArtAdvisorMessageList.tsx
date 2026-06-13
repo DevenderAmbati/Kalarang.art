@@ -1,14 +1,31 @@
 import React from "react";
-import { MdSmartToy } from "react-icons/md";
+import { useNavigate } from "react-router-dom";
+import { MdSmartToy, MdPalette, MdChair, MdBrush, MdExplore } from "react-icons/md";
 import { AdvisorMessage } from "../../services/artAdvisorService";
 import ArtworkRecommendationCard from "./ArtworkRecommendationCard";
 import CommissionConfirmCard from "./CommissionConfirmCard";
 
 const SUGGESTED_PROMPTS = [
-  { label: "Find art for my space", text: "I need a painting for my living room" },
-  { label: "Browse under ₹5,000", text: "Show me paintings under ₹5,000" },
-  { label: "Commission custom art", text: "I want to commission a custom artwork" },
-  { label: "Pet portrait", text: "I want a portrait of my pet" },
+  {
+    icon: MdPalette,
+    label: "find artwork for me",
+    text: "I want to find artwork for me.",
+  },
+  {
+    icon: MdChair,
+    label: "style my space",
+    text: "I want to style my space.",
+  },
+  {
+    icon: MdBrush,
+    label: "commission custom art",
+    text: "I want to commission a custom artwork.",
+  },
+  {
+    icon: MdExplore,
+    label: "just explore ideas",
+    text: "I want to just explore ideas — what kinds of art can I find on Kalarang?",
+  },
 ];
 
 interface Props {
@@ -17,6 +34,7 @@ interface Props {
   onSuggestionClick?: (text: string) => void;
   isSubmittingCommission?: boolean;
   isTyping?: boolean;
+  isRestoring?: boolean;
 }
 
 const BotAvatar: React.FC<{ small?: boolean }> = ({ small }) => (
@@ -31,29 +49,35 @@ const ArtAdvisorMessageList: React.FC<Props> = ({
   onSuggestionClick,
   isSubmittingCommission = false,
   isTyping = false,
+  isRestoring = false,
 }) => {
-  const showSuggestions = messages.length === 0 && !isTyping;
+  const navigate = useNavigate();
+  const showSuggestions = messages.length === 0 && !isTyping && !isRestoring;
   const lastMsg = messages[messages.length - 1];
   const showQuickReplies = !isTyping && lastMsg?.role === "assistant" && lastMsg.quickReplies?.length;
 
   return (
     <div className="aa-messages-wrap">
+      {isRestoring && messages.length === 0 && (
+        <div className="aa-restoring">Restoring your conversation…</div>
+      )}
+
       {showSuggestions && (
         <div className="aa-welcome">
           <BotAvatar />
-          <p className="aa-welcome-title">Kalarang AI Art Advisor</p>
-          <p className="aa-welcome-sub">
-            Hi! I can help you find the perfect artwork or commission something custom. What would you like to do?
-          </p>
+          <p className="aa-welcome-title">Hi, I'm Kala</p>
+          <p className="aa-welcome-sub">Your personal AI art consultant</p>
+          <p className="aa-welcome-prompt">I want to…</p>
           <div className="aa-suggestions">
             {SUGGESTED_PROMPTS.map((p) => (
               <button
                 key={p.text}
                 type="button"
-                className="aa-suggestion-chip"
+                className="aa-suggestion-pill"
                 onClick={() => onSuggestionClick?.(p.text)}
               >
-                {p.label}
+                <span className="aa-suggestion-icon" aria-hidden>{p.icon({ size: 15 })}</span>
+                <span>{p.label}</span>
               </button>
             ))}
           </div>
@@ -78,10 +102,16 @@ const ArtAdvisorMessageList: React.FC<Props> = ({
               {msg.role === "assistant" && msg.artistRecommendations && msg.artistRecommendations.length > 0 && (
                 <div className="aa-artist-list">
                   {msg.artistRecommendations.map((a) => (
-                    <div key={a.id} className="aa-artist-chip">
+                    <button
+                      key={a.id}
+                      type="button"
+                      className="aa-artist-chip"
+                      onClick={() => navigate(`/portfolio/${a.id}`)}
+                      title={`View ${a.name}'s portfolio`}
+                    >
                       {a.avatar && <img src={a.avatar} alt="" />}
                       <span>{a.name}</span>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -90,8 +120,9 @@ const ArtAdvisorMessageList: React.FC<Props> = ({
                 <CommissionConfirmCard
                   summary={msg.commissionSummary}
                   onConfirm={onConfirmCommission}
-                  onEdit={() => {}}
+                  onEditField={(prompt) => onSuggestionClick?.(prompt)}
                   isSubmitting={isSubmittingCommission}
+                  isActive={msg.id === lastMsg?.id}
                 />
               )}
             </div>
@@ -117,7 +148,7 @@ const ArtAdvisorMessageList: React.FC<Props> = ({
             <button
               key={reply}
               type="button"
-              className="aa-quick-reply-btn"
+              className={`aa-quick-reply-btn${/^custom$/i.test(reply) ? " aa-quick-reply-btn-custom" : ""}`}
               onClick={() => onSuggestionClick?.(reply)}
             >
               {reply}

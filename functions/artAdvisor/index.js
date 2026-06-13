@@ -6,8 +6,15 @@ const {getFirestore} = require("firebase-admin/firestore");
 
 const {initGemini} = require("./geminiClient");
 const {initPinecone} = require("./pineconeClient");
-const {getOrCreateSession, checkRateLimits, incrementMessageCount, saveSession} = require("./sessionStore");
+const {
+  getOrCreateSession,
+  getSessionIfExists,
+  checkRateLimits,
+  incrementMessageCount,
+  saveSession,
+} = require("./sessionStore");
 const {handleArtAdvisorTurn} = require("./chatOrchestrator");
+const {computeProgress} = require("./conversationState");
 const {shouldSyncEmbedding, syncArtworkEmbedding, backfillAllArtworks} = require("./artworkEmbedding");
 
 const GEMINI_API_KEY = defineString("GEMINI_API_KEY");
@@ -47,9 +54,34 @@ exports.artAdvisorChat = onCall(
     maxInstances: 20,
   },
   async (request) => {
-    const {sessionId, message, referenceImageUrls} = request.data || {};
-    if (!sessionId || !message?.trim()) {
-      throw new HttpsError("invalid-argument", "sessionId and message are required");
+    const {sessionId, message, mode, referenceImageUrls} = request.data || {};
+    if (!sessionId) {
+      throw new HttpsError("invalid-argument", "sessionId is required");
+    }
+
+    // Hydrate mode: return stored conversation state without an LLM call,
+    // so the UI can restore the conversation after a reload.
+    if (mode === "hydrate") {
+      const db = getFirestore();
+      const existing = await getSessionIfExists(db, sessionId);
+      if (!existing) {
+        return {messages: [], intent: "general", progress: null};
+      }
+      const intent = existing.intent && existing.intent !== "unknown" ? existing.intent : "general";
+      return {
+        messages: (existing.messages || []).map((m) => ({
+          role: m.role,
+          content: m.content,
+          quickReplies: m.quickReplies || [],
+          timestamp: m.timestamp,
+        })),
+        intent,
+        progress: computeProgress(intent, existing.commissionDraft || {}, existing.discoveryProfile || {}),
+      };
+    }
+
+    if (!message?.trim()) {
+      throw new HttpsError("invalid-argument", "message is required");
     }
 
     try {
@@ -88,21 +120,33 @@ exports.artAdvisorChat = onCall(
         messages: result.messages,
         intent: result.intent,
         commissionDraft: result.commissionDraftState || session.commissionDraft,
+        discoveryProfile: result.discoveryProfile || session.discoveryProfile || {},
         discoverContext: result.discoverContext,
       });
 
       return {
         reply: result.reply,
+        quickReplies: result.quickReplies || [],
+        intent: result.intent || "general",
+        progress: result.progress || null,
         artworkRecommendations: result.artworkRecommendations || [],
         artistRecommendations: result.artistRecommendations || [],
         commissionPayload: result.commissionPayload || null,
         commissionSummary: result.commissionSummary || null,
         action: result.action || null,
+        pendingCommissionField: result.pendingCommissionField || null,
       };
     } catch (err) {
       logger.error("Chat turn failed", {error: err.message, stack: err.stack});
-      if (err.message?.includes("429") || err.message?.includes("quota")) {
+      const msg = err.message || "";
+      if (msg.includes("429") || msg.includes("quota")) {
         throw new HttpsError("resource-exhausted", "AI service is temporarily busy. Please try again in a moment.");
+      }
+      if (msg.includes("403") || msg.includes("API key") || msg.includes("leaked") || msg.includes("GEMINI_API_KEY")) {
+        throw new HttpsError(
+            "failed-precondition",
+            "The AI service API key is invalid or expired. An admin needs to update GEMINI_API_KEY in Firebase Functions.",
+        );
       }
       throw new HttpsError("internal", "Something went wrong. Please try again.");
     }

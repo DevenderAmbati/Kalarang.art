@@ -302,32 +302,54 @@
   max-width: 280px;
 }
 
+.aa-welcome-prompt {
+  align-self: flex-start;
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1a7a7f;
+}
+
 .aa-suggestions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   width: 100%;
 }
 
-.aa-suggestion-chip {
-  padding: 12px 12px;
-  border: 1.5px solid rgba(47, 164, 169, 0.2);
-  border-radius: 14px;
+.aa-suggestion-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 1.5px solid rgba(47, 164, 169, 0.3);
+  border-radius: 999px;
   background: #fff;
   color: #1a7a7f;
   font-size: 0.82rem;
-  font-weight: 500;
-  text-align: center;
+  font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
-.aa-suggestion-chip:hover {
+.aa-suggestion-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2fa4a9;
+  flex-shrink: 0;
+}
+
+.aa-suggestion-pill:hover {
   background: rgba(47, 164, 169, 0.08);
-  border-color: rgba(47, 164, 169, 0.45);
+  border-color: rgba(47, 164, 169, 0.55);
   transform: translateY(-1px);
   box-shadow: 0 2px 10px rgba(47, 164, 169, 0.15);
+}
+
+.aa-suggestion-pill:active {
+  transform: scale(0.97);
 }
 
 /* Messages */
@@ -341,7 +363,7 @@
   display: flex;
   gap: 8px;
   align-items: flex-end;
-  max-width: 100%;
+  max-width: 85%;
 }
 
 .aa-message-row-user {
@@ -357,7 +379,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-width: calc(100% - 44px);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .aa-message-user {
@@ -467,6 +490,18 @@
   background: rgba(47, 164, 169, 0.14);
 }
 
+.aa-quick-reply-btn-custom {
+  border-style: dashed;
+  color: #64748b;
+  border-color: rgba(100, 116, 139, 0.45);
+}
+
+.aa-quick-reply-btn-custom:hover {
+  color: #1a7a7f;
+  border-color: rgba(47, 164, 169, 0.6);
+  background: rgba(47, 164, 169, 0.06);
+}
+
 @keyframes aaQuickIn {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
@@ -545,9 +580,18 @@
   gap: 6px;
   padding: 4px 10px 4px 4px;
   background: rgba(47, 164, 169, 0.1);
+  border: 1px solid transparent;
   border-radius: 999px;
   font-size: 0.78rem;
   color: #1a7a7f;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.aa-artist-chip:hover {
+  background: rgba(47, 164, 169, 0.18);
+  border-color: rgba(47, 164, 169, 0.4);
 }
 
 .aa-artist-chip img {
@@ -746,4 +790,213 @@
   font-size: 0.68rem;
   color: #94a3b8;
   letter-spacing: 0.01em;
+}
+
+/* ─── Progress tracker ──────────────────────────────────────────── */
+
+.aa-progress {
+  flex-shrink: 0;
+  background: #fff;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+}
+
+.aa-progress-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.aa-progress-summary:hover {
+  background: rgba(47, 164, 169, 0.05);
+}
+
+.aa-progress-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #1a7a7f;
+  white-space: nowrap;
+}
+
+.aa-progress-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.aa-progress-bar {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(47, 164, 169, 0.14);
+  overflow: hidden;
+}
+
+.aa-progress-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3bb8bd, #1a7a7f);
+  transition: width 0.4s ease;
+}
+
+.aa-progress-chevron {
+  display: flex;
+  align-items: center;
+  color: #94a3b8;
+  transition: transform 0.2s ease;
+}
+
+.aa-progress-chevron-up {
+  transform: rotate(180deg);
+}
+
+.aa-progress-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 14px 10px;
+  animation: aaQuickIn 0.25s ease;
+}
+
+.aa-progress-step {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #f8fafb;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+  max-width: 100%;
+}
+
+.aa-progress-step:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.aa-progress-step-filled {
+  border-color: rgba(47, 164, 169, 0.3);
+  background: rgba(47, 164, 169, 0.06);
+}
+
+.aa-progress-step-filled:not(:disabled):hover,
+.aa-progress-step-skipped:not(:disabled):hover {
+  background: rgba(47, 164, 169, 0.14);
+  border-color: rgba(47, 164, 169, 0.5);
+}
+
+.aa-progress-step-icon {
+  display: flex;
+  align-items: center;
+  color: #1a7a7f;
+  flex-shrink: 0;
+}
+
+.aa-progress-step-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.aa-progress-step-label {
+  font-size: 0.64rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #94a3b8;
+}
+
+.aa-progress-step-value {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #0f172a;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aa-progress-step-skipped {
+  color: #94a3b8;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.aa-progress-step-pending .aa-progress-step-label {
+  color: #cbd5e1;
+}
+
+.aa-progress-step-edit {
+  display: flex;
+  align-items: center;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.aa-progress-step:not(:disabled):hover .aa-progress-step-edit {
+  color: #1a7a7f;
+}
+
+/* ─── Restore indicator ─────────────────────────────────────────── */
+
+.aa-restoring {
+  text-align: center;
+  padding: 24px 12px;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  animation: aaFadeIn 0.3s ease;
+}
+
+/* ─── Editable commission summary fields ────────────────────────── */
+
+.aa-commission-card-hint {
+  margin: -6px 0 10px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.aa-commission-field-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 6px;
+  margin: -1px -6px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #1e293b;
+  font-size: 0.82rem;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.aa-commission-field-btn:hover:not(:disabled) {
+  background: rgba(47, 164, 169, 0.1);
+}
+
+.aa-commission-field-btn:hover:not(:disabled) .aa-commission-field-edit {
+  color: #1a7a7f;
+}
+
+.aa-commission-field-btn:disabled {
+  cursor: default;
+}
+
+.aa-commission-field-edit {
+  display: flex;
+  align-items: center;
+  color: #cbd5e1;
 }
