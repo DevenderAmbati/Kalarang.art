@@ -4,17 +4,23 @@ import { ArtworkRecommendation } from "../../services/artAdvisorService";
 
 interface Props {
   artwork: ArtworkRecommendation;
+  onNavigateAway?: () => void;
 }
 
-const ArtworkRecommendationCard: React.FC<Props> = ({ artwork }) => {
+const ArtworkRecommendationCard: React.FC<Props> = ({ artwork, onNavigateAway }) => {
   const navigate = useNavigate();
   const imgSrc = artwork.images?.[0] || "";
+
+  const handleClick = () => {
+    onNavigateAway?.();
+    navigate(`/card/${artwork.id}`, { replace: true });
+  };
 
   return (
     <button
       type="button"
       className="aa-artwork-card"
-      onClick={() => navigate(`/card/${artwork.id}`)}
+      onClick={handleClick}
     >
       {imgSrc && <img src={imgSrc} alt={artwork.title} className="aa-artwork-card-img" />}
       <div className="aa-artwork-card-body">

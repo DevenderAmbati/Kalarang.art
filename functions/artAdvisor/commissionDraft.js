@@ -3,13 +3,13 @@ const {
   DEADLINE_OPTIONS,
   SIZE_OPTIONS,
   TYPE_OPTIONS,
-  DELIVERY_TYPE_OPTIONS,
 } = require("./constants");
 
 function emptyDraft() {
   return {
     title: "",
     description: "",
+    descriptionAnswered: false,
     budget: "",
     customBudget: "",
     deadline: "",
@@ -44,50 +44,58 @@ function mergeCommissionDraft(existing, updates) {
   return draft;
 }
 
+function ensureCommissionDefaults(draft) {
+  const next = {...draft};
+  if (next.descriptionAnswered && !next.description?.trim() && next.title?.trim()) {
+    next.description = next.title.trim();
+  }
+  if (!next.deliveryType?.trim()) {
+    next.deliveryType = "Physical artwork";
+  }
+  return next;
+}
+
 function validateCommissionDraft(draft) {
+  const normalized = ensureCommissionDefaults(draft);
   const errors = [];
-  if (!draft.title?.trim()) errors.push("Title is required");
-  if (!draft.description?.trim()) errors.push("Description is required");
-  if (!draft.type?.trim() || !TYPE_OPTIONS.includes(draft.type)) {
+  if (!normalized.title?.trim()) errors.push("Title is required");
+  if (!normalized.description?.trim()) errors.push("Description is required");
+  if (!normalized.type?.trim() || !TYPE_OPTIONS.includes(normalized.type)) {
     errors.push(`Type must be one of: ${TYPE_OPTIONS.join(", ")}`);
   }
-  if (!draft.budget?.trim()) {
+  if (!normalized.budget?.trim()) {
     errors.push("Budget is required");
-  } else if (draft.budget === "Custom" && !draft.customBudget?.trim()) {
+  } else if (normalized.budget === "Other" && !normalized.customBudget?.trim()) {
     errors.push("Custom budget amount is required");
   }
-  if (!draft.deadline?.trim()) errors.push("Deadline is required");
-  if (!draft.deliveryType?.trim()) {
-    errors.push("Delivery type is required");
-  } else if (draft.deliveryType === "Physical artwork") {
-    if (!draft.cityOrPincode?.trim() || draft.cityOrPincode === "Digital delivery") {
-      errors.push("City or pincode is required for physical delivery");
-    }
+  if (!normalized.deadline?.trim()) errors.push("Deadline is required");
+  if (!normalized.cityOrPincode?.trim()) {
+    errors.push("City or pincode is required");
   }
-  return {isValid: errors.length === 0, errors};
+  return {isValid: errors.length === 0, errors, draft: normalized};
 }
 
 function draftToCreatePayload(draft) {
-  const deliveryType = draft.deliveryType ||
-    (draft.cityOrPincode === "Digital delivery" ? "Digital file" : "Physical artwork");
+  const normalized = ensureCommissionDefaults(draft);
+  const deliveryType = normalized.deliveryType || "Physical artwork";
   return {
-    title: draft.title || "",
-    description: draft.description || "",
-    budget: draft.budget === "Custom" ? (draft.customBudget || draft.budget) : (draft.budget || ""),
-    deadline: draft.deadline || "",
-    size: draft.size || "",
-    customHeight: draft.customHeight || "",
-    customWidth: draft.customWidth || "",
-    type: draft.type || "",
-    style: draft.style || [],
-    subject: draft.subject || [],
+    title: normalized.title || "",
+    description: normalized.description || "",
+    budget: normalized.budget === "Other" ? (normalized.customBudget || normalized.budget) : (normalized.budget || ""),
+    deadline: normalized.deadline || "",
+    size: normalized.size || "",
+    customHeight: normalized.customHeight || "",
+    customWidth: normalized.customWidth || "",
+    type: normalized.type || "",
+    style: normalized.style || [],
+    subject: normalized.subject || [],
     deliveryType: deliveryType || "",
-    cityOrPincode: draft.cityOrPincode || "",
+    cityOrPincode: normalized.cityOrPincode || "",
   };
 }
 
 function formatDraftSummary(draft) {
-  const sizeDisplay = draft.size === "Custom" && (draft.customWidth || draft.customHeight)
+  const sizeDisplay = draft.size === "Other" && (draft.customWidth || draft.customHeight)
     ? `${draft.customWidth || "?"} × ${draft.customHeight || "?"} in`
     : (draft.size || "(not set)");
   return {
@@ -96,7 +104,7 @@ function formatDraftSummary(draft) {
     subject: draft.title || "(not set)",
     size: sizeDisplay,
     medium: draft.type || "(not set)",
-    budget: draft.budget === "Custom" ? (draft.customBudget || "Custom") : (draft.budget || "(not set)"),
+    budget: draft.budget === "Other" ? (draft.customBudget || "Other") : (draft.budget || "(not set)"),
     deadline: draft.deadline || "(not set)",
     style: draft.style || [],
     subjectTags: draft.subject || [],
@@ -106,4 +114,4 @@ function formatDraftSummary(draft) {
   };
 }
 
-module.exports = {emptyDraft, mergeCommissionDraft, validateCommissionDraft, draftToCreatePayload, formatDraftSummary};
+module.exports = {emptyDraft, mergeCommissionDraft, validateCommissionDraft, draftToCreatePayload, formatDraftSummary, ensureCommissionDefaults};

@@ -30,12 +30,9 @@ const CommissionConfirmCard: React.FC<Props> = ({
     summary.subjectTags?.length > 0
       ? { label: "Subject", value: summary.subjectTags.join(", "), editPrompt: "I'd like to change the subject." }
       : null,
-    { label: "Delivery", value: summary.deliveryType || "Not specified", editPrompt: "I'd like to change delivery details." },
-    summary.deliveryType === "Physical artwork"
-      ? { label: "Location", value: summary.cityOrPincode, editPrompt: "I'd like to change the delivery location." }
-      : null,
+    { label: "Location", value: summary.cityOrPincode, editPrompt: "I'd like to change the delivery location." },
     summary.referenceImageCount > 0
-      ? { label: "References", value: `${summary.referenceImageCount} image(s)`, editPrompt: "I'd like to change my reference images." }
+      ? { label: "Reference", value: `${summary.referenceImageCount} image`, editPrompt: "I'd like to change my reference image." }
       : null,
   ];
 

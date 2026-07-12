@@ -11,6 +11,8 @@ const {
   DEFAULT_STYLE_OPTIONS,
   DEFAULT_SUBJECT_OPTIONS,
   CUSTOM_CHIP_LABEL,
+  SKIP_CHIP_LABEL,
+  TITLE_PRESET_OPTIONS,
 } = require("./constants");
 
 const COMMISSION_FIELDS = [
@@ -20,7 +22,7 @@ const COMMISSION_FIELDS = [
     question: "What should we call this commission?",
     editPrompt: "I'd like to change the title.",
     required: true,
-    presets: ["Pet portrait", "Family portrait", "Landscape artwork"],
+    presets: TITLE_PRESET_OPTIONS,
     customLabel: CUSTOM_CHIP_LABEL,
     isFilled: (d) => Boolean(d.title?.trim()),
     applyPreset: (d, val) => ({...d, title: val}),
@@ -30,26 +32,14 @@ const COMMISSION_FIELDS = [
     label: "Description",
     question: "Describe what you want.",
     editPrompt: "I'd like to change the description.",
-    required: true,
+    required: false,
     presets: [
       "Realistic portrait with soft background",
       "Abstract art with bold colors",
-      "Traditional artwork with fine details",
     ],
     customLabel: CUSTOM_CHIP_LABEL,
-    isFilled: (d) => Boolean(d.description?.trim()),
-    applyPreset: (d, val) => ({...d, description: val}),
-  },
-  {
-    id: "size",
-    label: "Size",
-    question: "What size do you need?",
-    editPrompt: "I'd like to change the size.",
-    required: false,
-    presets: SIZE_OPTIONS.filter((o) => o !== "Custom").slice(0, 3),
-    customLabel: CUSTOM_CHIP_LABEL,
-    isFilled: (d) => Boolean(d.size?.trim()),
-    applyPreset: (d, val) => ({...d, size: val}),
+    isFilled: (d) => d.descriptionAnswered === true,
+    applyPreset: (d, val) => ({...d, description: val, descriptionAnswered: true}),
   },
   {
     id: "budget",
@@ -57,9 +47,9 @@ const COMMISSION_FIELDS = [
     question: "What's your budget?",
     editPrompt: "I'd like to change my budget.",
     required: true,
-    presets: BUDGET_OPTIONS.filter((o) => o !== "Custom").slice(0, 3),
+    presets: BUDGET_OPTIONS.filter((o) => o !== "Other").slice(0, 3),
     customLabel: CUSTOM_CHIP_LABEL,
-    isFilled: (d) => Boolean(d.budget?.trim()) && (d.budget !== "Custom" || d.customBudget?.trim()),
+    isFilled: (d) => Boolean(d.budget?.trim()) && (d.budget !== "Other" || d.customBudget?.trim()),
     applyPreset: (d, val) => ({...d, budget: val}),
   },
   {
@@ -68,7 +58,7 @@ const COMMISSION_FIELDS = [
     question: "When do you need it?",
     editPrompt: "I'd like to change the deadline.",
     required: true,
-    presets: DEADLINE_OPTIONS.filter((o) => o !== "Custom").slice(0, 3),
+    presets: DEADLINE_OPTIONS.filter((o) => o !== "Other").slice(0, 3),
     customLabel: CUSTOM_CHIP_LABEL,
     isFilled: (d) => Boolean(d.deadline?.trim()),
     applyPreset: (d, val) => ({...d, deadline: val}),
@@ -83,6 +73,17 @@ const COMMISSION_FIELDS = [
     customLabel: CUSTOM_CHIP_LABEL,
     isFilled: (d) => Boolean(d.type?.trim()),
     applyPreset: (d, val) => ({...d, type: val}),
+  },
+  {
+    id: "size",
+    label: "Size",
+    question: "What size do you need?",
+    editPrompt: "I'd like to change the size.",
+    required: false,
+    presets: SIZE_OPTIONS.filter((o) => o !== "Other").slice(0, 3),
+    customLabel: CUSTOM_CHIP_LABEL,
+    isFilled: (d) => Boolean(d.size?.trim()),
+    applyPreset: (d, val) => ({...d, size: val}),
   },
   {
     id: "style",
@@ -101,27 +102,11 @@ const COMMISSION_FIELDS = [
     question: "What's the subject?",
     editPrompt: "I'd like to change the subject.",
     required: false,
+    askInFlow: false,
     presets: DEFAULT_SUBJECT_OPTIONS.slice(0, 3),
     customLabel: CUSTOM_CHIP_LABEL,
     isFilled: (d) => Array.isArray(d.subject) && d.subject.length > 0,
     applyPreset: (d, val) => ({...d, subject: [val]}),
-  },
-  {
-    id: "delivery",
-    label: "Delivery",
-    question: "How should it be delivered?",
-    editPrompt: "I'd like to change delivery details.",
-    required: true,
-    presets: ["Digital file", "Physical artwork", "Either works"],
-    customLabel: CUSTOM_CHIP_LABEL,
-    isFilled: (d) => Boolean(d.deliveryType?.trim()),
-    applyPreset: (d, val) => {
-      if (val === "Either works") return {...d, deliveryType: "Physical artwork"};
-      if (val === "Digital file") {
-        return {...d, deliveryType: "Digital file", cityOrPincode: "Digital delivery"};
-      }
-      return {...d, deliveryType: "Physical artwork"};
-    },
   },
   {
     id: "location",
@@ -129,25 +114,21 @@ const COMMISSION_FIELDS = [
     question: "City or pincode for delivery?",
     editPrompt: "I'd like to change the delivery location.",
     required: true,
-    showIf: (d) => d.deliveryType !== "Digital file",
     presets: ["Mumbai", "Delhi", "Bengaluru"],
     customLabel: CUSTOM_CHIP_LABEL,
-    isFilled: (d) => Boolean(d.cityOrPincode?.trim()) && d.cityOrPincode !== "Digital delivery",
-    applyPreset: (d, val) => ({...d, cityOrPincode: val, deliveryType: d.deliveryType || "Physical artwork"}),
+    isFilled: (d) => Boolean(d.cityOrPincode?.trim()),
+    applyPreset: (d, val) => ({...d, cityOrPincode: val, deliveryType: "Physical artwork"}),
   },
   {
     id: "referenceImages",
-    label: "Reference images",
-    question: "Any reference images?",
-    editPrompt: "I'd like to change reference images.",
+    label: "Reference image",
+    question: "Any reference image?",
+    editPrompt: "I'd like to change my reference image.",
     required: false,
-    presets: ["Use 📎 to attach", "No reference needed", "Describe in text instead"],
+    presets: ["Use 📎 to attach"],
     customLabel: CUSTOM_CHIP_LABEL,
     isFilled: (d) => d.referenceImagesAnswered === true,
     applyPreset: (d, val) => {
-      if (val === "No reference needed" || val === "Describe in text instead") {
-        return {...d, referenceImagesAnswered: true};
-      }
       if (val === "Use 📎 to attach") {
         return {...d, referenceImagesAnswered: true, wantsReferenceImages: true};
       }
@@ -164,12 +145,16 @@ function getActiveCommissionFields(draft = {}) {
 }
 
 function getNextCommissionField(draft = {}) {
-  return getActiveCommissionFields(draft).find((field) => !field.isFilled(draft)) || null;
+  return getActiveCommissionFields(draft)
+      .filter((field) => field.askInFlow !== false)
+      .find((field) => !field.isFilled(draft)) || null;
 }
 
 function getCommissionQuickReplies(field) {
   if (!field) return [];
-  return [...field.presets.slice(0, 3), field.customLabel || CUSTOM_CHIP_LABEL];
+  const chips = [...field.presets, field.customLabel || CUSTOM_CHIP_LABEL];
+  if (!field.required) chips.push(SKIP_CHIP_LABEL);
+  return chips;
 }
 
 function getCommissionQuestion(field) {
@@ -178,30 +163,53 @@ function getCommissionQuestion(field) {
 
 function isCustomChipSelection(text) {
   const t = String(text || "").trim().toLowerCase();
-  return t === "custom" || t.startsWith("custom ") || t === "type my own";
+  const label = CUSTOM_CHIP_LABEL.toLowerCase();
+  return t === label || t.startsWith(`${label} `) || t === "custom" || t.startsWith("custom ") || t === "type my own";
 }
 
 function patchFromField(field, updated) {
   switch (field.id) {
   case "title": return {title: updated.title};
-  case "description": return {description: updated.description};
+  case "description": return {description: updated.description, descriptionAnswered: true};
   case "size": return {size: updated.size};
   case "budget": return {budget: updated.budget};
   case "deadline": return {deadline: updated.deadline};
   case "type": return {type: updated.type};
   case "style": return {style: updated.style};
   case "subject": return {subject: updated.subject};
-  case "delivery": return {deliveryType: updated.deliveryType, cityOrPincode: updated.cityOrPincode};
-  case "location": return {cityOrPincode: updated.cityOrPincode, deliveryType: updated.deliveryType || "Physical artwork"};
+  case "location": return {cityOrPincode: updated.cityOrPincode, deliveryType: "Physical artwork"};
   case "referenceImages":
     return {referenceImagesAnswered: true, wantsReferenceImages: updated.wantsReferenceImages || false};
   default: return null;
   }
 }
 
+function isSkipChipSelection(text) {
+  const t = String(text || "").trim().toLowerCase();
+  return t === "skip" || t === "no preference";
+}
+
+function applySkipPatch(field, draft = {}) {
+  if (!field || field.required) return null;
+  switch (field.id) {
+  case "description":
+    return {
+      description: draft.title?.trim() || "",
+      descriptionAnswered: true,
+    };
+  case "size": return {size: "No preference"};
+  case "style": return {style: ["No preference"]};
+  case "subject": return {subject: []};
+  case "referenceImages": return {referenceImagesAnswered: true};
+  default: return null;
+  }
+}
+
 /** If the user's message matches a preset chip, return a draft patch. */
-function tryApplyCommissionChip(field, message) {
-  if (!field || isCustomChipSelection(message)) return null;
+function tryApplyCommissionChip(field, message, draft = {}) {
+  if (!field) return null;
+  if (isSkipChipSelection(message)) return applySkipPatch(field, draft);
+  if (isCustomChipSelection(message)) return null;
   const trimmed = String(message || "").trim();
   if (!trimmed) return null;
   const match = field.presets.find((p) => p.toLowerCase() === trimmed.toLowerCase());
@@ -216,13 +224,13 @@ function applyCustomAnswerPatch(field, text) {
 
   switch (field.id) {
   case "title": return {title: value};
-  case "description": return {description: value};
+  case "description": return {description: value, descriptionAnswered: true};
   case "size":
     if (["a4", "a3", "a2"].includes(value.toLowerCase())) return {size: value.toUpperCase()};
-    return {size: "Custom", customWidth: value};
+    return {size: "Other", customWidth: value};
   case "budget":
     if (BUDGET_OPTIONS.includes(value)) return {budget: value};
-    return {budget: "Custom", customBudget: value.startsWith("₹") ? value : `₹${value}`};
+    return {budget: "Other", customBudget: value.startsWith("₹") ? value : `₹${value}`};
   case "deadline":
     if (DEADLINE_OPTIONS.includes(value)) return {deadline: value};
     return {deadline: value};
@@ -232,11 +240,6 @@ function applyCustomAnswerPatch(field, text) {
   }
   case "style": return {style: [value]};
   case "subject": return {subject: [value]};
-  case "delivery":
-    if (value.toLowerCase().includes("digital")) {
-      return {deliveryType: "Digital file", cityOrPincode: "Digital delivery"};
-    }
-    return {deliveryType: "Physical artwork"};
   case "location": return {cityOrPincode: value, deliveryType: "Physical artwork"};
   case "referenceImages": return {referenceImagesAnswered: true};
   default: return null;
@@ -253,7 +256,6 @@ function getCustomInputPlaceholder(fieldId) {
     type: "Enter artwork type…",
     style: "Enter style…",
     subject: "Enter subject…",
-    delivery: "Describe delivery preference…",
     location: "Enter city or pincode…",
     referenceImages: "Describe your reference…",
   };
@@ -268,12 +270,11 @@ function buildCommissionStepsForProgress(draft = {}) {
     else if (field.id === "description") value = draft.description || "";
     else if (field.id === "size") value = draft.size || "";
     else if (field.id === "budget") {
-      value = draft.budget === "Custom" ? (draft.customBudget || "Custom") : (draft.budget || "");
+      value = draft.budget === "Other" ? (draft.customBudget || "Other") : (draft.budget || "");
     } else if (field.id === "deadline") value = draft.deadline || "";
     else if (field.id === "type") value = draft.type || "";
     else if (field.id === "style") value = (draft.style || []).join(", ");
     else if (field.id === "subject") value = (draft.subject || []).join(", ");
-    else if (field.id === "delivery") value = draft.deliveryType || "";
     else if (field.id === "location") value = draft.cityOrPincode || "";
     else if (field.id === "referenceImages") {
       const count = (draft.referenceImageUrls || []).length;
@@ -298,6 +299,7 @@ module.exports = {
   getCommissionQuickReplies,
   getCommissionQuestion,
   isCustomChipSelection,
+  isSkipChipSelection,
   tryApplyCommissionChip,
   applyCustomAnswerPatch,
   getCustomInputPlaceholder,

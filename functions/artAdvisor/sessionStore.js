@@ -3,7 +3,7 @@ const {MAX_MESSAGES_PER_SESSION, MAX_SESSIONS_PER_IP_PER_DAY, MAX_STORED_MESSAGE
 async function getOrCreateSession(db, sessionId) {
   const ref = db.collection("advisorSessions").doc(sessionId);
   const snap = await ref.get();
-  if (snap.exists) return {ref, session: snap.data()};
+  if (snap.exists) return {ref, session: snap.data(), isNew: false};
 
   const session = {
     messages: [],
@@ -16,7 +16,7 @@ async function getOrCreateSession(db, sessionId) {
     updatedAt: new Date().toISOString(),
   };
   await ref.set(session);
-  return {ref, session};
+  return {ref, session, isNew: true};
 }
 
 async function getSessionIfExists(db, sessionId) {
@@ -24,12 +24,15 @@ async function getSessionIfExists(db, sessionId) {
   return snap.exists ? snap.data() : null;
 }
 
-async function checkRateLimits(db, session, clientIp) {
+async function checkRateLimits(db, session, clientIp, isNew) {
   if ((session.messageCount || 0) >= MAX_MESSAGES_PER_SESSION) {
     return "You've reached the message limit for this session. Please start a new conversation.";
   }
 
-  if (clientIp) {
+  // Only NEW conversations count against the per-IP daily limit; an ongoing
+  // session can keep going (bounded by the per-session message cap above), so
+  // real users are never cut off mid-conversation.
+  if (isNew && clientIp) {
     const today = new Date().toISOString().slice(0, 10);
     const ipRef = db.collection("advisorRateLimits").doc(`${clientIp}_${today}`);
     const ipSnap = await ipRef.get();
@@ -41,15 +44,19 @@ async function checkRateLimits(db, session, clientIp) {
   return null;
 }
 
-async function incrementMessageCount(db, sessionRef, clientIp) {
+// Increment the per-IP daily SESSION counter. Call once, when a new session
+// starts and has passed the rate-limit check.
+async function recordNewSession(db, clientIp) {
+  if (!clientIp) return;
+  const {FieldValue} = require("firebase-admin/firestore");
+  const today = new Date().toISOString().slice(0, 10);
+  const ipRef = db.collection("advisorRateLimits").doc(`${clientIp}_${today}`);
+  await ipRef.set({count: FieldValue.increment(1), date: today}, {merge: true});
+}
+
+async function incrementMessageCount(db, sessionRef) {
   const {FieldValue} = require("firebase-admin/firestore");
   await sessionRef.update({messageCount: FieldValue.increment(1)});
-
-  if (clientIp) {
-    const today = new Date().toISOString().slice(0, 10);
-    const ipRef = db.collection("advisorRateLimits").doc(`${clientIp}_${today}`);
-    await ipRef.set({count: FieldValue.increment(1), date: today}, {merge: true});
-  }
 }
 
 async function saveSession(sessionRef, updates) {
@@ -68,6 +75,7 @@ module.exports = {
   getOrCreateSession,
   getSessionIfExists,
   checkRateLimits,
+  recordNewSession,
   incrementMessageCount,
   saveSession,
 };

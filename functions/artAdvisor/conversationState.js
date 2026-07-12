@@ -2,10 +2,6 @@
  * Deterministic conversation-state engine for the Art Advisor.
  */
 
-const {
-  DISCOVER_BUDGET_OPTIONS,
-  DISCOVER_SIZE_OPTIONS,
-} = require("./constants");
 const {buildCommissionStepsForProgress} = require("./commissionFields");
 
 const SKIPPED = "No preference";
@@ -23,38 +19,18 @@ function displayValue(val) {
 
 const DISCOVERY_STEPS = [
   {
-    id: "lookingFor",
-    label: "Looking for",
+    id: "artType",
+    label: "Type of art",
     getValue: (profile) => profile.lookingFor,
-    editPrompt: "I'd like to change what I'm looking for.",
+    editPrompt: "I'd like to change the type of art.",
     options: [],
-  },
-  {
-    id: "size",
-    label: "Size",
-    getValue: (profile) => profile.sizePreference,
-    editPrompt: "I'd like to change my size preference.",
-    options: DISCOVER_SIZE_OPTIONS,
     optional: true,
   },
   {
-    id: "budget",
-    label: "Budget",
-    getValue: (profile) => profile.budget,
-    editPrompt: "I'd like to change my budget.",
-    options: DISCOVER_BUDGET_OPTIONS,
-    optional: true,
-  },
-  {
-    id: "preferences",
-    label: "Style & colors",
-    getValue: (profile) => {
-      const parts = [profile.styles, profile.colors, profile.medium]
-          .map(displayValue)
-          .filter(Boolean);
-      return parts.join(", ");
-    },
-    editPrompt: "I'd like to change my style or color preferences.",
+    id: "medium",
+    label: "Medium",
+    getValue: (profile) => profile.medium,
+    editPrompt: "I'd like to change the medium.",
     options: [],
     optional: true,
   },
@@ -74,29 +50,6 @@ const INTERIOR_STEPS = [
     getValue: (profile) => profile.decorStyle,
     editPrompt: "I'd like to change my decor style.",
     options: ["Modern", "Minimal", "Traditional", "Boho", "Industrial"],
-  },
-  {
-    id: "colors",
-    label: "Room colors",
-    getValue: (profile) => profile.colors,
-    editPrompt: "I'd like to change the room colors.",
-    options: [],
-    optional: true,
-  },
-  {
-    id: "size",
-    label: "Wall size",
-    getValue: (profile) => profile.sizePreference,
-    editPrompt: "I'd like to change the wall size.",
-    options: DISCOVER_SIZE_OPTIONS,
-    optional: true,
-  },
-  {
-    id: "budget",
-    label: "Budget",
-    getValue: (profile) => profile.budget,
-    editPrompt: "I'd like to change my budget.",
-    options: DISCOVER_BUDGET_OPTIONS,
     optional: true,
   },
 ];
@@ -161,7 +114,9 @@ function buildStateBlock({intent, commissionDraft, discoveryProfile, searchCount
       const next = pending[0];
       lines.push(`Still missing (ask the FIRST one next, one at a time): ${pending.map((s) => s.label).join(" → ")}`);
       if (intent === "commission") {
-        lines.push(`NEXT QUESTION: Ask about "${next.label}" only. Use exactly 4 quickReplies: 3 presets + "Custom".`);
+        lines.push(`NEXT QUESTION: Ask about "${next.label}" only. Include presets + "Other" + "Skip" if optional.`);
+      } else if (["recommendation", "discovery", "interior_design"].includes(intent)) {
+        lines.push(`NEXT QUESTION: Ask about "${next.label}" only. Include "Skip" if optional. Search after required fields are collected.`);
       }
     } else {
       lines.push(
@@ -176,6 +131,9 @@ function buildStateBlock({intent, commissionDraft, discoveryProfile, searchCount
 
   if (typeof searchCount === "number") {
     lines.push(`Catalog searches performed this session: ${searchCount}`);
+    if (searchCount > 0) {
+      lines.push("Artwork results were already shown. quickReplies MUST be []. Do not suggest refinements (price, color, medium, etc.).");
+    }
   }
   lines.push("--- END LIVE SESSION STATE ---");
   return lines.join("\n");

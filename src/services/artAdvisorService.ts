@@ -97,10 +97,17 @@ export interface AdvisorChatResponse {
   progress: AdvisorProgress | null;
   pendingCommissionField?: PendingCommissionField | null;
   artworkRecommendations: ArtworkRecommendation[];
+  hasMoreArtworks?: boolean;
+  totalArtworkMatches?: number;
   artistRecommendations: ArtistRecommendation[];
   commissionPayload?: CreateCommissionPayload;
   commissionSummary?: CommissionSummary;
   action?: "confirm_commission" | null;
+}
+
+export interface LoadMoreArtworksResponse {
+  artworkRecommendations: ArtworkRecommendation[];
+  hasMoreArtworks: boolean;
 }
 
 export interface AdvisorHydrateResponse {
@@ -119,6 +126,8 @@ export interface AdvisorMessage {
   role: "user" | "assistant";
   content: string;
   artworkRecommendations?: ArtworkRecommendation[];
+  hasMoreArtworks?: boolean;
+  totalArtworkMatches?: number;
   artistRecommendations?: ArtistRecommendation[];
   commissionSummary?: CommissionSummary;
   action?: "confirm_commission" | null;
@@ -146,17 +155,30 @@ export function resetAdvisorSessionId(): string {
 interface AdvisorRequest {
   sessionId: string;
   message?: string;
-  mode?: "hydrate";
+  mode?: "hydrate" | "loadMore";
   referenceImageUrls?: string[];
+  referenceAttachmentCount?: number;
 }
 
 export async function sendAdvisorMessage(
   sessionId: string,
   message: string,
   referenceImageUrls?: string[],
+  referenceAttachmentCount?: number,
 ): Promise<AdvisorChatResponse> {
   const callable = httpsCallable<AdvisorRequest, AdvisorChatResponse>(functions, "artAdvisorChat");
-  const result = await callable({ sessionId, message, referenceImageUrls });
+  const result = await callable({
+    sessionId,
+    message,
+    referenceImageUrls,
+    referenceAttachmentCount,
+  });
+  return result.data;
+}
+
+export async function loadMoreArtworks(sessionId: string): Promise<LoadMoreArtworksResponse> {
+  const callable = httpsCallable<AdvisorRequest, LoadMoreArtworksResponse>(functions, "artAdvisorChat");
+  const result = await callable({ sessionId, mode: "loadMore" });
   return result.data;
 }
 

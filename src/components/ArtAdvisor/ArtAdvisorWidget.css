@@ -12,7 +12,7 @@
   pointer-events: none;
 }
 
-.aa-widget-root > * {
+.aa-widget-root>* {
   pointer-events: auto;
 }
 
@@ -47,12 +47,10 @@
   position: absolute;
   inset: -8px;
   border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(59, 184, 189, 0.5) 0%,
-    rgba(47, 164, 169, 0.22) 45%,
-    transparent 72%
-  );
+  background: radial-gradient(circle,
+      rgba(59, 184, 189, 0.5) 0%,
+      rgba(47, 164, 169, 0.22) 45%,
+      transparent 72%);
   z-index: -1;
   animation: aaGlowPulse 2.8s ease-in-out infinite;
   pointer-events: none;
@@ -77,13 +75,29 @@
 }
 
 @keyframes aaGlowPulse {
-  0%, 100% { opacity: 0.7; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.1); }
+
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
 }
 
 @media (min-width: 768px) {
-  .aa-launcher { width: 50px; height: 50px; }
-  .aa-launcher svg { width: 26px; height: 26px; }
+  .aa-launcher {
+    width: 50px;
+    height: 50px;
+  }
+
+  .aa-launcher svg {
+    width: 26px;
+    height: 26px;
+  }
 }
 
 /* Overlay */
@@ -101,13 +115,23 @@
 }
 
 @keyframes aaFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes aaFadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
 }
 
 /* Chat panel */
@@ -135,13 +159,27 @@
 }
 
 @keyframes aaPanelIn {
-  from { opacity: 0; transform: scale(0.88) translateY(12px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 @keyframes aaPanelOut {
-  from { opacity: 1; transform: scale(1) translateY(0); }
-  to { opacity: 0; transform: scale(0.92) translateY(8px); }
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
 }
 
 @media (min-width: 768px) {
@@ -447,12 +485,27 @@
   animation: aaBounce 1.2s infinite ease-in-out;
 }
 
-.aa-typing-dots span:nth-child(2) { animation-delay: 0.15s; }
-.aa-typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+.aa-typing-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.aa-typing-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
 
 @keyframes aaBounce {
-  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-  40% { transform: translateY(-4px); opacity: 1; }
+
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
 }
 
 /* Quick-reply option buttons */
@@ -503,8 +556,15 @@
 }
 
 @keyframes aaQuickIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Artwork cards */
@@ -565,6 +625,33 @@
 .aa-artwork-card-tags {
   font-size: 0.72rem;
   color: #94a3b8;
+}
+
+/* Show more pill */
+.aa-show-more-pill {
+  align-self: center;
+  padding: 7px 18px;
+  border: 1.5px solid rgba(47, 164, 169, 0.35);
+  border-radius: 999px;
+  background: #fff;
+  color: #1a7a7f;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s, box-shadow 0.15s;
+  margin-top: 2px;
+}
+
+.aa-show-more-pill:hover {
+  background: rgba(47, 164, 169, 0.08);
+  border-color: rgba(47, 164, 169, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(47, 164, 169, 0.15);
+}
+
+.aa-show-more-pill:active {
+  transform: scale(0.97);
 }
 
 /* Artist chips */

@@ -12,14 +12,15 @@ import {
   PendingCommissionField,
   sendAdvisorMessage,
   hydrateAdvisorSession,
+  loadMoreArtworks,
   getAdvisorErrorMessage,
 } from "../../services/artAdvisorService";
-import { createCommissionRequest } from "../../services/commissionService";
+import { createCommissionRequest, COMMISSION_LISTS_UPDATED_EVENT, COMMISSION_POSTED_EVENT } from "../../services/commissionService";
 import ArtAdvisorMessageList from "./ArtAdvisorMessageList";
 import AdvisorProgressTracker from "./AdvisorProgressTracker";
 import "./ArtAdvisorWidget.css";
 
-const MAX_REFERENCE_IMAGES = 2;
+const MAX_REFERENCE_IMAGES = 1;
 
 const ArtAdvisorWidget: React.FC = () => {
   const { appUser } = useAuth();
@@ -46,6 +47,8 @@ const ArtAdvisorWidget: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  const navigatingAwayRef = useRef(false);
+
   const handleClose = useCallback(() => {
     setIsClosing(true);
     setTimeout(() => {
@@ -54,15 +57,27 @@ const ArtAdvisorWidget: React.FC = () => {
     }, 220);
   }, [setIsOpen]);
 
+  const handleNavigateAway = useCallback(() => {
+    navigatingAwayRef.current = true;
+    setIsOpen(false);
+    setIsClosing(false);
+  }, [setIsOpen]);
+
   useDrawerBackNavigation({
     drawerOpen: isOpen,
     activeChatId: null,
     onCloseDrawer: handleClose,
-    onExitChat: () => {},
+    onExitChat: () => { },
+    navigatingAwayRef,
   });
 
   useEffect(() => {
-    if (isOpen) setTimeout(() => inputRef.current?.focus(), 300);
+    if (isOpen) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      }, 300);
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -105,9 +120,11 @@ const ArtAdvisorWidget: React.FC = () => {
     };
   }, [isOpen, isHydrated, sessionId, setMessages, setProgress, setIntent, setIsHydrated]);
 
-  const submitMessage = async (text: string) => {
+  const submitMessage = async (text: string, options?: { files?: File[] }) => {
     const trimmed = text.trim();
     if (!trimmed || isSending) return;
+
+    const attachedFiles = options?.files ?? referenceFiles;
 
     const userMsg: AdvisorMessage = {
       id: `user-${Date.now()}`,
@@ -120,13 +137,15 @@ const ArtAdvisorWidget: React.FC = () => {
     setIsSending(true);
 
     try {
-      const refNote = referenceFiles.length
-        ? ` (User attached ${referenceFiles.length} reference image${referenceFiles.length > 1 ? "s" : ""}.)`
-        : "";
-      const response = await sendAdvisorMessage(sessionId, trimmed + refNote);
+      const response = await sendAdvisorMessage(
+        sessionId,
+        trimmed,
+        undefined,
+        attachedFiles.length > 0 ? attachedFiles.length : undefined,
+      );
 
       if (response.commissionSummary) {
-        response.commissionSummary.referenceImageCount = referenceFiles.length;
+        response.commissionSummary.referenceImageCount = attachedFiles.length;
       }
 
       const assistantMsg: AdvisorMessage = {
@@ -134,6 +153,8 @@ const ArtAdvisorWidget: React.FC = () => {
         role: "assistant",
         content: response.reply,
         artworkRecommendations: response.artworkRecommendations,
+        hasMoreArtworks: response.hasMoreArtworks,
+        totalArtworkMatches: response.totalArtworkMatches,
         artistRecommendations: response.artistRecommendations,
         commissionSummary: response.commissionSummary,
         action: response.action || undefined,
@@ -173,7 +194,7 @@ const ArtAdvisorWidget: React.FC = () => {
   const handleSend = () => submitMessage(input);
 
   const handleSuggestion = (text: string) => {
-    if (/^custom$/i.test(text.trim())) {
+    if (/^(other|custom)$/i.test(text.trim())) {
       const placeholder = pendingCommissionField?.inputPlaceholder ||
         `Enter ${pendingCommissionField?.label?.toLowerCase() || "your answer"}…`;
       setInputPlaceholder(placeholder);
@@ -181,6 +202,7 @@ const ArtAdvisorWidget: React.FC = () => {
       return;
     }
     if (text === "Use 📎 to attach") {
+      if (referenceFiles.length >= MAX_REFERENCE_IMAGES) return;
       fileInputRef.current?.click();
       return;
     }
@@ -190,6 +212,28 @@ const ArtAdvisorWidget: React.FC = () => {
   const handleEditStep = (step: AdvisorProgressStep) => {
     submitMessage(step.editPrompt);
   };
+
+  const handleLoadMoreArtworks = useCallback(async (messageId: string) => {
+    try {
+      const response = await loadMoreArtworks(sessionId);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                artworkRecommendations: [
+                  ...(msg.artworkRecommendations || []),
+                  ...response.artworkRecommendations,
+                ],
+                hasMoreArtworks: response.hasMoreArtworks,
+              }
+            : msg,
+        ),
+      );
+    } catch {
+      toast.error("Failed to load more artworks.");
+    }
+  }, [sessionId, setMessages]);
 
   const handleNewChat = () => {
     if (isSending) return;
@@ -205,12 +249,20 @@ const ArtAdvisorWidget: React.FC = () => {
     }
   };
 
+  const isReferenceImageStep = pendingCommissionField?.id === "referenceImages";
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-      .filter((f) => f.type.startsWith("image/"))
-      .slice(0, MAX_REFERENCE_IMAGES);
-    setReferenceFiles(files);
+    const file = Array.from(e.target.files || [])
+      .find((f) => f.type.startsWith("image/"));
     e.target.value = "";
+    if (!file) return;
+
+    const files = [file];
+    setReferenceFiles(files);
+
+    if (pendingCommissionField?.id === "referenceImages") {
+      void submitMessage(`📎 ${file.name}`, { files });
+    }
   };
 
   const handleConfirmCommission = async () => {
@@ -236,18 +288,12 @@ const ArtAdvisorWidget: React.FC = () => {
       toast.success("Commission request posted!");
       setPendingCommissionPayload(null);
       setReferenceFiles([]);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `success-${Date.now()}`,
-          role: "assistant",
-          content: "Your commission request is live! Artists can now apply. Good luck!",
-          timestamp: new Date(),
-        },
-      ]);
+      setPendingCommissionField(null);
+      resetSession();
+      window.dispatchEvent(new CustomEvent(COMMISSION_LISTS_UPDATED_EVENT));
+      window.dispatchEvent(new CustomEvent(COMMISSION_POSTED_EVENT));
       handleClose();
-      navigate("/commissions");
-      window.dispatchEvent(new CustomEvent("kalarang:commission-lists-updated"));
+      navigate("/commissions", { replace: true });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to post commission.";
       toast.error(message);
@@ -265,7 +311,7 @@ const ArtAdvisorWidget: React.FC = () => {
             <span className="aa-online-dot" aria-label="Online" />
           </div>
           <div className="aa-chat-header-text">
-            <h2 className="aa-chat-title">Kala</h2>
+            <h2 className="aa-chat-title">Kalaa</h2>
             <p className="aa-chat-status">Your art consultant · Online</p>
           </div>
         </div>
@@ -281,7 +327,7 @@ const ArtAdvisorWidget: React.FC = () => {
         </div>
       </header>
 
-      {progress && progress.done > 0 && (
+      {progress && progress.intent === 'commission' && progress.done > 0 && (
         <AdvisorProgressTracker progress={progress} onEditStep={handleEditStep} disabled={isSending} />
       )}
 
@@ -290,6 +336,8 @@ const ArtAdvisorWidget: React.FC = () => {
           messages={messages}
           onConfirmCommission={handleConfirmCommission}
           onSuggestionClick={handleSuggestion}
+          onNavigateAway={handleNavigateAway}
+          onLoadMoreArtworks={handleLoadMoreArtworks}
           isSubmittingCommission={isSubmittingCommission}
           isTyping={isSending}
           isRestoring={isHydrating}
@@ -297,7 +345,7 @@ const ArtAdvisorWidget: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {referenceFiles.length > 0 && (
+      {isReferenceImageStep && referenceFiles.length > 0 && (
         <div className="aa-ref-preview">
           {referenceFiles.map((f) => (
             <span key={f.name} className="aa-ref-chip">{f.name}</span>
@@ -312,19 +360,21 @@ const ArtAdvisorWidget: React.FC = () => {
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            multiple
             hidden
             onChange={handleFileSelect}
           />
+          {isReferenceImageStep && (
           <button
             type="button"
             className="aa-attach-btn"
             onClick={() => fileInputRef.current?.click()}
             aria-label="Attach reference image"
-            title="Attach reference photos"
+            title="Attach one reference photo"
+            disabled={referenceFiles.length >= MAX_REFERENCE_IMAGES}
           >
             {MdImage({})}
           </button>
+          )}
           <textarea
             ref={inputRef}
             className="aa-input"

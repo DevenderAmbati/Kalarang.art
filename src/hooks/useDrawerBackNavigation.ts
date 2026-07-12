@@ -5,6 +5,8 @@ interface DrawerBackNavigationOptions {
   activeChatId: string | null;
   onCloseDrawer: () => void;
   onExitChat: () => void;
+  /** When true, skip history.go(-n) cleanup on close (caller is navigating away). */
+  navigatingAwayRef?: React.RefObject<boolean>;
 }
 
 /**
@@ -24,6 +26,7 @@ export function useDrawerBackNavigation({
   activeChatId,
   onCloseDrawer,
   onExitChat,
+  navigatingAwayRef,
 }: DrawerBackNavigationOptions) {
   // Keep callbacks in refs so the popstate listener never goes stale
   const onCloseRef = useRef(onCloseDrawer);
@@ -40,13 +43,20 @@ export function useDrawerBackNavigation({
   // --- Drawer open / close ---
   useEffect(() => {
     if (!drawerOpen) {
-      // Drawer just closed — silently remove any entries we still own
       if (depthRef.current > 0) {
-        suppressPopRef.current = true;
-        const n = depthRef.current;
-        depthRef.current = 0;
-        prevChatIdRef.current = null;
-        window.history.go(-n);
+        if (navigatingAwayRef?.current) {
+          // Caller already navigated; history.go(-n) would undo that navigation.
+          depthRef.current = 0;
+          prevChatIdRef.current = null;
+          navigatingAwayRef.current = false;
+        } else {
+          // Normal close — silently remove any entries we still own
+          suppressPopRef.current = true;
+          const n = depthRef.current;
+          depthRef.current = 0;
+          prevChatIdRef.current = null;
+          window.history.go(-n);
+        }
       }
       return;
     }

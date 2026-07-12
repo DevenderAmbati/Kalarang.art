@@ -4,33 +4,38 @@ const {defineString} = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 const {getFirestore} = require("firebase-admin/firestore");
 
-const {initGemini} = require("./geminiClient");
+const {initOpenAI} = require("./openaiClient");
 const {initPinecone} = require("./pineconeClient");
 const {
   getOrCreateSession,
   getSessionIfExists,
   checkRateLimits,
+  recordNewSession,
   incrementMessageCount,
   saveSession,
 } = require("./sessionStore");
-const {handleArtAdvisorTurn} = require("./chatOrchestrator");
+const {handleArtAdvisorTurn, hydrateMatchIds, ARTWORK_PAGE_SIZE} = require("./chatOrchestrator");
 const {computeProgress} = require("./conversationState");
 const {shouldSyncEmbedding, syncArtworkEmbedding, backfillAllArtworks} = require("./artworkEmbedding");
 
-const GEMINI_API_KEY = defineString("GEMINI_API_KEY");
+const OPENAI_API_KEY = defineString("OPENAI_API_KEY");
 const PINECONE_API_KEY = defineString("PINECONE_API_KEY");
 const PINECONE_INDEX_HOST = defineString("PINECONE_INDEX_HOST");
 
 function ensureClients() {
-  const gKey = GEMINI_API_KEY.value() || process.env.GEMINI_API_KEY;
+  // OpenAI powers both the chat consultant and artwork embeddings;
+  // Pinecone stores the artwork vectors for semantic search.
+  const oKey = OPENAI_API_KEY.value() || process.env.OPENAI_API_KEY;
   const pKey = PINECONE_API_KEY.value() || process.env.PINECONE_API_KEY;
   const pHost = PINECONE_INDEX_HOST.value() || process.env.PINECONE_INDEX_HOST;
 
-  if (!gKey) throw new HttpsError("failed-precondition", "GEMINI_API_KEY not configured");
-  initGemini(gKey);
+  if (!oKey) throw new HttpsError("failed-precondition", "OPENAI_API_KEY not configured");
+  initOpenAI(oKey);
 
   if (pKey && pHost) {
     initPinecone(pKey, pHost);
+  } else {
+    logger.warn("Pinecone not configured — artwork search will use Firestore keyword fallback only. Set PINECONE_API_KEY and PINECONE_INDEX_HOST.");
   }
 }
 
@@ -54,7 +59,7 @@ exports.artAdvisorChat = onCall(
     maxInstances: 20,
   },
   async (request) => {
-    const {sessionId, message, mode, referenceImageUrls} = request.data || {};
+    const {sessionId, message, mode, referenceImageUrls, referenceAttachmentCount} = request.data || {};
     if (!sessionId) {
       throw new HttpsError("invalid-argument", "sessionId is required");
     }
@@ -80,6 +85,33 @@ exports.artAdvisorChat = onCall(
       };
     }
 
+    if (mode === "loadMore") {
+      try {
+        ensureClients();
+      } catch (err) {
+        logger.error("Client init failed", {error: err.message});
+        throw new HttpsError("internal", "Service configuration error");
+      }
+      const db = getFirestore();
+      const existing = await getSessionIfExists(db, sessionId);
+      if (!existing) {
+        return {artworkRecommendations: [], hasMoreArtworks: false};
+      }
+      const pending = existing.discoverContext?.pendingArtworkMatches || [];
+      if (pending.length === 0) {
+        return {artworkRecommendations: [], hasMoreArtworks: false};
+      }
+      const nextBatch = pending.slice(0, ARTWORK_PAGE_SIZE);
+      const remaining = pending.slice(ARTWORK_PAGE_SIZE);
+      const artworks = await hydrateMatchIds(db, nextBatch);
+      const sessionRef = db.collection("advisorSessions").doc(sessionId);
+      await sessionRef.update({"discoverContext.pendingArtworkMatches": remaining});
+      return {
+        artworkRecommendations: artworks,
+        hasMoreArtworks: remaining.length > 0,
+      };
+    }
+
     if (!message?.trim()) {
       throw new HttpsError("invalid-argument", "message is required");
     }
@@ -94,17 +126,20 @@ exports.artAdvisorChat = onCall(
     const db = getFirestore();
     const clientIp = request.rawRequest?.ip || request.rawRequest?.headers?.["x-forwarded-for"] || "";
 
-    let sessionRef, session;
+    let sessionRef, session, isNew;
     try {
-      ({ref: sessionRef, session} = await getOrCreateSession(db, sessionId));
+      ({ref: sessionRef, session, isNew} = await getOrCreateSession(db, sessionId));
     } catch (err) {
       logger.error("Session init failed", {error: err.message});
       throw new HttpsError("internal", "Could not initialize session");
     }
 
-    const rateLimitMsg = await checkRateLimits(db, session, clientIp);
+    const rateLimitMsg = await checkRateLimits(db, session, clientIp, isNew);
     if (rateLimitMsg) {
       throw new HttpsError("resource-exhausted", rateLimitMsg);
+    }
+    if (isNew) {
+      await recordNewSession(db, clientIp);
     }
 
     try {
@@ -113,16 +148,22 @@ exports.artAdvisorChat = onCall(
         session,
         userMessage: message.trim(),
         referenceImageUrls: referenceImageUrls || [],
+        referenceAttachmentCount: Number(referenceAttachmentCount) || 0,
       });
 
-      await incrementMessageCount(db, sessionRef, clientIp);
-      await saveSession(sessionRef, {
-        messages: result.messages,
-        intent: result.intent,
-        commissionDraft: result.commissionDraftState || session.commissionDraft,
-        discoveryProfile: result.discoveryProfile || session.discoveryProfile || {},
-        discoverContext: result.discoverContext,
-      });
+      await Promise.all([
+        incrementMessageCount(db, sessionRef),
+        saveSession(sessionRef, {
+          messages: result.messages,
+          intent: result.intent,
+          commissionDraft: result.commissionDraftState || session.commissionDraft,
+          discoveryProfile: result.discoveryProfile || session.discoveryProfile || {},
+          discoverContext: {
+            ...result.discoverContext,
+            pendingArtworkMatches: result.pendingArtworkMatches || [],
+          },
+        }),
+      ]);
 
       return {
         reply: result.reply,
@@ -130,6 +171,8 @@ exports.artAdvisorChat = onCall(
         intent: result.intent || "general",
         progress: result.progress || null,
         artworkRecommendations: result.artworkRecommendations || [],
+        hasMoreArtworks: result.hasMoreArtworks || false,
+        totalArtworkMatches: result.totalArtworkMatches || result.artworkRecommendations?.length || 0,
         artistRecommendations: result.artistRecommendations || [],
         commissionPayload: result.commissionPayload || null,
         commissionSummary: result.commissionSummary || null,
@@ -137,15 +180,26 @@ exports.artAdvisorChat = onCall(
         pendingCommissionField: result.pendingCommissionField || null,
       };
     } catch (err) {
-      logger.error("Chat turn failed", {error: err.message, stack: err.stack});
+      const status = err?.status;
+      const code = err?.code || err?.error?.code;
+      logger.error("Chat turn failed", {error: err.message, status, code, type: err?.type, stack: err.stack});
       const msg = err.message || "";
-      if (msg.includes("429") || msg.includes("quota")) {
-        throw new HttpsError("resource-exhausted", "AI service is temporarily busy. Please try again in a moment.");
-      }
-      if (msg.includes("403") || msg.includes("API key") || msg.includes("leaked") || msg.includes("GEMINI_API_KEY")) {
+      // No credits / billing not set up. OpenAI returns this as a 429, but it
+      // is NOT transient — retrying won't help; an admin must add credits.
+      if (code === "insufficient_quota" || msg.includes("insufficient_quota")) {
         throw new HttpsError(
             "failed-precondition",
-            "The AI service API key is invalid or expired. An admin needs to update GEMINI_API_KEY in Firebase Functions.",
+            "The AI service has no remaining credits. An admin needs to add billing or credits to the OpenAI account.",
+        );
+      }
+      if (status === 429 || msg.includes("429") || msg.includes("rate limit") || msg.includes("quota")) {
+        throw new HttpsError("resource-exhausted", "AI service is temporarily busy. Please try again in a moment.");
+      }
+      if (msg.includes("401") || msg.includes("403") || msg.includes("API key") ||
+          msg.includes("leaked") || msg.includes("GEMINI_API_KEY") || msg.includes("OPENAI_API_KEY")) {
+        throw new HttpsError(
+            "failed-precondition",
+            "The AI service API key is invalid or expired. An admin needs to update OPENAI_API_KEY / GEMINI_API_KEY in Firebase Functions.",
         );
       }
       throw new HttpsError("internal", "Something went wrong. Please try again.");

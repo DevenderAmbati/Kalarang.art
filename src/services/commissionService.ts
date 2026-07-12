@@ -23,6 +23,9 @@ import { httpsCallable } from "firebase/functions";
 import { uploadArtworkImages } from "./artworkService";
 import { cache, cacheKeys, cacheTimes } from "../utils/cache";
 
+export const COMMISSION_LISTS_UPDATED_EVENT = "kalarang:commission-lists-updated";
+export const COMMISSION_POSTED_EVENT = "kalarang:commission-posted";
+
 export type CommissionDeliveryType = "" | "Digital file" | "Physical artwork";
 
 export interface CommissionRequest {

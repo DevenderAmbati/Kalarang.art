@@ -1,6 +1,6 @@
-const {embedText} = require("./geminiClient");
-const {upsertArtworkVector, deleteArtworkVector} = require("./pineconeClient");
-const {buildEmbeddingText} = require("./artworkFilters");
+const { embedText } = require("./openaiClient");
+const { upsertArtworkVector, deleteArtworkVector } = require("./pineconeClient");
+const { buildEmbeddingText } = require("./artworkFilters");
 const logger = require("firebase-functions/logger");
 
 function shouldSyncEmbedding(beforeData, afterData) {
@@ -16,7 +16,7 @@ async function syncArtworkEmbedding(artworkId, data) {
     try {
       await deleteArtworkVector(artworkId);
     } catch (e) {
-      logger.warn("Delete vector failed (may not exist)", {artworkId});
+      logger.warn("Delete vector failed (may not exist)", { artworkId });
     }
     return;
   }
@@ -34,7 +34,7 @@ async function syncArtworkEmbedding(artworkId, data) {
     published: data.published,
   };
   await upsertArtworkVector(artworkId, embedding, metadata);
-  logger.info("Synced artwork embedding", {artworkId});
+  logger.info("Synced artwork embedding", { artworkId });
 }
 
 async function backfillAllArtworks(db) {
@@ -49,11 +49,11 @@ async function backfillAllArtworks(db) {
       await syncArtworkEmbedding(doc.id, doc.data());
       synced++;
     } catch (err) {
-      logger.error("Backfill failed for artwork", {id: doc.id, error: err.message});
+      logger.error("Backfill failed for artwork", { id: doc.id, error: err.message });
       failed++;
     }
   }
-  return {synced, failed, total: snap.size};
+  return { synced, failed, total: snap.size };
 }
 
-module.exports = {shouldSyncEmbedding, syncArtworkEmbedding, backfillAllArtworks};
+module.exports = { shouldSyncEmbedding, syncArtworkEmbedding, backfillAllArtworks };
