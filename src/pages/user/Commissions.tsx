@@ -12,6 +12,8 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import {
   CommissionRequest,
+  COMMISSION_LISTS_UPDATED_EVENT,
+  COMMISSION_POSTED_EVENT,
   createCommissionRequest,
   getCommissionDocumentsByIds,
   getCommissionsPaginated,
@@ -82,7 +84,6 @@ const containsPhoneNumber = (text: string): boolean => {
 };
 
 /** Form (`mode="form"`) and board (`mode="list"`) are separate mounts in `App.tsx`; the list instance must refetch when a request is created from the post tab. */
-const COMMISSION_LISTS_UPDATED_EVENT = 'kalarang:commission-lists-updated';
 
 const COMMISSIONS_PAGE_SIZE = 15;
 const VIRTUALIZE_THRESHOLD = 80;
@@ -93,18 +94,18 @@ const getCommissionGridColumnCount = (width: number): number => {
 };
 const COMMISSION_CARD_HEIGHT_ESTIMATE = 260;
 
-const TYPE_OPTIONS = ['Digital', 'Painting', 'Sketch'] as const;
+const TYPE_OPTIONS = ['Painting', 'Sketch'] as const;
 const DEFAULT_STYLE_OPTIONS = ['Realistic', 'Anime', 'Cartoon', 'Abstract', 'Minimal'];
 const DEFAULT_SUBJECT_OPTIONS = ['Portrait', 'Pet', 'Nature', 'God'];
 
-type BudgetOption = '₹1,000–₹3,000' | '₹3,000–₹5,000' | '₹5,000+' | 'Custom';
-type DeadlineOption = 'Flexible' | '3 days' | '1 week' | '2–3 weeks' | 'Custom';
-type SizeOption = 'A4' | 'A3' | 'A2' | 'Custom';
+type BudgetOption = '₹1,000–₹3,000' | '₹3,000–₹5,000' | '₹5,000+' | 'Other';
+type DeadlineOption = 'Flexible' | '3 days' | '1 week' | '2–3 weeks' | 'Other';
+type SizeOption = 'A4' | 'A3' | 'A2' | 'Other';
 type TypeOption = (typeof TYPE_OPTIONS)[number];
 
-const budgetOptions: BudgetOption[] = ['₹1,000–₹3,000', '₹3,000–₹5,000', '₹5,000+', 'Custom'];
-const deadlineOptions: DeadlineOption[] = ['Flexible', '3 days', '1 week', '2–3 weeks', 'Custom'];
-const sizeOptions: SizeOption[] = ['A4', 'A3', 'A2', 'Custom'];
+const budgetOptions: BudgetOption[] = ['₹1,000–₹3,000', '₹3,000–₹5,000', '₹5,000+', 'Other'];
+const deadlineOptions: DeadlineOption[] = ['Flexible', '3 days', '1 week', '2–3 weeks', 'Other'];
+const sizeOptions: SizeOption[] = ['A4', 'A3', 'A2', 'Other'];
 
 function copyTextToClipboard(text: string): void {
   if (navigator.clipboard?.writeText) {
@@ -1399,7 +1400,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
   const location = useLocation();
   const onCommissionsRoute = location.pathname === '/commissions';
   const { appUser } = useAuth();
-  const maxImages = 2;
+  const maxImages = 1;
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<File[]>([]);
@@ -1644,9 +1645,18 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     const onListsUpdated = () => {
       void refreshCommissionLists();
     };
+    const onCommissionPosted = () => {
+      if (appUser?.role === 'buyer') {
+        setActiveMainTab('my-applications');
+      }
+    };
     window.addEventListener(COMMISSION_LISTS_UPDATED_EVENT, onListsUpdated);
-    return () => window.removeEventListener(COMMISSION_LISTS_UPDATED_EVENT, onListsUpdated);
-  }, [mode, refreshCommissionLists]);
+    window.addEventListener(COMMISSION_POSTED_EVENT, onCommissionPosted);
+    return () => {
+      window.removeEventListener(COMMISSION_LISTS_UPDATED_EVENT, onListsUpdated);
+      window.removeEventListener(COMMISSION_POSTED_EVENT, onCommissionPosted);
+    };
+  }, [mode, appUser?.role, refreshCommissionLists]);
 
   const handlePullRefresh = useCallback(async () => {
     await refreshCommissionLists();
@@ -2891,11 +2901,11 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     title: !title.trim() ? 'Title is required' : '',
     description: !description.trim() ? 'Description is required' : '',
     budget: !budget ? 'Budget is required' : '',
-    customBudget: budget === 'Custom' && !customBudget.trim() ? 'Custom budget amount is required' : '',
+    customBudget: budget === 'Other' && !customBudget.trim() ? 'Budget amount is required' : '',
     deadline: !deadline ? 'Deadline is required' : '',
-    customDate: deadline === 'Custom' && !customDate ? 'Custom deadline date is required' : '',
-    customHeight: size === 'Custom' && !customHeight.trim() ? 'Height is required' : '',
-    customWidth: size === 'Custom' && !customWidth.trim() ? 'Width is required' : '',
+    customDate: deadline === 'Other' && !customDate ? 'Deadline date is required' : '',
+    customHeight: size === 'Other' && !customHeight.trim() ? 'Height is required' : '',
+    customWidth: size === 'Other' && !customWidth.trim() ? 'Width is required' : '',
     type: !type ? 'Artwork type is required' : '',
     cityOrPincode: !cityOrPincode.trim() ? 'City or pincode is required' : '',
   };
@@ -3109,12 +3119,12 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       return;
     }
 
-    const finalBudget = budget === 'Custom' ? customBudget.trim() : budget;
-    const finalDeadline = deadline === 'Custom' ? customDate : deadline;
-    const finalSize = size === 'Custom' ? 'Custom' : size;
-    const finalCustomHeight = size === 'Custom' ? customHeight.trim() : '';
-    const finalCustomWidth = size === 'Custom' ? customWidth.trim() : '';
-    const finalDeliveryType = deliveryType as '' | 'Digital file' | 'Physical artwork';
+    const finalBudget = budget === 'Other' ? customBudget.trim() : budget;
+    const finalDeadline = deadline === 'Other' ? customDate : deadline;
+    const finalSize = size === 'Other' ? 'Other' : size;
+    const finalCustomHeight = size === 'Other' ? customHeight.trim() : '';
+    const finalCustomWidth = size === 'Other' ? customWidth.trim() : '';
+    const finalDeliveryType = deliveryType || 'Physical artwork';
     const finalDeliveryLocation = cityOrPincode.trim();
 
     setIsSubmitting(true);
@@ -3144,8 +3154,9 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       localStorage.removeItem(getDraftKey(appUser.uid));
       handleClearForm();
       window.dispatchEvent(new CustomEvent(COMMISSION_LISTS_UPDATED_EVENT));
+      window.dispatchEvent(new CustomEvent(COMMISSION_POSTED_EVENT));
       if (mode === 'form') {
-        navigate('/commissions');
+        navigate('/commissions', { replace: true });
       }
     } catch {
       toast.error('Failed to post commission request.');
@@ -3273,7 +3284,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
               placeholder="Select size"
             />
 
-            {size === 'Custom' && (
+            {size === 'Other' && (
               <div className="form-grid">
                 <div className="form-field">
                   <label className="form-label">
@@ -3310,7 +3321,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
               </div>
             )}
 
-            <label className="form-label">Reference Images</label>
+            <label className="form-label">Reference Image</label>
             <div className="upload-section commission-upload-section">
               <div className="commission-dropzone-wrap">
                 <UploadDropzone
@@ -3319,12 +3330,14 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                   onDragEnter={() => setIsDragActive(true)}
                   onDragLeave={() => setIsDragActive(false)}
                   onDrop={handleDropzoneSelect}
+                  multiple={false}
+                  disabled={imagePreviews.length >= maxImages}
                 />
               </div>
 
               <div>
                 <h4 className="commission-upload-preview-title">Preview ({imagePreviews.length}/{maxImages})</h4>
-                <p className="commission-upload-preview-subtext">Drag and drop or click upload to update references</p>
+                <p className="commission-upload-preview-subtext">Drag and drop or click to upload one reference image</p>
                 <div className="commission-preview-grid">
                   {imagePreviews.map((img) => (
                     <div key={img.name} className="commission-preview-item">
@@ -3382,10 +3395,10 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
               </div>
             </div>
 
-            {budget === 'Custom' && (
+            {budget === 'Other' && (
               <>
                 <label className="form-label">
-                  Custom Budget <span className="commission-required">*</span>
+                  Budget amount <span className="commission-required">*</span>
                 </label>
                 <input
                   className="form-input"
@@ -3399,10 +3412,10 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
               </>
             )}
 
-            {deadline === 'Custom' && (
+            {deadline === 'Other' && (
               <>
                 <label className="form-label">
-                  Custom Deadline <span className="commission-required">*</span>
+                  Deadline date <span className="commission-required">*</span>
                 </label>
                 <input
                   className="form-input"
@@ -3448,7 +3461,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
             <ChipSelector options={styleOptions} selected={style} onToggle={(item) => toggleMulti(style, setStyle, item)} />
             <div className="commission-inline-row">
               <button type="button" className="commission-custom-chip" onClick={() => setShowStyleInput((prev) => !prev)}>
-                + Custom
+                + Other
               </button>
               {showStyleInput && (
                 <>
@@ -3479,7 +3492,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
             <ChipSelector options={subjectOptions} selected={subject} onToggle={(item) => toggleMulti(subject, setSubject, item)} />
             <div className="commission-inline-row">
               <button type="button" className="commission-custom-chip" onClick={() => setShowSubjectInput((prev) => !prev)}>
-                + Custom
+                + Other
               </button>
               {showSubjectInput && (
                 <>
@@ -3787,10 +3800,10 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                                   <span>Deadline: {item.deadline}</span>
                                   <span>
                                     Size:{' '}
-                                    {item.size === 'Custom'
+                                    {item.size === 'Other'
                                       ? item.customHeight || item.customWidth
                                         ? `${item.customHeight || '?'} x ${item.customWidth || '?'} inches`
-                                        : 'Custom'
+                                        : 'Other'
                                       : item.size || 'Not specified'}
                                   </span>
                                   {item.cityOrPincode?.trim() && (
@@ -4421,19 +4434,19 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
             <div className="commission-preview-grid-two">
               <div>
                 <p className="commission-preview-label">Budget</p>
-                <p className="commission-preview-value">{budget === 'Custom' ? customBudget || 'Custom' : budget || 'Not set'}</p>
+                <p className="commission-preview-value">{budget === 'Other' ? customBudget || 'Other' : budget || 'Not set'}</p>
               </div>
               <div>
                 <p className="commission-preview-label">Deadline</p>
-                <p className="commission-preview-value">{deadline === 'Custom' ? customDate || 'Custom date' : deadline || 'Not set'}</p>
+                <p className="commission-preview-value">{deadline === 'Other' ? customDate || 'Other date' : deadline || 'Not set'}</p>
               </div>
               <div>
                 <p className="commission-preview-label">Size</p>
                 <p className="commission-preview-value">
-                  {size === 'Custom'
+                  {size === 'Other'
                     ? customHeight || customWidth
                       ? `${customHeight || '?'} x ${customWidth || '?'}`
-                      : 'Custom size'
+                      : 'Other size'
                     : size || 'Not set'}
                 </p>
               </div>

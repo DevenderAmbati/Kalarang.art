@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -c artAdvisor/testOpenAI.js)",
+      "Bash(node -c artAdvisor/testSearch.js)",
+      "Bash(node -c artAdvisor/sessionStore.js)"
+    ]
+  }
+}
