@@ -16,7 +16,7 @@ const ProfileHeaderDemo: React.FC = () => {
   // Mock users for demo
   const artistUser = {
     name: 'Maya Chen',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
+    avatar: '/icon.png',
     bannerImage: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1200&h=400&fit=crop',
     stats: {
       followers: 2847,
@@ -48,7 +48,7 @@ const ProfileHeaderDemo: React.FC = () => {
     if (navigator.share) {
       navigator.share({
         title: `${currentUser.name}'s Portfolio`,
-        text: `Check out ${currentUser.name}'s amazing artwork collection on Kalarang!`,
+        text: `Check out ${currentUser.name}'s amazing artwork collection on BrushOwl!`,
         url: window.location.href,
       });
     } else {

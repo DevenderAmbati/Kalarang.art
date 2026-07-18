@@ -135,7 +135,7 @@ export interface AdvisorMessage {
   timestamp: Date;
 }
 
-const SESSION_KEY = "kalarang_advisor_session_id";
+const SESSION_KEY = "brushowl_advisor_session_id";
 
 export function getOrCreateAdvisorSessionId(): string {
   let id = sessionStorage.getItem(SESSION_KEY);

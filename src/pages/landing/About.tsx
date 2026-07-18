@@ -114,14 +114,14 @@ const About: React.FC = () => {
               {HiSparkles({ size: 32 })}
             </div>
             <h1 className="login-hero-headline-about home-hero-headline">
-              <span className="gradient-text">About </span> Kalarang
+              <span className="gradient-text">About </span> BrushOwl
             </h1>
             <div className="about-hero-divider"></div>
             <p className="about-hero-subheading">
               Original paintings. Custom commissions. Real artists.
             </p>
             <p className="about-hero-intro">
-              Kalarang is where you go to find art that's made for you—<span className="highlight-text">not mass-produced,
+              BrushOwl is where you go to find art that's made for you—<span className="highlight-text">not mass-produced,
                 not algorithm-picked.</span> Browse original paintings, request custom portraits, and buy directly from
               talented artists who pour real craft into every piece.
             </p>
@@ -140,7 +140,7 @@ const About: React.FC = () => {
               <span className="gradient-text">Art Made for You</span>
             </h2>
             <p className="about-section-text">
-              Kalarang is a <span className="highlight-text">buyer-first art marketplace</span> that connects you directly with skilled,
+              BrushOwl is a <span className="highlight-text">buyer-first art marketplace</span> that connects you directly with skilled,
               independent artists. Whether you're looking for a one-of-a-kind original painting for your home,
               a heartfelt portrait as a gift, or a fully custom piece built around your vision—this is where you find it.
             </p>
@@ -191,11 +191,11 @@ const About: React.FC = () => {
               {BiTargetLock({ size: 40 })}
             </div>
             <h2 className="about-section-heading">
-              <span className="gradient-text">Why Buy on Kalarang</span>
+              <span className="gradient-text">Why Buy on BrushOwl</span>
             </h2>
             <p className="about-section-text">
               Finding genuine, handmade art online is harder than it should be. Most platforms are flooded with prints and mass-produced work
-              with no direct way to reach the artist. Kalarang exists to change that—giving you a <span className="highlight-text">direct line to real artists</span>,
+              with no direct way to reach the artist. BrushOwl exists to change that—giving you a <span className="highlight-text">direct line to real artists</span>,
               so every purchase carries meaning and every commission feels personal.
             </p>
           </section>
@@ -236,7 +236,7 @@ const About: React.FC = () => {
                 {FaHeart({ size: 24 })}
               </div>
               <p className="about-section-text">
-                Every piece on Kalarang is made by a real artist. When you buy here, your money goes directly to them—
+                Every piece on BrushOwl is made by a real artist. When you buy here, your money goes directly to them—
                 and you walk away with <span className="highlight-text">something truly original</span>, not a print off a factory line.
                 Art worth owning. Artists worth supporting.
               </p>

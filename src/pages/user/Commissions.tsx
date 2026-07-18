@@ -513,7 +513,7 @@ const CommissionChatModal: React.FC<{
   const topCommissionImage =
     metadata?.artworkImage ||
     messages.find((m) => Boolean(m.commissionImage))?.commissionImage ||
-    '/logo.jpeg';
+    '/logobong.png';
 
   const handlePickCommissionImage = () => {
     imageInputRef.current?.click();
@@ -530,7 +530,7 @@ const CommissionChatModal: React.FC<{
   const handleDownloadCommissionImage = async (url: string, messageId: string) => {
     setImageDownloadBusy(messageId);
     try {
-      await downloadImageFromUrl(url, suggestedChatImageFilename('kalarang-commission'));
+      await downloadImageFromUrl(url, suggestedChatImageFilename('brushowl-commission'));
     } catch {
       // ignore
     } finally {
@@ -666,7 +666,7 @@ const CommissionChatModal: React.FC<{
           <div className="commission-chat-modal-drag-handle" aria-hidden="true" />
           <div className="commission-chat-modal-header-row">
           <div className="commission-chat-user">
-            <img src={contact.avatar || '/artist.png'} alt={contact.name} className="commission-chat-user-avatar" />
+            <img src={contact.avatar || '/icon.png'} alt={contact.name} className="commission-chat-user-avatar" />
             {currentUserRole === 'buyer' ? (
               <button type="button" className="commission-chat-user-name-link" onClick={handleViewProfile}>
                 {contact.name}
@@ -1056,7 +1056,7 @@ const CommissionChatModal: React.FC<{
     )}
     {offerAcceptConfirmMessageId && onAcceptOffer && (() => {
       const UPI_ID = artistUpiId || null;
-      const upiUri = UPI_ID ? `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art${offerAcceptConfirmAdvance ? `&am=${offerAcceptConfirmAdvance}` : ''}&cu=INR` : '';
+      const upiUri = UPI_ID ? `upi://pay?pa=${UPI_ID}&pn=BrushOwl%20Art${offerAcceptConfirmAdvance ? `&am=${offerAcceptConfirmAdvance}` : ''}&cu=INR` : '';
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const addressComplete =
         buyerAddressForm.name.trim() !== '' &&
@@ -2222,7 +2222,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           if (!uid || !profile) return;
           next[uid] = {
             uid,
-            name: profile.name || 'Kalarang User',
+            name: profile.name || 'BrushOwl User',
             avatar: profile.avatar,
           };
         });
@@ -2671,13 +2671,13 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
     if (!appUser?.uid) return;
     const otherUid = chat.participants.find((uid) => uid !== appUser.uid);
     if (!otherUid) return;
-    const fallbackName = otherUid === item.buyerId ? item.buyerName : 'Kalarang User';
+    const fallbackName = otherUid === item.buyerId ? item.buyerName : 'BrushOwl User';
     const fallbackAvatar = otherUid === item.buyerId ? item.buyerAvatar : undefined;
     openCommissionChat(
       chat.id,
       chatContactsByUid[otherUid] || {
         uid: otherUid,
-        name: fallbackName || 'Kalarang User',
+        name: fallbackName || 'BrushOwl User',
         avatar: fallbackAvatar,
       },
       {
@@ -4107,7 +4107,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                                 ? chat.participants.find((uid) => uid !== appUser.uid)
                                 : undefined;
                               const contact = otherUid ? chatContactsByUid[otherUid] : undefined;
-                              const contactName = contact?.name || (otherUid === item.buyerId ? item.buyerName : 'Kalarang User');
+                              const contactName = contact?.name || (otherUid === item.buyerId ? item.buyerName : 'BrushOwl User');
                               const contactAvatar = contact?.avatar || (otherUid === item.buyerId ? item.buyerAvatar : undefined);
                               const unreadCount = appUser?.uid ? (chat.unreadFor?.[appUser.uid] ?? 0) : 0;
                               return (
@@ -4120,14 +4120,14 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                                   onClick={() => handleOpenExistingCommissionChat(item, chat)}
                                 >
                                   <img
-                                    src={contactAvatar || '/artist.png'}
+                                    src={contactAvatar || '/icon.png'}
                                     alt={contactName || 'User'}
                                     className="commission-chat-header-avatar"
                                     loading="lazy"
                                   />
                                   <div className="commission-chat-header-main">
                                     <div className="commission-chat-header-row">
-                                      <span className="commission-chat-item-name">{contactName || 'Kalarang User'}</span>
+                                      <span className="commission-chat-item-name">{contactName || 'BrushOwl User'}</span>
                                       {chat.closed && (
                                         <span className="commission-chat-closed-pill">Closed</span>
                                       )}
@@ -4670,7 +4670,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
             const finalPrice = parseFloat(commissionChatMetadata.agreedFinalPrice || '0');
             const advance = parseFloat(commissionChatMetadata.agreedAdvanceAmount || '0');
             const remaining = Math.max(0, finalPrice - advance);
-            const upiUri = UPI_ID ? `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art${remaining ? `&am=${remaining}` : ''}&cu=INR` : '';
+            const upiUri = UPI_ID ? `upi://pay?pa=${UPI_ID}&pn=BrushOwl%20Art${remaining ? `&am=${remaining}` : ''}&cu=INR` : '';
             const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
             return (
               <div
@@ -5170,7 +5170,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
           onDownload={async () => {
             setRefImageDownloadBusy(true);
             try {
-              await downloadImageFromUrl(refImagePreview, suggestedChatImageFilename('kalarang-commission-ref'));
+              await downloadImageFromUrl(refImagePreview, suggestedChatImageFilename('brushowl-commission-ref'));
             } finally {
               setRefImageDownloadBusy(false);
             }

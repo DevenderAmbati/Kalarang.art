@@ -914,7 +914,7 @@ const Discover: React.FC = () => {
                         }}
                       >
                         <img
-                          src={user.avatar || '/artist.png'}
+                          src={user.avatar || '/icon.png'}
                           alt={user.name}
                           style={{
                             width: '48px',
@@ -981,7 +981,7 @@ const Discover: React.FC = () => {
                         title: artwork.title,
                         artworkImage: artwork.images[0],
                         artistName: artwork.artistName,
-                        artistAvatar: artwork.artistAvatar || '/artist.png',
+                        artistAvatar: artwork.artistAvatar || '/icon.png',
                         artistId: artwork.artistId,
                         price: artwork.price,
                         sold: artwork.sold,

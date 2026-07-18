@@ -22,12 +22,14 @@
 }
 
 .home-footer-logo-block {
-  align-items: flex-start;
+  align-items: center;
 }
 
 .home-footer-logo {
   height: 24px;
   width: auto;
+  display: block;
+  object-fit: contain;
 }
 
 .home-footer-legal-block,
@@ -118,13 +120,13 @@
   }
 
   .home-footer-logo-block {
-    align-items: flex-start;
-    padding-left: 0;
-    margin-left: -0.5rem;
+    align-items: center;
+    padding-left: 0.75rem;
+    margin-left: 0;
   }
 
   .home-footer-logo {
-    height: 28px;
+    height: 22px;
   }
 
   .home-footer-link {

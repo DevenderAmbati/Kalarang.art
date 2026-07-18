@@ -68,23 +68,17 @@ const Header: React.FC = () => {
       {/* Left Section: Logo and Navigation */}
       <div className="home-header-left" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
         {/* Logo */}
-        <div className="home-logo-section" style={{ display: 'flex', alignItems: 'center', gap: '0' }}>
+        <div className="home-logo-section" style={{ display: 'flex', alignItems: 'center' }}>
           <img
-            src="/logo top.png"
-            alt="Kalarang Logo"
+            src="/logobong.png"
+            alt="BrushOwl Logo"
             className="home-logo-icon"
-            style={{ height: '50px', width: 'auto' }}
-          />
-          <img
-            src="/test top.png"
-            alt="Kalarang Text"
-            className="home-logo-text"
-            style={{ height: '28px', width: 'auto', marginLeft: '-55px', position: 'relative', top: '5px' }}
+            style={{ height: '36px', width: 'auto', display: 'block', objectFit: 'contain' }}
           />
         </div>
 
         {/* Navigation */}
-        <div className="home-nav-links" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', position: 'relative', top: '5px', marginLeft: '-1.5rem' }}>
+        <div className="home-nav-links" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
           <button
             onClick={() => navigate('/')}
             style={{

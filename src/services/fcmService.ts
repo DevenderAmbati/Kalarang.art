@@ -142,7 +142,7 @@ export async function onForegroundMessage(
 }
 
 function getDeviceId(): string {
-  const KEY = "kalarang_device_id";
+  const KEY = "brushowl_device_id";
   let id = localStorage.getItem(KEY);
   if (!id) {
     id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;

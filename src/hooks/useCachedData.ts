@@ -290,7 +290,7 @@ export function useFavoriteArtworks(userId: string | undefined, enabled = true) 
         const userDoc = await getDoc(doc(db, "users", artistId));
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          artistAvatars.set(artistId, userData.avatar || '/artist.png');
+          artistAvatars.set(artistId, userData.avatar || '/icon.png');
         }
       })
     );
@@ -301,7 +301,7 @@ export function useFavoriteArtworks(userId: string | undefined, enabled = true) 
         title: artwork!.title,
         artworkImage: artwork!.images[0],
         artistName: artwork!.artistName,
-        artistAvatar: artistAvatars.get(artwork!.artistId) || artwork!.artistAvatar || '/artist.png',
+        artistAvatar: artistAvatars.get(artwork!.artistId) || artwork!.artistAvatar || '/icon.png',
         artistId: artwork!.artistId,
         price: artwork!.price,
         sold: artwork!.sold,

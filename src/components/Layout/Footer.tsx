@@ -11,8 +11,8 @@ const Footer: React.FC = () => {
       {/* Block 1: Logo */}
       <div className="home-footer-block home-footer-logo-block">
         <img
-          src="/test top.png"
-          alt="Kalarang"
+          src="/logobong.png"
+          alt="BrushOwl"
           className="home-footer-logo"
         />
       </div>

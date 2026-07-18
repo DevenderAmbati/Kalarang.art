@@ -60,10 +60,10 @@ const ReviewsModal: React.FC<ReviewsModalProps> = ({ isOpen, onClose, reviews, a
                 <div key={review.id} className="review-item">
                   <div className="review-item-header">
                     <img
-                      src={review.buyerAvatar || '/artist.png'}
+                      src={review.buyerAvatar || '/icon.png'}
                       alt={review.buyerName}
                       className="review-avatar"
-                      onError={(e) => { (e.target as HTMLImageElement).src = '/artist.png'; }}
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/icon.png'; }}
                     />
                     <div className="review-meta">
                       <p className="review-buyer-name">{review.buyerName}</p>

@@ -191,7 +191,7 @@ export default function ArtistLanding() {
       >
         <div className="hero-content">
           <h1 className="hero-title">
-            Welcome to Kalarang, {appUser?.name ? capitalizeName(appUser.name) : "Artist"}
+            Welcome to BrushOwl, {appUser?.name ? capitalizeName(appUser.name) : "Artist"}
           </h1>
           <p className="hero-subtitle">
             Your space to publish art and connect with buyers.
@@ -208,7 +208,7 @@ export default function ArtistLanding() {
         <div className="vision-container">
           <h2 className="vision-title">Our Vision for Artists</h2>
           <p className="vision-text">
-            Kalarang is built with {" "}<strong>artists at the heart. </strong> We believe the creative process deserves respect—free from trends, algorithms, virality, or the pressure to constantly create reels or chase formats. 
+            BrushOwl is built with {" "}<strong>artists at the heart. </strong> We believe the creative process deserves respect—free from trends, algorithms, virality, or the pressure to constantly create reels or chase formats. 
             Artists are not content creators, and their work is not meant to compete for attention.
           </p>
           <p className="vision-text">
@@ -275,10 +275,10 @@ export default function ArtistLanding() {
       >
         <div className="buyer-features-container">
           <h2 className="buyer-section-title">
-            Artists are also buyers on Kalarang
+            Artists are also buyers on BrushOwl
           </h2>
           <p className="buyer-section-intro">
-            Your artist account gives you access to the full Kalarang experience.
+            Your artist account gives you access to the full BrushOwl experience.
             Explore, discover, and collect art from fellow creators around the world.
           </p>
           <div className="buyer-features-grid">

@@ -190,8 +190,8 @@ const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({ onExpand }) => {
       {/* Logo at top */}
       <div className="collapsed-sidebar-logo">
         <img 
-          src="/logo%20top.png" 
-          alt="Kalarang Logo" 
+          src="/iconnobg.png" 
+          alt="BrushOwl Logo" 
           className="collapsed-logo-img"
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = 'none';

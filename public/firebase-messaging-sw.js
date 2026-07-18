@@ -34,15 +34,15 @@ function showSafeNotification(title, body, iconUrl, tag, url) {
     data: { url: url || "/" },
   };
   if (iconUrl) options.icon = iconUrl;
-  return self.registration.showNotification(String(title || "Kalarang"), options);
+  return self.registration.showNotification(String(title || "BrushOwl"), options);
 }
 
 // Show notifications, but suppress for the currently active chat
 messaging.onBackgroundMessage((payload) => {
   const data = (payload && payload.data) || {};
-  const title = data.title || "Kalarang";
+  const title = data.title || "BrushOwl";
   const body = data.body || "You have a new notification";
-  const iconUrl = self.location.origin + "/square%20logo.png";
+  const iconUrl = self.location.origin + "/icon.png";
   const tag = data.chatId ? "chat_" + data.chatId : (data.type || "default");
   const url = data.url || "/";
   const notificationType = data.type || "";
@@ -59,7 +59,7 @@ messaging.onBackgroundMessage((payload) => {
       return showSafeNotification(title, body, null, tag, url);
     });
   } catch (e) {
-    return showSafeNotification("Kalarang", "You have a new notification", null, "default", "/");
+    return showSafeNotification("BrushOwl", "You have a new notification", null, "default", "/");
   }
 });
 

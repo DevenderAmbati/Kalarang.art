@@ -176,7 +176,7 @@ export default function BuyerLanding() {
       >
         <div className="hero-content">
           <h1 className="hero-title">
-            Welcome to Kalarang, {appUser?.name ? capitalizeName(appUser.name) : "Art Lover"}
+            Welcome to BrushOwl, {appUser?.name ? capitalizeName(appUser.name) : "Art Lover"}
           </h1>
           <p className="hero-subtitle">
             Your space to discover, customize, and collect original art.
@@ -193,12 +193,12 @@ export default function BuyerLanding() {
         <div className="vision-container">
           <h2 className="vision-title">Our Vision for Art Collectors</h2>
           <p className="vision-text">
-            Kalarang connects you directly with talented artists who create original paintings, custom portraits,
+            BrushOwl connects you directly with talented artists who create original paintings, custom portraits,
             and one-of-a-kind pieces made just for you. No middlemen, no mass-produced prints—just real art from real artists.
           </p>
           <p className="vision-text">
             Whether you're looking for a personalized portrait, a hand-painted commission, or a unique original painting
-            to own, Kalarang makes it easy to find the perfect artist and bring your vision to life.
+            to own, BrushOwl makes it easy to find the perfect artist and bring your vision to life.
           </p>
         </div>
       </section>
@@ -255,10 +255,10 @@ export default function BuyerLanding() {
       >
         <div className="community-container">
           <h2 className="community-title">
-            Why Kalarang is Different
+            Why BrushOwl is Different
           </h2>
           <p className="community-intro">
-            Kalarang is built with artists at the heart. We prioritize creativity over trends and quality over quantity, 
+            BrushOwl is built with artists at the heart. We prioritize creativity over trends and quality over quantity, 
             ensuring that art is discovered for its originality and intent—not popularity or performance metrics.
           </p>
           <div className="community-grid">

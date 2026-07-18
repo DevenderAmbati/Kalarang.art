@@ -154,11 +154,12 @@ const CreateUsername: React.FC = () => {
         
         {/* Mobile Header - visible only on mobile */}
         <div className="login-mobile-header">
-          <img
-            src="/logo1.png"
-            alt="Kalarang Logo"
-            className="login-mobile-logo"
-          />
+          <div className="login-brand-stack login-mobile-logo">
+            <img src="/logobong.png" alt="BrushOwl Logo" className="login-brand-icon" />
+            <div className="login-brand-text-stack">
+              <img src="/text logo.png" alt="BrushOwl" className="login-brand-text" />
+            </div>
+          </div>
           <h1 className="login-mobile-headline">Get your paintings customized</h1>
           <p className="login-mobile-subtext">Discover and share original art with the world.</p>
         </div>
@@ -305,7 +306,7 @@ const CreateUsername: React.FC = () => {
               disabled={!isAvailable || isSubmitting || isChecking || !username.trim()}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
-                {isSubmitting ? 'Creating Username...' : 'Continue to Kalarang'} 
+                {isSubmitting ? 'Creating Username...' : 'Continue to BrushOwl'} 
                 {isSubmitting ? (
                   <svg 
                     width="18" 

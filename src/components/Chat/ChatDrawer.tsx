@@ -35,7 +35,7 @@ const containsPhoneNumber = (text: string): boolean => {
 };
 
 function avatarSrc(avatar?: string): string {
-  return avatar || '/artist.png';
+  return avatar || '/icon.png';
 }
 
 export interface ReachOutMetadata {
@@ -145,11 +145,11 @@ const ConversationList: React.FC<{
             }}
           >
             <div className="cd-list-avatar">
-              <img src={avatarSrc(c?.avatar)} alt={c?.name || 'Kalarang User'} />
+              <img src={avatarSrc(c?.avatar)} alt={c?.name || 'BrushOwl User'} />
             </div>
             <div className="cd-list-meta">
               <div className="cd-list-row">
-                <span className="cd-list-name">{c?.name || 'Kalarang User'}</span>
+                <span className="cd-list-name">{c?.name || 'BrushOwl User'}</span>
                 {unread > 0 && (
                   <span className="cd-list-unread" aria-label={`${unread} unread`}>
                     {unread > 99 ? '99+' : unread}
@@ -433,7 +433,7 @@ const ChatView: React.FC<{
   const handleDownloadChatImage = async (url: string, messageId: string) => {
     setImageDownloadBusy(messageId);
     try {
-      await downloadImageFromUrl(url, suggestedChatImageFilename('kalarang-chat'));
+      await downloadImageFromUrl(url, suggestedChatImageFilename('brushowl-chat'));
     } catch {
       // ignore
     } finally {
@@ -726,7 +726,7 @@ const ChatView: React.FC<{
           return (
             <React.Fragment key={card.artworkId}>
               <div className={`cd-reachout-context-card${showShipmentBtn ? ' cd-reachout-context-card--locked' : ''}`}>
-                <img src={card.artworkImage || '/logo.jpeg'} alt={card.artworkTitle} />
+                <img src={card.artworkImage || '/logobong.png'} alt={card.artworkTitle} />
                 <div className="cd-reachout-context-stack">
                   <div className="cd-reachout-context-main">
                     <div>
@@ -942,7 +942,7 @@ const ChatView: React.FC<{
                       {msg.messageType !== 'reachout_offer' && msg.messageType !== 'address_card' && msg.artworkId && msg.artworkTitle && (
                         <div className="cd-message-artwork-banner">
                           <div className="cd-message-artwork-image">
-                            <img src={msg.artworkImage || '/logo.jpeg'} alt={msg.artworkTitle} />
+                            <img src={msg.artworkImage || '/logobong.png'} alt={msg.artworkTitle} />
                           </div>
                           <div className="cd-message-artwork-details">
                             <span className="cd-message-artwork-title">{msg.artworkTitle}</span>
@@ -1013,7 +1013,7 @@ const ChatView: React.FC<{
         {reachOutMetadata && !artworkSent && (
           <div className="cd-artwork-banner">
             <div className="cd-artwork-banner-image">
-              <img src={reachOutMetadata.artworkImage || '/logo.jpeg'} alt={reachOutMetadata.artworkTitle} />
+              <img src={reachOutMetadata.artworkImage || '/logobong.png'} alt={reachOutMetadata.artworkTitle} />
             </div>
             <div className="cd-artwork-banner-details">
               <span className="cd-artwork-banner-label">Reaching out about</span>
@@ -1105,7 +1105,7 @@ const ChatView: React.FC<{
         const UPI_ID = artistUpiId || null;
         const offerMsg = messages.find((m) => m.id === offerAcceptMsgId);
         const advanceAmount = offerMsg?.offerFinalPrice || '';
-        const upiUri = UPI_ID ? `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art${advanceAmount ? `&am=${advanceAmount}` : ''}&cu=INR` : '';
+        const upiUri = UPI_ID ? `upi://pay?pa=${UPI_ID}&pn=BrushOwl%20Art${advanceAmount ? `&am=${advanceAmount}` : ''}&cu=INR` : '';
         const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         const addressComplete =
           buyerAddressForm.name.trim() !== '' &&

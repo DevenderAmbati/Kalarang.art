@@ -5,7 +5,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-const PERMANENT_DISMISS_KEY = 'kalarang-pwa-install-never';
+const PERMANENT_DISMISS_KEY = 'brushowl-pwa-install-never';
 
 let deferredPromptGlobal: BeforeInstallPromptEvent | null = null;
 let listeners: Array<() => void> = [];

@@ -103,7 +103,7 @@ const SeenAwareArtworkCard: React.FC<SeenAwareArtworkCardProps> = ({
         id={parseInt(artwork.id, 10) || 0}
         artworkImage={artwork.images[0]}
         artworkImages={artwork.images}
-        artistAvatar={artwork.artistAvatar || '/artist.png'}
+        artistAvatar={artwork.artistAvatar || '/icon.png'}
         artistName={artwork.artistName}
         artistId={artwork.artistId}
         currentUserId={appUserId}
@@ -188,7 +188,7 @@ const CustomizedCard: React.FC<{ post: PublicShare; navigate: ReturnType<typeof 
       <div className="artwork-card" style={{ cursor: 'default' }}>
         <div className="artwork-card-header">
           <div className="artist-avatar">
-            <img src={post.buyerAvatar || '/artist.png'} alt={post.buyerName} />
+            <img src={post.buyerAvatar || '/icon.png'} alt={post.buyerName} />
           </div>
           <div className="artwork-card-header-text">
             <span className="artist-name">{post.buyerName}</span>
@@ -831,9 +831,9 @@ const HomeFeed: React.FC = () => {
   // Default story to show when there are no stories
   const defaultStory: Story = {
     id: 'default-story',
-    image: '/logo.jpeg',
-    name: 'Kalarang',
-    userIcon: '/logo.jpeg',
+    image: '/icon.png',
+    name: 'brushIOwl',
+    userIcon: '/icon.png',
     price: '',
     artworkId: '',
     artworkTitle: 'Welcome to Stories',
@@ -1589,14 +1589,14 @@ const HomeFeed: React.FC = () => {
           <div className="stories-section">
             <div className="stories-container">
               {groupedStories.length === 0 ? (
-                // Only show Kalarang story for artists
+                // Only show BrushOwl story for artists
                 appUser?.role === 'artist' ? (
                   <div className="story-item" onClick={() => {
                     const defaultUserStories: Story[] = [{
                       id: 'default-story',
-                      image: '/logo.jpeg',
-                      name: 'Kalarang',
-                      userIcon: '/logo.jpeg',
+                      image: '/icon.png',
+                      name: 'BrushOwl',
+                      userIcon: '/icon.png',
                       price: '',
                       artworkId: '',
                       artworkTitle: 'Welcome to Stories',
@@ -1605,12 +1605,12 @@ const HomeFeed: React.FC = () => {
                     handleStoryClick('system', defaultUserStories);
                   }}>
                     <div className="story-square default-story">
-                      <img src="/logo.jpeg" alt="Kalarang" className="story-thumbnail" />
+                      <img src="/icon.png" alt="BrushOwl" className="story-thumbnail" />
                       <div className="story-user-icon">
-                        <img src="/logo.jpeg" alt="Kalarang" className="user-avatar" />
+                        <img src="/icon.png" alt="BrushOwl" className="user-avatar" />
                       </div>
                     </div>
-                    <span className="story-name">Kalarang</span>
+                    <span className="story-name">BrushOwl</span>
                   </div>
                 ) : null
               ) : (

@@ -24,7 +24,7 @@ const SUGGESTED_PROMPTS = [
   {
     icon: MdExplore,
     label: "explore ideas",
-    text: "I want to just explore ideas — what kinds of art can I find on Kalarang?",
+    text: "I want to just explore ideas — what kinds of art can I find on BrushOwl?",
   },
 ];
 

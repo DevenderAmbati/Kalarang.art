@@ -1,9 +1,9 @@
 /**
  * Firebase Cloud Functions - Gen 2 (v2 API)
- * Email Support System for Kalarang
+ * Email Support System for BrushOwl
  * 
  * This module handles sending support/suggestion emails from users
- * to the Kalarang team using Gmail SMTP with Nodemailer.
+ * to the BrushOwl team using Gmail SMTP with Nodemailer.
  * 
  * Environment Variables Required:
  * - GMAIL_EMAIL: The Gmail address to send from (e.g., kalarang.team@gmail.com)
@@ -347,7 +347,7 @@ exports.searchOpenCommissions = onCall(
  * Cloud Function (Gen 2) - Send Support Email
  * 
  * This callable function sends support/suggestion emails from users
- * to the Kalarang team. It uses Gmail SMTP with Nodemailer.
+ * to the BrushOwl team. It uses Gmail SMTP with Nodemailer.
  * 
  * @param {Object} request.data - The request data
  * @param {string} request.data.message - The user's message (required)
@@ -451,7 +451,7 @@ exports.sendSupportEmail = onCall(
       }
 
       // Prepare email options with sanitized data
-      const sanitizedUserName = (userName || "Kalarang User").replace(/[<>]/g, "");
+      const sanitizedUserName = (userName || "BrushOwl User").replace(/[<>]/g, "");
       const emailSubject = subject || `Support/Suggestion from ${sanitizedUserName}`;
       
       const mailOptions = {
@@ -462,7 +462,7 @@ exports.sendSupportEmail = onCall(
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #2FA4A9 0%, #26848A 100%); padding: 20px; text-align: center;">
-              <h1 style="color: white; margin: 0;">Kalarang Support Message</h1>
+              <h1 style="color: white; margin: 0;">BrushOwl Support Message</h1>
             </div>
             <div style="padding: 20px; background: #f9f9f9;">
               <h2 style="color: #2FA4A9; margin-top: 0;">New Message from ${sanitizedUserName}</h2>
@@ -480,12 +480,12 @@ exports.sendSupportEmail = onCall(
               </div>
             </div>
             <div style="padding: 20px; text-align: center; color: #999; font-size: 12px;">
-              <p>This message was sent via Kalarang Support System</p>
+              <p>This message was sent via BrushOwl Support System</p>
             </div>
           </div>
         `,
         text: `
-New Support Message from Kalarang
+New Support Message from BrushOwl
 
 From: ${sanitizedUserName}
 Email: ${userEmail}
@@ -628,14 +628,14 @@ exports.sendArtistReachOut = onCall(
       const sanitizedArtworkTitle = artworkTitle.replace(/[<>]/g, "");
 
       const mailOptions = {
-        from: `"Kalarang" <${senderEmail}>`,
+        from: `"BrushOwl" <${senderEmail}>`,
         to: artistEmail,
         replyTo: userEmail,
-        subject: `Interest in Your Artwork: "${sanitizedArtworkTitle}" - Kalarang`,
+        subject: `Interest in Your Artwork: "${sanitizedArtworkTitle}" - BrushOwl`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #2FA4A9 0%, #26848A 100%); padding: 20px; text-align: center;">
-              <h1 style="color: white; margin: 0;">Kalarang</h1>
+              <h1 style="color: white; margin: 0;">BrushOwl</h1>
               <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0;">Someone's interested in your artwork!</p>
             </div>
             
@@ -698,7 +698,7 @@ exports.sendArtistReachOut = onCall(
             </div>
 
             <div style="padding: 20px; text-align: center; color: #999; font-size: 12px; background: #f5f5f5;">
-              <p style="margin: 5px 0;">This message was sent via Kalarang</p>
+              <p style="margin: 5px 0;">This message was sent via BrushOwl</p>
               <p style="margin: 5px 0;">Your platform for connecting artists and art enthusiasts</p>
             </div>
           </div>
@@ -717,7 +717,7 @@ Interested Buyer Details:
 How to Respond:
 Simply reply to this email to connect directly with ${sanitizedUserName}.
 
-This message was sent via Kalarang.
+This message was sent via BrushOwl.
         `,
       };
 
@@ -782,7 +782,7 @@ async function sendPushToUser(userId, notification, data = {}, collapseKey = nul
 
   const fcmData = {
     ...data,
-    title: notification.title || "Kalarang",
+    title: notification.title || "BrushOwl",
     body: notification.body || "You have a new notification",
   };
 
@@ -836,7 +836,7 @@ exports.onNotificationCreated = onDocumentCreated(
       return;
     }
 
-    let title = "Kalarang";
+    let title = "BrushOwl";
     let body = "You have a new notification";
 
     const commissionTitle = notif.commissionTitle || "";
@@ -1402,15 +1402,15 @@ exports.artworkOgRenderer = onRequest(
       }
 
       const artwork = artworkDoc.data();
-      const title = artwork.title || "Artwork on Kalarang";
+      const title = artwork.title || "Artwork on BrushOwl";
       const rawDesc = artwork.description || "";
       const shortDesc = rawDesc.length > 160
         ? rawDesc.substring(0, 157) + "..."
         : rawDesc;
       const description = shortDesc
-        ? `${shortDesc} — by ${artwork.artistName || "Artist"} on Kalarang`
-        : `by ${artwork.artistName || "Artist"} on Kalarang`;
-      const imageUrl = (artwork.images && artwork.images[0]) || "https://kalarang-eff3c.web.app/logo1.png";
+        ? `${shortDesc} — by ${artwork.artistName || "Artist"} on BrushOwl`
+        : `by ${artwork.artistName || "Artist"} on BrushOwl`;
+      const imageUrl = (artwork.images && artwork.images[0]) || "https://kalarang-eff3c.web.app/logobong.png";
       const canonicalUrl = `https://kalarang.art/card/${artworkId}`;
 
       // Basic HTML-escaping to prevent injection in meta attributes
@@ -1426,7 +1426,7 @@ exports.artworkOgRenderer = onRequest(
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>${esc(title)} | Kalarang</title>
+  <title>${esc(title)} | BrushOwl</title>
   <meta name="description" content="${esc(description)}" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${esc(canonicalUrl)}" />
@@ -1435,7 +1435,7 @@ exports.artworkOgRenderer = onRequest(
   <meta property="og:image" content="${esc(imageUrl)}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:site_name" content="Kalarang" />
+  <meta property="og:site_name" content="BrushOwl" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${esc(title)}" />
   <meta name="twitter:description" content="${esc(description)}" />
@@ -1445,7 +1445,7 @@ exports.artworkOgRenderer = onRequest(
   <script>window.location.replace("${esc(canonicalUrl)}");</script>
 </head>
 <body>
-  <p><a href="${esc(canonicalUrl)}">${esc(title)}</a> by ${esc(artwork.artistName || "Artist")} on Kalarang</p>
+  <p><a href="${esc(canonicalUrl)}">${esc(title)}</a> by ${esc(artwork.artistName || "Artist")} on BrushOwl</p>
 </body>
 </html>`);
     } catch (error) {

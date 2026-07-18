@@ -17,13 +17,13 @@ const steps = [
     ),
   },
   {
-    label: 'Share a screenshot of your Kalarang portfolio on your Instagram story tagging @kalarang.world, or send it to us via Instagram DM.',
+    label: 'Share a screenshot of your BrushOwl portfolio on your Instagram story tagging @kalarang.world, or send it to us via Instagram DM.',
   },
 ];
 
 const benefits = [
   'Lifetime free access to the core platform',
-  'Early exposure on Kalarang',
+  'Early exposure on BrushOwl',
   'Founding Artist badge',
 ];
 
@@ -79,9 +79,9 @@ const FoundingArtistsPage = () => {
           <div className="legal-header">
      
             <h1 className="legal-title">
-              <span className="gradient-text">Kalarang Founding Artists Program</span>
+              <span className="gradient-text">BrushOwl Founding Artists Program</span>
             </h1>
-            <p className="legal-subtitle">Be among the first 100 artists on Kalarang.</p>
+            <p className="legal-subtitle">Be among the first 100 artists on BrushOwl.</p>
           </div>
 
           {/* Content */}
@@ -89,7 +89,7 @@ const FoundingArtistsPage = () => {
             {/* Intro / Description */}
             <div className="legal-intro">
               <p>
-                We are inviting the first 100 artists to join Kalarang and get{' '}
+                We are inviting the first 100 artists to join BrushOwl and get{' '}
                 <strong>lifetime free access</strong> to the core platform.
               </p>
             </div>
@@ -130,7 +130,7 @@ const FoundingArtistsPage = () => {
               <h2>Become a Founding Artist</h2>
               <p>
                 Spots are limited. Join now and be part of the first 100 artists shaping the
-                future of Kalarang. This offer is valid until <strong>April 15, 2026</strong>.
+                future of BrushOwl. This offer is valid until <strong>April 15, 2026</strong>.
               </p>
               <div className="founding-cta-row">
                 <button
@@ -191,15 +191,15 @@ const FoundingArtistsPage = () => {
                   showcasing artworks, and selling artworks.
                 </li>
                 <li>
-                  Kalarang reserves the right to review uploaded artworks and may hide artworks
+                  BrushOwl reserves the right to review uploaded artworks and may hide artworks
                   or revoke Founding Artist eligibility if they are non-original or low quality.
                 </li>
                 <li>
-                  Kalarang may introduce optional premium features in the future which may
+                  BrushOwl may introduce optional premium features in the future which may
                   have separate pricing.
                 </li>
                 <li>
-                  Kalarang reserves the right to update platform features and program terms
+                  BrushOwl reserves the right to update platform features and program terms
                   if necessary.
                 </li>
               </ul>

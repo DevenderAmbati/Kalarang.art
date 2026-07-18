@@ -5,7 +5,7 @@ import { isSupported } from "firebase/messaging";
 import { toast } from "react-toastify";
 
 function storageKey(uid: string, key: string) {
-  return `kalarang_notif_${key}_${uid}`;
+  return `brushowl_notif_${key}_${uid}`;
 }
 
 // Check if app is running as a PWA (not in browser)

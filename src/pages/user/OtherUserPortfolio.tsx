@@ -36,8 +36,8 @@ const OtherUserPortfolio: React.FC = () => {
     name: 'Artist Name',
     username: undefined as string | undefined,
     isFoundingArtist: undefined as boolean | undefined,
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
-    bannerImage: '/logo.jpeg',
+    avatar: '/icon.png',
+    bannerImage: '/banner.png',
     stats: {
       followers: 0,
       artworks: 0,
@@ -115,10 +115,10 @@ const OtherUserPortfolio: React.FC = () => {
   // Set document title with artist's first name
   useEffect(() => {
     if (profileUser.name && profileUser.name !== 'Artist Name') {
-      document.title = `${profileUser.name.split(' ')[0]}'s Portfolio - Kalarang`;
+      document.title = `${profileUser.name.split(' ')[0]}'s Portfolio - BrushOwl`;
     }
     return () => {
-      document.title = 'Kalarang';
+      document.title = 'BrushOwl';
     };
   }, [profileUser.name]);
 
@@ -150,8 +150,8 @@ const OtherUserPortfolio: React.FC = () => {
         name: profile.name,
         username: profile.username,
         isFoundingArtist: profile.isFoundingArtist,
-        avatar: profile.avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
-        bannerImage: profile.bannerImage || '/logo.jpeg',
+        avatar: profile.avatar || '/icon.png',
+        bannerImage: profile.bannerImage || '/banner.png',
         stats: stats,
         bio: profile.bio || '',
         artStyle: profile.artStyle || [],
@@ -199,8 +199,8 @@ const OtherUserPortfolio: React.FC = () => {
             name: profile.name,
             username: profile.username,
             isFoundingArtist: profile.isFoundingArtist,
-            avatar: profile.avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
-            bannerImage: profile.bannerImage || '/logo.jpeg',
+            avatar: profile.avatar || '/icon.png',
+            bannerImage: profile.bannerImage || '/banner.png',
             stats: stats,
             bio: profile.bio || '',
             artStyle: profile.artStyle || [],
@@ -242,7 +242,7 @@ const OtherUserPortfolio: React.FC = () => {
     if (navigator.share) {
       navigator.share({
         title: `${profileUser.name}'s Portfolio`,
-        text: `Check out ${profileUser.name}'s amazing artwork collection on Kalarang!`,
+        text: `Check out ${profileUser.name}'s amazing artwork collection on BrushOwl!`,
         url: window.location.href,
       });
     } else {
@@ -432,7 +432,7 @@ const OtherUserPortfolio: React.FC = () => {
             reachOutMetadata={{ 
               artworkId: 'commission', 
               artworkTitle: 'Commission Inquiry',
-              artworkImage: '/sq_mobile1.png' 
+              artworkImage: '/logobong.png' 
             }}
           />
         )}

@@ -8,7 +8,7 @@ import '../auth/login.css';
 import './claimSketch.css';
 
 const UPI_ID = '9640557113@ptsbi';
-const PAYEE_NAME = 'Kalarang';
+const PAYEE_NAME = 'BrushOwl';
 const AMOUNT = '99';
 
 type CopyType = 'physical' | 'digital';
@@ -39,7 +39,7 @@ const ClaimSketch: React.FC = () => {
       pn: PAYEE_NAME,
       am: AMOUNT,
       cu: 'INR',
-      tn: 'Kalarang Free Sketch',
+      tn: 'BrushOwl Free Sketch',
     });
     return `upi://pay?${params.toString()}`;
   }, []);
@@ -200,7 +200,12 @@ const ClaimSketch: React.FC = () => {
 
         {/* Mobile header */}
         <div className="login-mobile-header">
-          <img src="/logo1.png" alt="Kalarang Logo" className="login-mobile-logo" />
+          <div className="login-brand-stack login-mobile-logo">
+            <img src="/logobong.png" alt="BrushOwl Logo" className="login-brand-icon" />
+            <div className="login-brand-text-stack">
+              <img src="/text logo.png" alt="BrushOwl" className="login-brand-text" />
+            </div>
+          </div>
           <h1 className="login-mobile-headline">Claim your free sketch</h1>
           <p className="login-mobile-subtext">A hand-drawn sketch worth ₹1000, on us.</p>
         </div>
@@ -411,7 +416,7 @@ const ClaimSketch: React.FC = () => {
                   </div>
                   <div className="claim-sketch-payment-grid">
                     <div className="claim-sketch-qr-wrap">
-                      <img src={qrUrl} alt="UPI QR code for ₹99 to Kalarang" className="claim-sketch-qr" />
+                      <img src={qrUrl} alt="UPI QR code for ₹99 to BrushOwl" className="claim-sketch-qr" />
                       <span className="claim-sketch-qr-amount">₹99</span>
                     </div>
                     <div className="claim-sketch-upi">
