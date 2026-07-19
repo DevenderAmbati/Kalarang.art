@@ -4,8 +4,8 @@ import { usePwaInstall } from '../../hooks/usePwaInstall';
 import { useAuth } from '../../context/AuthContext';
 import { MdInstallMobile } from 'react-icons/md';
 
-const SESSION_SHOWN_KEY = 'kalarang-pwa-prompt-shown-session';
-const INSTALL_PROMPT_ACTIVE_KEY = 'kalarang-install-prompt-active';
+const SESSION_SHOWN_KEY = 'brushowl-pwa-prompt-shown-session';
+const INSTALL_PROMPT_ACTIVE_KEY = 'brushowl-install-prompt-active';
 
 interface InstallPromptProps {
   onVisibilityChange?: (visible: boolean) => void;
@@ -111,7 +111,7 @@ const InstallPrompt: React.FC<InstallPromptProps> = ({ onVisibilityChange }) => 
         ) : (
           <>
             <span style={styles.text}>
-              <span className="install-banner-full">Install Kalarang app for faster access and a native app experience!</span>
+              <span className="install-banner-full">Install BrushOwl app for faster access and a native app experience!</span>
               <span className="install-banner-short">Install app for better experience!</span>
             </span>
             <button onClick={handleInstall} style={styles.installBtn}>

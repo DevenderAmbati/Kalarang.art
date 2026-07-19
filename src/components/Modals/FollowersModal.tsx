@@ -93,7 +93,7 @@ const FollowersModal: React.FC<FollowersModalProps> = ({
                     onClick={() => handleUserClick(user.uid)}
                   >
                     <img
-                      src={user.avatar || '/artist.png'}
+                      src={user.avatar || '/icon.png'}
                       alt={user.name}
                       className="follower-avatar"
                     />

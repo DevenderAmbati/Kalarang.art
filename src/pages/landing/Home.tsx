@@ -203,12 +203,19 @@ const Home: React.FC = () => {
           ) : (
             /* Fallback: original logo while images load (or on mobile) */
             <div className="login-logo-glow">
-              <div className="login-logo-mark">
+              <div className="login-logo-mark login-brand-stack">
                 <img
-                  src="/logo1.png"
-                  alt="Kalarang Logo"
-                  className="login-logo-image"
+                  src="/logobong.png"
+                  alt="BrushOwl Logo"
+                  className="login-logo-image login-brand-icon"
                 />
+                <div className="login-brand-text-stack">
+                  <img
+                    src="/text logo.png"
+                    alt="BrushOwl"
+                    className="login-brand-text"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -262,7 +269,7 @@ const Home: React.FC = () => {
         {/* Call to Action */}
         <div className="home-cta-section">
           <h2 className="home-cta-heading">
-            Join Kalarang
+            Join BrushOwl
           </h2>
           <div className="home-cta-buttons">
             <button
@@ -480,7 +487,7 @@ const Home: React.FC = () => {
         data-section="cta-bottom"
         ref={(el) => { sectionRefs.current['cta-bottom'] = el; }}
       >
-        <h2 className="home-cta-heading">Join Kalarang</h2>
+        <h2 className="home-cta-heading">Join BrushOwl</h2>
         <button
           onClick={() => navigate('/signup')}
           className="login-button primary-cta home-cta-button home-cta-bottom-signup"

@@ -206,11 +206,12 @@ const SetNewPassword: React.FC = () => {
         
         {/* Mobile Header - visible only on mobile */}
         <div className="login-mobile-header">
-          <img
-            src="/logo1.png"
-            alt="Kalarang Logo"
-            className="login-mobile-logo"
-          />
+          <div className="login-brand-stack login-mobile-logo">
+            <img src="/logobong.png" alt="BrushOwl Logo" className="login-brand-icon" />
+            <div className="login-brand-text-stack">
+              <img src="/text logo.png" alt="BrushOwl" className="login-brand-text" />
+            </div>
+          </div>
           <h1 className="login-mobile-headline">Get your paintings customized</h1>
           <p className="login-mobile-subtext">Secure your account with a new password.</p>
         </div>

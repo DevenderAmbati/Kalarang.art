@@ -12,13 +12,13 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Get initial theme from localStorage or default to 'light'
   const [theme, setTheme] = useState<Theme>(() => {
-    const savedTheme = localStorage.getItem('kalarang-theme');
+    const savedTheme = localStorage.getItem('brushowl-theme');
     return (savedTheme as Theme) || 'light';
   });
 
   // Update localStorage and document class when theme changes
   useEffect(() => {
-    localStorage.setItem('kalarang-theme', theme);
+    localStorage.setItem('brushowl-theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 

@@ -436,7 +436,7 @@ const CardDetail: React.FC = () => {
             {(() => {
               const UPI_ID = artistUpiId || null;
               const amount = String(artwork.price);
-              const upiUri = UPI_ID ? `upi://pay?pa=${UPI_ID}&pn=Kalarang%20Art&am=${amount}&cu=INR` : '';
+              const upiUri = UPI_ID ? `upi://pay?pa=${UPI_ID}&pn=BrushOwl%20Art&am=${amount}&cu=INR` : '';
               const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
               const addressComplete = buyNowAddress.name.trim() && buyNowAddress.line1.trim() &&
                 buyNowAddress.city.trim() && buyNowAddress.pincode.trim() && buyNowAddress.phone.trim();

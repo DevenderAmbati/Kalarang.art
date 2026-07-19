@@ -263,7 +263,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
             color: 'var(--color-text-secondary)',
             lineHeight: '1.6'
           }}>
-            Creating your creative sanctuary on Kalarang...
+            Creating your creative sanctuary on BrushOwl...
           </p>
         </div>
       </div>
@@ -318,11 +318,12 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
         
         {/* Mobile Header - visible only on mobile */}
         <div className="login-mobile-header">
-          <img
-            src="/logo1.png"
-            alt="Kalarang Logo"
-            className="login-mobile-logo"
-          />
+          <div className="login-brand-stack login-mobile-logo">
+            <img src="/logobong.png" alt="BrushOwl Logo" className="login-brand-icon" />
+            <div className="login-brand-text-stack">
+              <img src="/text logo.png" alt="BrushOwl" className="login-brand-text" />
+            </div>
+          </div>
           <h1 className="login-mobile-headline">Get your paintings customized</h1>
           <p className="login-mobile-subtext">Discover and share original art with the world.</p>
         </div>
@@ -330,7 +331,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp }) => {
         <div className="login-form-container" style={{ padding: '1rem' }}>
           <div className="login-header" style={{ marginBottom: '0.5rem' }}>
             <div className="login-welcome-back" style={{ fontSize: '0.7rem', marginBottom: '0.15rem' }}>Join the Community</div>
-            <h2 className="login-title" style={{ fontSize: '1.1rem', marginBottom: '0' }}>Create your Kalarang account</h2>
+            <h2 className="login-title" style={{ fontSize: '1.1rem', marginBottom: '0' }}>Create your BrushOwl account</h2>
           </div>
 
           <form onSubmit={handleSubmit} className="login-form" style={{ gap: '0.8rem' }}>

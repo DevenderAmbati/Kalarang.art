@@ -119,16 +119,48 @@ body:has(.login-right-section:not(.signup-page)),
 
 .login-logo-mark {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   position: relative;
+  gap: 0.5rem;
 }
 
 .login-logo-image {
-  width: 216px;
+  width: 220px;
   height: auto;
-
+  object-fit: contain;
   position: relative;
   z-index: 2;
+}
+
+.login-brand-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.login-brand-icon {
+  width: 180px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.login-brand-text-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: fit-content;
+}
+
+.login-brand-text {
+  width: 160px;
+  height: auto;
+  object-fit: contain;
+  display: block;
 }
 
 .login-logo-glow-effect {
@@ -184,15 +216,6 @@ body:has(.login-right-section:not(.signup-page)),
   height: 3px;
   background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
   margin: 0.75rem auto;
-}
-
-.login-brand-tagline {
-  font-size: 0.75rem;
-  color: var(--white-alpha-90);
-  font-weight: 300;
-  letter-spacing: 2px;
-  margin: 0;
-  text-transform: uppercase;
 }
 
 /* Features */
@@ -436,9 +459,17 @@ body:has(.login-right-section:not(.signup-page)),
 }
 
 .login-mobile-logo {
-  width: 200px;
+  width: auto;
   height: auto;
-  margin-bottom: 0rem;
+  margin-bottom: 0.5rem;
+}
+
+.login-mobile-logo.login-brand-stack .login-brand-icon {
+  width: 160px;
+}
+
+.login-mobile-logo.login-brand-stack .login-brand-text {
+  width: 140px;
 }
 
 .login-mobile-headline {
@@ -1143,17 +1174,25 @@ a:hover {
   
   .home-logo-section {
     justify-content: center !important;
+    align-items: center !important;
+    gap: 8px !important;
   }
-  
+
   .home-logo-icon {
-    height: 60px !important;
+    height: 36px !important;
+    width: auto !important;
+    display: block !important;
   }
-  
+
   .home-logo-text {
-    height: 34px !important;
-    margin-left: -65px !important;
+    height: 26px !important;
+    width: auto !important;
+    margin-left: 0 !important;
+    position: static !important;
+    top: auto !important;
+    display: block !important;
   }
-  
+
   .home-nav-links {
     gap: 0.5rem !important;
     margin-left: 0 !important;
@@ -1212,9 +1251,13 @@ a:hover {
   }
   
   .login-logo-image {
-    width: 162px !important;
+    width: 180px !important;
   }
-  
+
+  .login-logo-mark .login-brand-text {
+    width: 140px;
+  }
+
   .login-hero-headline {
     font-size: 2.4rem !important;
     margin: 0 0 0.75rem 0 !important;

@@ -1,33 +1,33 @@
 {
-  "name": "Kalarang",
-  "short_name": "Kalarang",
+  "name": "BrushOwl",
+  "short_name": "BrushOwl",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0B1F2A",
    "icons": [
     {
-      "src": "sq_mobile1.png",
-      "type": "image/png",
+      "src": "icon.png",
+      "type": "image/jpeg",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "sq_mobile1.png",
-      "type": "image/png",
+      "src": "icon.png",
+      "type": "image/jpeg",
       "sizes": "192x192",
       "purpose": "maskable"
     },
     {
-      "src": "square logo.png",
-      "type": "image/png",
+      "src": "icon.png",
+      "type": "image/jpeg",
       "sizes": "512x512",
       "purpose": "any"
     }
   ],
   "orientation": "portrait-primary",
   "scope": "/",
-  "description": "Kalarang - Get your paintings customized. Discover and share original art with the world.",
+  "description": "BrushOwl - Get your paintings customized. Discover and share original art with the world.",
   "categories": ["art", "lifestyle", "shopping"],
   "gcm_sender_id": "103953800507"
 }

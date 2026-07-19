@@ -198,10 +198,38 @@ function App() {
     if (!loading) {
       document.body.style.background = '';
       const splash = document.getElementById('splash-screen');
-      if (splash) {
+      if (!splash) return;
+
+      const video = splash.querySelector('video.splash-video') as HTMLVideoElement | null;
+
+      const dismissSplash = () => {
+        if (!document.getElementById('splash-screen')) return;
         splash.classList.add('splash-hidden');
-        setTimeout(() => splash.remove(), 500);
+        window.setTimeout(() => splash.remove(), 500);
+      };
+
+      // Let the splash video play through completely before dismissing
+      if (video) {
+        if (video.ended) {
+          dismissSplash();
+          return;
+        }
+
+        const onEnded = () => dismissSplash();
+        const onError = () => dismissSplash();
+        video.addEventListener('ended', onEnded);
+        video.addEventListener('error', onError);
+        // Safety fallback if ended never fires
+        const safety = window.setTimeout(dismissSplash, 20000);
+
+        return () => {
+          video.removeEventListener('ended', onEnded);
+          video.removeEventListener('error', onError);
+          window.clearTimeout(safety);
+        };
       }
+
+      dismissSplash();
     }
   }, [loading]);
 

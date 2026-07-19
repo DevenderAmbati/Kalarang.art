@@ -307,7 +307,7 @@ export async function getArtwork(artworkId: string): Promise<Artwork | null> {
   const userDoc = await getDoc(doc(db, "users", artwork.artistId));
   if (userDoc.exists()) {
     const userData = userDoc.data();
-    artwork.artistAvatar = userData.avatar || '/artist.png';
+    artwork.artistAvatar = userData.avatar || '/icon.png';
   }
 
   return artwork;
@@ -350,7 +350,7 @@ export async function getArtistArtworks(
 
   // Fetch current artist avatar from user profile
   const userDoc = await getDoc(doc(db, "users", userId));
-  const currentAvatar = userDoc.exists() ? (userDoc.data().avatar || '/artist.png') : '/artist.png';
+  const currentAvatar = userDoc.exists() ? (userDoc.data().avatar || '/icon.png') : '/icon.png';
 
   // Update all artworks with current avatar
   return artworks.map(artwork => ({
@@ -418,7 +418,7 @@ export async function getPublishedArtworks(limitCount: number = 20): Promise<Art
       const userDoc = await getDoc(doc(db, "users", artistId));
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        artistAvatars.set(artistId, userData.avatar || '/artist.png');
+        artistAvatars.set(artistId, userData.avatar || '/icon.png');
       }
     })
   );
@@ -426,7 +426,7 @@ export async function getPublishedArtworks(limitCount: number = 20): Promise<Art
   // Update artworks with current artist avatars
   return artworks.map(artwork => ({
     ...artwork,
-    artistAvatar: artistAvatars.get(artwork.artistId) || artwork.artistAvatar || '/artist.png'
+    artistAvatar: artistAvatars.get(artwork.artistId) || artwork.artistAvatar || '/icon.png'
   }));
 }
 
@@ -523,7 +523,7 @@ export async function getPublishedArtworksPaginated(
       const userDoc = await getDoc(doc(db, "users", artistId));
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        artistAvatars.set(artistId, userData.avatar || '/artist.png');
+        artistAvatars.set(artistId, userData.avatar || '/icon.png');
       }
     })
   );
@@ -531,7 +531,7 @@ export async function getPublishedArtworksPaginated(
   // Update artworks with current artist avatars
   const updatedArtworks = artworks.map(artwork => ({
     ...artwork,
-    artistAvatar: artistAvatars.get(artwork.artistId) || artwork.artistAvatar || '/artist.png'
+    artistAvatar: artistAvatars.get(artwork.artistId) || artwork.artistAvatar || '/icon.png'
   }));
 
   return {
@@ -659,7 +659,7 @@ export async function getPublishedArtworksFilteredPaginated(
         const userDoc = await getDoc(doc(db, "users", artistId));
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          artistAvatars.set(artistId, userData.avatar || "/artist.png");
+          artistAvatars.set(artistId, userData.avatar || "/icon.png");
         }
       })
     );
@@ -669,7 +669,7 @@ export async function getPublishedArtworksFilteredPaginated(
       const hydratedArtwork = {
         ...artwork,
         artistAvatar:
-          artistAvatars.get(artwork.artistId) || artwork.artistAvatar || "/artist.png",
+          artistAvatars.get(artwork.artistId) || artwork.artistAvatar || "/icon.png",
       };
       if (matchesArtworkQuery(hydratedArtwork, options)) {
         collected.push(hydratedArtwork);
@@ -791,7 +791,7 @@ export async function getPublishedArtworksFromFollowingPaginated(
       const userDoc = await getDoc(doc(db, "users", artistId));
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        artistAvatars.set(artistId, userData.avatar || '/artist.png');
+        artistAvatars.set(artistId, userData.avatar || '/icon.png');
       }
     })
   );
@@ -799,7 +799,7 @@ export async function getPublishedArtworksFromFollowingPaginated(
   // Update artworks with current artist avatars
   const updatedArtworks = paginatedArtworks.map(artwork => ({
     ...artwork,
-    artistAvatar: artistAvatars.get(artwork.artistId) || artwork.artistAvatar || '/artist.png'
+    artistAvatar: artistAvatars.get(artwork.artistId) || artwork.artistAvatar || '/icon.png'
   }));
   
   // Find the last document for pagination

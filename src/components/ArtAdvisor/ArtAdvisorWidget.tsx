@@ -395,7 +395,7 @@ const ArtAdvisorWidget: React.FC = () => {
             {MdSend({})}
           </button>
         </div>
-        <p className="aa-powered-by">Powered by AI · Recommendations from Kalarang catalog</p>
+        <p className="aa-powered-by">Powered by AI · Recommendations from BrushOwl catalog</p>
       </footer>
     </div>
   );

@@ -654,7 +654,7 @@ const Explore: React.FC = () => {
                           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; }}
                           onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'; }}
                         >
-                          <img src={user.avatar || '/artist.png'} alt={user.name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+                          <img src={user.avatar || '/icon.png'} alt={user.name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
                             {user.username && <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>@{user.username}</div>}
@@ -672,7 +672,7 @@ const Explore: React.FC = () => {
                     {debouncedSearchQuery.trim() && <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: 'var(--color-royal)', paddingLeft: '1rem' }}>Artworks</h3>}
                     <div ref={artworkGridShellRef}>
                       <ArtworkGrid
-                        artworks={displayedArtworks.map(a => ({ id: a.id, title: a.title, artworkImage: a.images[0], artistName: a.artistName, artistAvatar: a.artistAvatar || '/artist.png', artistId: a.artistId, price: a.price, sold: a.sold }))}
+                        artworks={displayedArtworks.map(a => ({ id: a.id, title: a.title, artworkImage: a.images[0], artistName: a.artistName, artistAvatar: a.artistAvatar || '/icon.png', artistId: a.artistId, price: a.price, sold: a.sold }))}
                         viewType="discover"
                         onArtworkClick={(id) => {
                           sessionStorage.setItem('artworkSourceRoute', '/explore');

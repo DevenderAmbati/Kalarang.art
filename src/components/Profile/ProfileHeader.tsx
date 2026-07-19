@@ -120,13 +120,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div className="banner-image">
           <img
             key={user.bannerImage}
-            src={user.bannerImage || '/logo.jpeg'}
+            src={user.bannerImage || '/banner.png'}
             alt="Profile banner"
             className="banner-img"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
-              if (target.src !== '/logo.jpeg') {
-                target.src = '/logo.jpeg';
+              if (target.src !== '/banner.png') {
+                target.src = '/banner.png';
               }
             }}
           />
@@ -159,7 +159,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               borderRadius: '50%'
             }}>
               <img
-                src={user.avatar || '/artist.png'}
+                src={user.avatar || '/icon.png'}
                 alt={`${user.name}'s avatar`}
                 className="profile-avatar"
                 style={{
@@ -171,8 +171,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   // If it's not already the artist.png, try that as fallback
-                  if (target.src.indexOf('/artist.png') === -1) {
-                    target.src = '/artist.png';
+                  if (target.src.indexOf('/icon.png') === -1) {
+                    target.src = '/icon.png';
                   } else {
                     target.style.display = 'none';
                     // Show initials div as final fallback

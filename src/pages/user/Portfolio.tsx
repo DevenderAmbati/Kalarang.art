@@ -101,7 +101,7 @@ const Portfolio: React.FC = () => {
     if (navigator.share) {
       navigator.share({
         title: `${mockUser.name}'s Portfolio`,
-        text: `Check out ${mockUser.name}'s amazing artwork collection on Kalarang!`,
+        text: `Check out ${mockUser.name}'s amazing artwork collection on BrushOwl!`,
         url: shareUrl,
       });
     } else {
@@ -217,8 +217,8 @@ const Portfolio: React.FC = () => {
     name: appUser?.name || 'Artist Name',
     username: appUser?.username,
     isFoundingArtist: appUser?.isFoundingArtist,
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
-    bannerImage: '/logo.jpeg',
+    avatar: '/icon.png',
+    bannerImage: '/banner.png',
     stats: {
       followers: 0,
       artworks: 0,
@@ -230,8 +230,8 @@ const Portfolio: React.FC = () => {
   // Profile data for editing - declare before useEffect that uses it
   const [profileData, setProfileData] = useState<ProfileData>({
     name: appUser?.name || 'Artist Name',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
-    bannerImage: '/logo.jpeg',
+    avatar: '/icon.png',
+    bannerImage: '/banner.png',
     bio: "",
     artStyle: [],
     philosophy: "",
@@ -261,8 +261,8 @@ const Portfolio: React.FC = () => {
             name: profile.name || appUser.name,
             username: profile.username,
             isFoundingArtist: profile.isFoundingArtist ?? prev.isFoundingArtist,
-            avatar: profile.avatar || 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face',
-            bannerImage: profile.bannerImage || '/logo.jpeg',
+            avatar: profile.avatar || '/icon.png',
+            bannerImage: profile.bannerImage || '/banner.png',
             // Preserve existing stats - they're managed by real-time subscription
             stats: prev.stats,
           }));

@@ -27,7 +27,7 @@ const PrivacyPolicy: React.FC = () => {
             <h1 className="legal-title">
               <span className="gradient-text">Privacy Policy</span>
             </h1>
-            <p className="legal-subtitle">MVP Version – Kalarang</p>
+            <p className="legal-subtitle">MVP Version – BrushOwl</p>
             <p className="legal-last-updated">Last Updated: March 3, 2026</p>
           </div>
 
@@ -35,19 +35,19 @@ const PrivacyPolicy: React.FC = () => {
           <div className="legal-content">
             <div className="legal-intro">
               <p>Your privacy matters to us.</p>
-              <p>This Privacy Policy explains how Kalarang collects and uses information.</p>
+              <p>This Privacy Policy explains how BrushOwl collects and uses information.</p>
             </div>
 
             <section className="legal-section">
               <h2>1. Information We Collect</h2>
-              <p>When you create a Kalarang account, we collect essential information including your full name, email address, and account type (Artist or Buyer). This information is necessary to provide you with our core services.</p>
+              <p>When you create a BrushOwl account, we collect essential information including your full name, email address, and account type (Artist or Buyer). This information is necessary to provide you with our core services.</p>
               <p>We also collect profile details you choose to add, such as your bio, profile picture, and artwork portfolios. Messages sent through our platform are stored to enable communication between users.</p>
               <p>Additionally, we automatically collect technical information such as your IP address, device type, browser information, and basic analytics data. This helps us understand how users interact with our platform and improve our services.</p>
             </section>
 
             <section className="legal-section">
               <h2>2. How We Use Your Information</h2>
-              <p>We use your information to create and manage your account, enabling you to access all features of Kalarang. Your data allows us to facilitate messaging between artists and buyers, creating meaningful connections.</p>
+              <p>We use your information to create and manage your account, enabling you to access all features of BrushOwl. Your data allows us to facilitate messaging between artists and buyers, creating meaningful connections.</p>
               <p>Your artwork and profile information are displayed on the platform to help you reach your intended audience. We analyze usage patterns to continuously improve our platform and user experience.</p>
               <p>We send important account-related notifications, such as security alerts, feature updates, and platform announcements.</p>
               <p className="legal-highlight">We respect your privacy and do not sell your personal data to third parties.</p>
@@ -61,7 +61,7 @@ const PrivacyPolicy: React.FC = () => {
 
             <section className="legal-section">
               <h2>4. Third-Party Services</h2>
-              <p>To operate Kalarang effectively, we partner with trusted third-party service providers. These include hosting providers who store our data securely, authentication services like Firebase that manage user logins, and analytics tools that help us understand platform usage.</p>
+              <p>To operate BrushOwl effectively, we partner with trusted third-party service providers. These include hosting providers who store our data securely, authentication services like Firebase that manage user logins, and analytics tools that help us understand platform usage.</p>
               <p>These service providers may process limited data as necessary to deliver their services. We carefully select partners who maintain high security and privacy standards.</p>
               <p>We ensure that these third parties only have access to the minimum data required to perform their specific functions.</p>
             </section>
@@ -80,7 +80,7 @@ const PrivacyPolicy: React.FC = () => {
 
             <section className="legal-section">
               <h2>7. Children's Privacy</h2>
-              <p>Kalarang is not intended for children under 13 years old.</p>
+              <p>BrushOwl is not intended for children under 13 years old.</p>
             </section>
 
             <section className="legal-section">

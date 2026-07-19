@@ -54,7 +54,7 @@ self.addEventListener('message', (event) => {
 // or Chrome will show "This site has been updated in the background".
 // Suppress notifications for the currently active chat.
 self.addEventListener('push', (event: PushEvent) => {
-  let title = 'Kalarang';
+  let title = 'BrushOwl';
   let body = 'You have a new notification';
   let url = '/';
   let notificationType = '';
@@ -83,7 +83,7 @@ self.addEventListener('push', (event: PushEvent) => {
   }
 
   // Show notification for all other cases
-  const icon = `${self.location.origin}/square%20logo.png`;
+  const icon = `${self.location.origin}/icon.png`;
   
   // Create tag for grouping notifications by type
   // For chat messages, group by chatId; for others, group by type

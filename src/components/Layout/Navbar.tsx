@@ -6,7 +6,7 @@ const Navbar: React.FC = () => {
     <nav style={styles.nav}>
       <div style={styles.container}>
         <Link to="/" style={styles.logo}>
-          Kalarang
+          BrushOwl
         </Link>
         <div style={styles.links}>
           <Link to="/upload" style={styles.link}>

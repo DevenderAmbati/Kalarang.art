@@ -87,22 +87,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
       <div style={styles.geometricShape2}></div>
       <div style={styles.geometricShape3}></div>
       
-      {/* Toggle button */}
-      {!isCollapsed && (
-        <button
-          onClick={toggleSidebar}
-          style={styles.toggleButton}
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {isCollapsed ? React.createElement(MdChevronRight as any) : React.createElement(MdChevronLeft as any)}
-        </button>
-      )}
-      
       <div >
         <div style={styles.logoContainer}>
           <img 
-            src="/logo%20top.png" 
-            alt="Kalarang Logo" 
+            src="/logobong.png" 
+            alt="BrushOwl Logo" 
             style={{
               ...styles.logo,
               ...(isCollapsed ? styles.logoCollapsed : {}),
@@ -112,18 +101,29 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
             }}
           />
           {!isCollapsed && (
-            <img 
-              src="/test%20top.png" 
-              alt="Kalarang Test" 
-              style={styles.testLogo}
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
+            <div style={styles.logoTextStack}>
+              <img 
+                src="/text%20logo.png" 
+                alt="BrushOwl" 
+                style={styles.testLogo}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            </div>
           )}
         </div>
         <div style={styles.headerLine}>
           <div style={styles.decorativeLine}></div>
+          {!isCollapsed && (
+            <button
+              onClick={toggleSidebar}
+              style={styles.toggleButton}
+              aria-label="Collapse sidebar"
+            >
+              {React.createElement(MdChevronLeft as any)}
+            </button>
+          )}
         </div>
       </div>
 
@@ -208,7 +208,8 @@ const styles: { [key: string]: CSSProperties } = {
   toggleButton: {
     position: 'absolute',
     right: '-15px',
-    top: '105px',
+    top: '50%',
+    transform: 'translateY(-50%)',
     width: '30px',
     height: '30px',
     borderRadius: '50%',
@@ -237,36 +238,44 @@ const styles: { [key: string]: CSSProperties } = {
   logoContainer: {
     width: '100%',
     display: 'flex',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0',
-    padding: '2px',
+    justifyContent: 'flex-start',
+    gap: '10px',
+    padding: '16px 20px 8px',
     borderRadius: '12px',
+    boxSizing: 'border-box',
   },
   logo: {
-    height: '60px',
+    height: '52px',
     width: 'auto',
+    maxWidth: '220px',
     objectFit: 'contain',
-    maxWidth: '50%',
-    marginLeft: '-15px',
-    marginRight: '-35px',
+    flexShrink: 0,
+    display: 'block',
     filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))',
   },
   logoCollapsed: {
-    width: '80px',
+    width: '72px',
     height: 'auto',
     maxWidth: 'none',
-    marginRight: '0',
     marginTop: '10px',
   },
   testLogo: {
-    height: '100px',
+    height: '28px',
     width: 'auto',
     objectFit: 'contain',
-    maxWidth: '85%',
-    marginLeft: '-40px',
+    maxWidth: '150px',
+    flexShrink: 1,
+    display: 'block',
     filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))',
-    transform: 'translateY(10px)',
+  },
+  logoTextStack: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    width: 'fit-content',
+    minWidth: 0,
   },
   brandText: {
     fontSize: '0.875rem',
@@ -375,11 +384,15 @@ const styles: { [key: string]: CSSProperties } = {
     zIndex: 1,
   },
   headerLine: {
-    padding: '1rem 1.5rem 0',
+    padding: '0.6rem 1.5rem 0',
     position: 'relative',
     zIndex: 1,
+    display: 'flex',
+    alignItems: 'center',
   },
   decorativeLine: {
+    flex: 1,
+    width: '100%',
     height: '3px',
     borderRadius: '2px',
     background: 'linear-gradient(90deg, transparent 0%, var(--color-primary) 50%, transparent 100%)',

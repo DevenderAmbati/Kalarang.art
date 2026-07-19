@@ -42,20 +42,24 @@
 .landing-page .home-header .home-logo-section {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 8px;
+}
+
+.landing-page .home-header .home-logo-section .home-logo-icon,
+.landing-page .home-header .home-logo-section .home-logo-text {
+  display: block;
+  object-fit: contain;
+}
+
+.landing-page .home-header .home-logo-section .home-logo-icon {
+  height: 36px;
+  width: auto;
 }
 
 .landing-page .home-header .home-nav-links {
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  position: relative;
-  top: 5px;
-  margin-left: -1.5rem;
-}
-
-.landing-page .home-header .home-nav-links .home-nav-about {
-  margin-left: -0.5rem;
 }
 
 .landing-page .home-header .home-header-right {

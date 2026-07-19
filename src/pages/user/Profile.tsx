@@ -570,7 +570,7 @@ const Profile: React.FC = () => {
           <div style={styles.profileHeader} className="profile-header-mobile">
             <div style={styles.profileImageContainer}>
               {appUser?.role === 'artist' ? (
-                <img src={appUser.avatar || '/artist.png'} alt="Artist Profile" style={styles.profileImage} className="profile-image-mobile" />
+                <img src={appUser.avatar || '/icon.png'} alt="Artist Profile" style={styles.profileImage} className="profile-image-mobile" />
               ) : (
                 <img src="/man-with-hat.png" alt="Buyer Profile" style={styles.profileImage} className="profile-image-mobile" />
               )}
@@ -1196,12 +1196,12 @@ const Profile: React.FC = () => {
             </div>
             {isInstalled ? (
               <p style={styles.supportDescription}>
-                Kalarang is installed on your device. Enjoy the full app experience!
+                BrushOwl is installed on your device. Enjoy the full app experience!
               </p>
             ) : canInstall ? (
               <>
                 <p style={styles.supportDescription}>
-                  Install Kalarang on your device for faster access, offline support, and a native app experience.
+                  Install BrushOwl on your device for faster access, offline support, and a native app experience.
                 </p>
                 <button
                   onClick={triggerInstall}
@@ -1216,13 +1216,13 @@ const Profile: React.FC = () => {
                   onMouseEnter={() => setHoveredButton('installApp')}
                   onMouseLeave={() => setHoveredButton(null)}
                 >
-                  Install Kalarang
+                  Install BrushOwl
                 </button>
               </>
             ) : isIos ? (
               <>
                 <p style={styles.supportDescription}>
-                  Install Kalarang on your iPhone/iPad in 3 easy steps:
+                  Install BrushOwl on your iPhone/iPad in 3 easy steps:
                 </p>
                 <div style={{
                   background: 'var(--color-bg-light, #f5f5f5)',
@@ -1238,12 +1238,12 @@ const Profile: React.FC = () => {
                   <div><strong>3.</strong> Tap <strong>"Add"</strong> to confirm</div>
                 </div>
                 <p style={{...styles.supportDescription, marginTop: '0.5rem', fontStyle: 'italic', fontSize: '0.78rem'}}>
-                  After installing, open Kalarang from your home screen to enable push notifications.
+                  After installing, open BrushOwl from your home screen to enable push notifications.
                 </p>
               </>
             ) : (
               <p style={styles.supportDescription}>
-                To install Kalarang, open this site in Chrome or Edge on your device. If already installed, you're all set!
+                To install BrushOwl, open this site in Chrome or Edge on your device. If already installed, you're all set!
               </p>
             )}
           </div>

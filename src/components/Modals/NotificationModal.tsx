@@ -308,7 +308,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({ isOpen, onClose }
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="notification-avatar">
-                    <img src={notification.actorAvatar || '/artist.png'} alt={notification.actorName} />
+                    <img src={notification.actorAvatar || '/icon.png'} alt={notification.actorName} />
                     <div className="notification-icon-badge">
                       {getNotificationIcon(notification.type)}
                     </div>

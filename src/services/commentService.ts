@@ -70,7 +70,7 @@ export function subscribeToArtworkComments(
           userAvatar:
             typeof data.userAvatar === "string" && data.userAvatar
               ? data.userAvatar
-              : "/artist.png",
+              : "/icon.png",
           text: typeof data.text === "string" ? data.text : "",
           createdAt: created instanceof Timestamp ? created.toDate() : null,
           parentCommentId,

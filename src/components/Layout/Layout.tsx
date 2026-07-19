@@ -188,8 +188,8 @@ const Layout: React.FC<LayoutProps> = ({
               </div>
               {/* Mobile - show logo with bottom nav */}
               <img 
-                src="/header_logo.png" 
-                alt="Kalarang Logo" 
+                src="/logobong.png" 
+                alt="BrushOwl Logo" 
                 style={styles.headerLogo}
                 className="header-logo-mobile"
               />
@@ -275,7 +275,7 @@ const Layout: React.FC<LayoutProps> = ({
               {appUser && (
                 <div onClick={handleProfileClick} style={styles.profileIcon} className="layout-profile-icon">
                   <img
-                    src={appUser.avatar || (appUser.role === 'artist' ? '/artist.png' : '/man-with-hat.png')}
+                    src={appUser.avatar || (appUser.role === 'artist' ? '/icon.png' : '/man-with-hat.png')}
                     alt={appUser.role === 'artist' ? 'Artist Profile' : 'Buyer Profile'}
                     style={styles.profileImage}
                   />
@@ -483,9 +483,10 @@ const styles = {
     color: 'var(--color-text-secondary)',
   } as React.CSSProperties,
   headerLogo: {
-    height: '40px',
+    height: '28px',
     width: 'auto',
     objectFit: 'contain',
+    display: 'block',
   } as React.CSSProperties,
   profileImage: {
     width: '40px',

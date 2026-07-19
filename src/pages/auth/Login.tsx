@@ -48,7 +48,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (err.message === "NO_ACCOUNT" || err.message.includes("NO_ACCOUNT")) {
         // Stop loading before navigating
         setGoogleLoading(false);
-        toast.error("No account found. Please sign up first to join Kalarang!", {
+        toast.error("No account found. Please sign up first to join BrushOwl!", {
           position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
@@ -221,11 +221,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         
         {/* Mobile Header - visible only on mobile */}
         <div className="login-mobile-header">
-          <img
-            src="/logo1.png"
-            alt="Kalarang Logo"
-            className="login-mobile-logo"
-          />
+          <div className="login-brand-stack login-mobile-logo">
+            <img src="/logobong.png" alt="BrushOwl Logo" className="login-brand-icon" />
+            <div className="login-brand-text-stack">
+              <img src="/text logo.png" alt="BrushOwl" className="login-brand-text" />
+            </div>
+          </div>
           <h1 className="login-mobile-headline">Get your paintings customized</h1>
           <p className="login-mobile-subtext">Discover and share original art with the world.</p>
         </div>
@@ -234,7 +235,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <div className="login-header">
             <div className="login-welcome-back">Welcome back</div>
             <h2 className="login-title">Continue your creative journey</h2>
-            <p className="login-subtitle">Sign in to access your personalized Kalarang experience</p>
+            <p className="login-subtitle">Sign in to access your personalized BrushOwl experience</p>
           </div>
 
           <form onSubmit={handleSubmit} className="login-form">
@@ -313,7 +314,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
             <button type="submit" className="login-button primary-cta" disabled={!isFormValid || isLoading}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
-                Enter Kalarang {isLoading ? (
+                Enter BrushOwl {isLoading ? (
                   <svg 
                     width="18" 
                     height="18" 
