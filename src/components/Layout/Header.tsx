@@ -1,85 +1,85 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { HiOutlineSearch } from 'react-icons/hi';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { HiOutlineSearch, HiOutlineMenu, HiOutlineX } from 'react-icons/hi';
 import { MdArrowForward } from 'react-icons/md';
-import { FaUserCircle } from 'react-icons/fa';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  const [hideOnMobileScrollDown, setHideOnMobileScrollDown] = useState(false);
-  const lastScrollY = useRef(0);
-  const accumulated = useRef(0);
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const path = location.pathname;
+  const isHome = path === '/' || path === '';
+  const isAbout = path === '/about';
+  const isExplore = path === '/explore';
+  const isSignIn = path === '/login' || path === '/signin';
 
   useEffect(() => {
-    const getScrollY = () =>
-      window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+    if (!menuOpen) return;
 
-    const onScroll = () => {
-      if (window.innerWidth > 639) {
-        setHideOnMobileScrollDown(false);
-        return;
-      }
-
-      const currentY = getScrollY();
-      const delta = currentY - lastScrollY.current;
-      lastScrollY.current = currentY;
-
-      if (currentY <= 10) {
-        setHideOnMobileScrollDown(false);
-        accumulated.current = 0;
-        return;
-      }
-
-      if ((delta > 0 && accumulated.current < 0) || (delta < 0 && accumulated.current > 0)) {
-        accumulated.current = 0;
-      }
-      accumulated.current += delta;
-
-      if (accumulated.current > 6) {
-        setHideOnMobileScrollDown(true);
-        accumulated.current = 0;
-      } else if (accumulated.current < -6) {
-        setHideOnMobileScrollDown(false);
-        accumulated.current = 0;
+    const onPointerDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (menuRef.current && !menuRef.current.contains(target)) {
+        setMenuOpen(false);
       }
     };
 
-    lastScrollY.current = getScrollY();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    document.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
 
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      document.removeEventListener('scroll', onScroll, { capture: true });
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
     };
-  }, []);
+  }, [menuOpen]);
 
   const handleExploreClick = () => {
     navigate('/explore');
   };
 
+  const go = (path: string) => {
+    setMenuOpen(false);
+    navigate(path);
+  };
+
   return (
-    <header className={`home-header ${hideOnMobileScrollDown ? 'home-header-mobile-hidden' : ''}`} style={{
-      padding: '0.5rem 1rem',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    }}>
+    <header
+      className={`home-header ${menuOpen ? 'home-header-menu-open' : ''}`}
+      style={{
+        padding: '0.5rem 1rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}
+    >
       {/* Left Section: Logo and Navigation */}
       <div className="home-header-left" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
         {/* Logo */}
-        <div className="home-logo-section" style={{ display: 'flex', alignItems: 'center' }}>
+        <button
+          type="button"
+          className="home-logo-section"
+          onClick={() => go('/')}
+          aria-label="BrushOwl home"
+          style={{ display: 'flex', alignItems: 'center', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+        >
           <img
             src="/logobong.png"
-            alt="BrushOwl Logo"
+            alt="BrushOwl"
             className="home-logo-icon"
             style={{ height: '36px', width: 'auto', display: 'block', objectFit: 'contain' }}
           />
-        </div>
+        </button>
 
-        {/* Navigation */}
+        {/* Desktop Navigation */}
         <div className="home-nav-links" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
           <button
+            className={`home-nav-link${isHome ? ' is-active' : ''}`}
             onClick={() => navigate('/')}
             style={{
               background: 'transparent',
@@ -90,19 +90,19 @@ const Header: React.FC = () => {
               cursor: 'pointer',
               padding: '0.4rem 1rem',
               borderRadius: '50px',
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--primary-alpha-10)';
+              if (!isHome) e.currentTarget.style.background = 'var(--primary-alpha-10)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
+              if (!isHome) e.currentTarget.style.background = 'transparent';
             }}
           >
             Home
           </button>
           <button
-            className="home-nav-about"
+            className={`home-nav-link home-nav-about${isAbout ? ' is-active' : ''}`}
             onClick={() => navigate('/about')}
             style={{
               background: 'transparent',
@@ -114,44 +114,72 @@ const Header: React.FC = () => {
               padding: '0.4rem 1rem',
               borderRadius: '50px',
               transition: 'all 0.3s ease',
-              marginLeft: '-1.5rem'
+              marginLeft: '-1.5rem',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--primary-alpha-10)';
+              if (!isAbout) e.currentTarget.style.background = 'var(--primary-alpha-10)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
+              if (!isAbout) e.currentTarget.style.background = 'transparent';
             }}
           >
             About
           </button>
-
-          {/* Mobile-only Sign In — inline with Home/About */}
-          <button
-            className="home-nav-signin-mobile"
-            onClick={() => navigate('/login')}
-            style={{
-              background: 'transparent',
-              border: '1.2px solid var(--color-primary)',
-              color: 'var(--color-primary)',
-              fontSize: '0.58rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              padding: '0.18rem 0.55rem',
-              borderRadius: '50px',
-              transition: 'all 0.3s ease',
-              whiteSpace: 'nowrap',
-              marginLeft: 'auto',
-            }}
-          >
-            Sign In
-          </button>
         </div>
       </div>
 
-      {/* Right Section: Founding Artists + Explore + Sign In */}
+      {/* Mobile: hamburger + dropdown menu */}
+      <div className="home-mobile-menu" ref={menuRef}>
+        <button
+          type="button"
+          className="home-menu-toggle"
+          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          {menuOpen ? HiOutlineX({ size: 24 }) : HiOutlineMenu({ size: 24 })}
+        </button>
+
+        {menuOpen && (
+          <nav className="home-mobile-menu-panel" aria-label="Mobile navigation">
+            <button
+              type="button"
+              className={`home-mobile-menu-item${isHome ? ' is-active' : ''}`}
+              aria-current={isHome ? 'page' : undefined}
+              onClick={() => go('/')}
+            >
+              Home
+            </button>
+            <button
+              type="button"
+              className={`home-mobile-menu-item${isAbout ? ' is-active' : ''}`}
+              aria-current={isAbout ? 'page' : undefined}
+              onClick={() => go('/about')}
+            >
+              About
+            </button>
+            <button
+              type="button"
+              className={`home-mobile-menu-item${isExplore ? ' is-active' : ''}`}
+              aria-current={isExplore ? 'page' : undefined}
+              onClick={() => go('/explore')}
+            >
+              Explore
+            </button>
+            <button
+              type="button"
+              className={`home-mobile-menu-item home-mobile-menu-signin${isSignIn ? ' is-active' : ''}`}
+              aria-current={isSignIn ? 'page' : undefined}
+              onClick={() => go('/login')}
+            >
+              Sign In
+            </button>
+          </nav>
+        )}
+      </div>
+
+      {/* Desktop Right Section: Explore + Sign In */}
       <div className="home-header-right home-header-right-desktop" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        {/* Explore Art Button */}
         <button
           onClick={handleExploreClick}
           className="home-explore-btn"
@@ -171,7 +199,7 @@ const Header: React.FC = () => {
             whiteSpace: 'nowrap',
             height: 'fit-content',
             position: 'relative',
-            top: '1.9px'
+            top: '1.9px',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)';
@@ -186,7 +214,6 @@ const Header: React.FC = () => {
           <span className="home-explore-text">Explore Art</span>
         </button>
 
-        {/* Sign In Button */}
         <button
           onClick={() => navigate('/login')}
           className="login-button primary-cta home-signin-btn"
@@ -198,14 +225,13 @@ const Header: React.FC = () => {
             borderRadius: '50px',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.25rem'
+            gap: '0.25rem',
           }}
         >
           <span>Sign In</span>
           {MdArrowForward({ size: 15 })}
         </button>
       </div>
-
     </header>
   );
 };

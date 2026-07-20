@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Header from '../../components/Layout/Header';
 import ArtworkGrid from '../../components/Artwork/ArtworkGrid';
 import FilterPanel, { FilterState } from '../../components/Filters/FilterPanel';
 import LoadingState from '../../components/State/LoadingState';
 import EmptyState from '../../components/State/EmptyState';
-import { useAuth } from '../../context/AuthContext';
 import { Artwork as ArtworkType } from '../../types/artwork';
 import {
   getPublishedArtworksPaginated,
@@ -17,6 +17,7 @@ import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import noContentAnimation from '../../animations/no content.json';
 import { toast } from 'react-toastify';
 import { cache } from '../../utils/cache';
+import '../landing/landing.css';
 import './Explore.css';
 
 const CATEGORIES = ['All', 'Abstract', 'Landscape', 'Portrait', 'Modern', 'Craft', 'Digital', 'Sculpture'];
@@ -31,7 +32,6 @@ const getGridColumnCount = (width: number): number => {
 
 const Explore: React.FC = () => {
   const navigate = useNavigate();
-  const { appUser, loading: authLoading } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollRestoredRef = useRef(false);
 
@@ -479,41 +479,22 @@ const Explore: React.FC = () => {
   }, [shouldVirtualizeGrid, updateGridMetrics, displayedArtworks.length]);
 
   return (
-    <div className="explore-page">
+    <div className="explore-page landing-page">
+      {/* Shared branded header — same as Home / About */}
+      <Header />
+
       {/* Scrollable content */}
       <div className="explore-scroll-container" ref={scrollContainerRef}>
         <div className="discover-container explore-container">
           {/* Sticky Header Section */}
           <div className="discover-sticky-header explore-sticky-header">
             <div className="explore-page-header">
-              <button className="explore-back-btn" onClick={() => navigate('/')} aria-label="Back to home">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
-              </button>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <h1 className="explore-page-title">Explore Art</h1>
                 <p className="discover-description explore-description explore-description-mobile-hide" style={{ margin: 0 }}>
                   Explore curated artwork<span className="discover-description-extended"> from talented artists</span>.
                 </p>
               </div>
-              {/* Login/Signup buttons for non-authenticated users */}
-              {!authLoading && !appUser && (
-                <div className="explore-auth-buttons">
-                  <button
-                    className="explore-login-btn"
-                    onClick={() => navigate('/login')}
-                  >
-                    Log in
-                  </button>
-                  <button
-                    className="explore-signup-btn"
-                    onClick={() => navigate('/signup')}
-                  >
-                    Sign up
-                  </button>
-                </div>
-              )}
               {/* Drawer Toggle Button */}
               <button 
                 className={`discover-drawer-toggle ${isSearchDrawerOpen ? 'open' : ''}`}
@@ -646,18 +627,19 @@ const Explore: React.FC = () => {
               <>
                 {debouncedSearchQuery.trim() && matchedUsers.length > 0 && (
                   <div style={{ marginBottom: 30 }}>
-                    <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: 'var(--color-royal)', paddingLeft: '1rem' }}>Artists</h3>
+                    <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: 'var(--color-accent)', paddingLeft: '1rem' }}>Artists</h3>
                     <div className="artist-cards-grid">
                       {matchedUsers.map(user => (
                         <div key={user.uid} onClick={goToLogin}
-                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 12, cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-                          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'; }}
+                          className="explore-artist-card"
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, cursor: 'pointer', transition: 'all 0.2s ease' }}
+                          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
                         >
                           <img src={user.avatar || '/icon.png'} alt={user.name} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
-                            {user.username && <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>@{user.username}</div>}
+                            <div className="explore-artist-name" style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
+                            {user.username && <div className="explore-artist-username" style={{ fontSize: 13 }}>@{user.username}</div>}
                           </div>
                         </div>
                       ))}
@@ -669,7 +651,7 @@ const Explore: React.FC = () => {
                   <EmptyState animation={noContentAnimation} title="No Artworks Found" description="Check back later for amazing artworks from talented artists." actionLabel="Go to Home" actionPath="/" />
                 ) : displayedArtworks.length > 0 ? (
                   <>
-                    {debouncedSearchQuery.trim() && <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: 'var(--color-royal)', paddingLeft: '1rem' }}>Artworks</h3>}
+                    {debouncedSearchQuery.trim() && <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: 'var(--color-accent)', paddingLeft: '1rem' }}>Artworks</h3>}
                     <div ref={artworkGridShellRef}>
                       <ArtworkGrid
                         artworks={displayedArtworks.map(a => ({ id: a.id, title: a.title, artworkImage: a.images[0], artistName: a.artistName, artistAvatar: a.artistAvatar || '/icon.png', artistId: a.artistId, price: a.price, sold: a.sold }))}
@@ -692,7 +674,7 @@ const Explore: React.FC = () => {
                       </div>
                     )}
                     {!hasMore && artworks.length > 0 && (
-                      <div style={{ textAlign: 'center', padding: 5, color: 'var(--color-royal)', fontSize: 14, marginTop: 30 }}>You've reached the end.</div>
+                      <div style={{ textAlign: 'center', padding: 5, color: 'rgba(230, 251, 252, 0.7)', fontSize: 14, marginTop: 30 }}>You've reached the end.</div>
                     )}
                   </>
                 ) : null}

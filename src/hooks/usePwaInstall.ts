@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { isNativeApp } from '../utils/platform';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -32,6 +33,9 @@ export function isPermanentlyDismissed(): boolean {
 }
 
 export function isAppInstalled(): boolean {
+  // Inside the native Capacitor shell the app is effectively "installed",
+  // so we never surface web/PWA install prompts.
+  if (isNativeApp()) return true;
   if (window.matchMedia?.('(display-mode: standalone)').matches) return true;
   if ((window.navigator as any).standalone === true) return true;
   return false;

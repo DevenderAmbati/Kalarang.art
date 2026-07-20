@@ -5,6 +5,8 @@ import './index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
+import { isNativeApp } from './utils/platform';
+import { initNativeApp } from './native/nativeApp';
 
 // iOS Safari/PWA overscroll bounce prevention
 const preventIOSBounce = () => {
@@ -81,12 +83,17 @@ root.render(
   </React.StrictMode>
 );
 
-serviceWorkerRegistration.register({
-  onUpdate(registration) {
-    if (registration.waiting) {
-      window.dispatchEvent(
-        new CustomEvent('sw-waiting', { detail: { waitingWorker: registration.waiting } })
-      );
-    }
-  },
-});
+if (isNativeApp()) {
+  // Native (Capacitor) shell: no PWA service worker; wire up native UX instead.
+  initNativeApp();
+} else {
+  serviceWorkerRegistration.register({
+    onUpdate(registration) {
+      if (registration.waiting) {
+        window.dispatchEvent(
+          new CustomEvent('sw-waiting', { detail: { waitingWorker: registration.waiting } })
+        );
+      }
+    },
+  });
+}

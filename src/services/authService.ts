@@ -3,6 +3,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithCredential,
   signOut,
   GoogleAuthProvider,
   fetchSignInMethodsForEmail,
@@ -10,7 +11,9 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   reauthenticateWithPopup,
+  UserCredential,
 } from "firebase/auth";
+import { isNativeApp } from "../utils/platform";
 import { doc, setDoc, getDoc, serverTimestamp, query, collection, where, getDocs, deleteDoc, writeBatch, increment } from "firebase/firestore";
 import { getStorage, ref, deleteObject, listAll } from "firebase/storage";
 import { UserRole } from "../types/user";
@@ -341,12 +344,38 @@ export async function getUserProfile(uid: string) {
 
 const googleProvider = new GoogleAuthProvider();
 
+/**
+ * Obtain a Google sign-in against the Firebase JS SDK.
+ * - Web: popup flow (unchanged).
+ * - Native (Capacitor): use the native Google account picker via
+ *   @capacitor-firebase/authentication to get an ID token, then sign in to the
+ *   JS SDK with that credential so the rest of the app (Firestore, rules, etc.)
+ *   sees a normal Firebase user. Requires google-services.json + a SHA-1/SHA-256
+ *   fingerprint registered in the Firebase console for the Android app.
+ */
+async function googleSignInCredential(): Promise<UserCredential> {
+  if (!isNativeApp()) {
+    return signInWithPopup(auth, googleProvider);
+  }
+
+  const { FirebaseAuthentication } = await import(
+    "@capacitor-firebase/authentication"
+  );
+  const nativeResult = await FirebaseAuthentication.signInWithGoogle();
+  const idToken = nativeResult.credential?.idToken;
+  if (!idToken) {
+    throw new Error("Google sign-in did not return an ID token.");
+  }
+  const credential = GoogleAuthProvider.credential(idToken);
+  return signInWithCredential(auth, credential);
+}
+
 export async function signInWithGoogle(defaultRole?: "artist" | "buyer") {
   let result;
   let user;
   
   try {
-    result = await signInWithPopup(auth, googleProvider);
+    result = await googleSignInCredential();
     user = result.user;
 
     // Check if this email already exists with a password-based account in Firestore

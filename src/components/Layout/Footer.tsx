@@ -36,20 +36,20 @@ const Footer: React.FC = () => {
       {/* Block 3: Contact Links */}
       <div className="home-footer-block home-footer-contact-block">
         <a 
-          href="https://www.instagram.com/kalarang.world" 
+          href="https://www.instagram.com/brushowlapp" 
           target="_blank" 
           rel="noopener noreferrer"
           className="home-footer-link home-footer-insta"
           title="Follow us on Instagram"
         >
           {FaInstagram({ size: 18 })}
-          <span>kalarang.world</span>
+          <span>brushowlapp</span>
         </a>
         <a 
-          href="mailto:kalarang.team@gmail.com" 
+          href="mailto:hello@brushowl.com" 
           className="home-footer-link home-footer-email"
         >
-          kalarang.team@gmail.com
+          hello@brushowl.com
         </a>
       </div>
     </footer>

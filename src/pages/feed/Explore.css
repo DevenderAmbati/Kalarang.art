@@ -12,8 +12,163 @@ body.explore-page-active {
   flex-direction: column;
   height: 100vh;
   max-height: 100vh;
-  background: var(--color-bg-light);
+  background: var(--gradient-dark-bg);
   overflow: hidden;
+}
+
+/* Shared branded header (matches Home / About) sits above the scroll area */
+.explore-page.landing-page {
+  height: 100vh;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.explore-page .home-header {
+  position: sticky;
+  top: 0;
+  z-index: 100001;
+  flex-shrink: 0;
+  background: rgba(11, 20, 28, 0.92) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-bottom: 1px solid rgba(95, 209, 216, 0.08);
+}
+
+/* ── Dark theme to match Home / About ── */
+.explore-page .explore-scroll-container {
+  background: transparent;
+}
+
+.explore-page .discover-content {
+  background: transparent;
+}
+
+/* Sticky search/filter bar: translucent dark so the gradient shows through */
+.explore-page .explore-sticky-header {
+  background: rgba(11, 31, 42, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(95, 209, 216, 0.14);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.28);
+  /* Full-bleed: break out of .explore-container side padding */
+  width: calc(100% + 1.5rem);
+  margin-left: -0.75rem;
+  margin-right: -0.75rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .explore-page .explore-sticky-header {
+    width: calc(100% + 4rem);
+    margin-left: -2rem;
+    margin-right: -2rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .explore-page .explore-sticky-header {
+    width: calc(100% + 7rem);
+    margin-left: -3.5rem;
+    margin-right: -3.5rem;
+    padding-left: 3.5rem;
+    padding-right: 3.5rem;
+  }
+}
+
+.explore-page .explore-page-title {
+  color: var(--color-text-primary-dark);
+}
+
+.explore-page .explore-description,
+.explore-page .discover-description {
+  color: rgba(230, 251, 252, 0.7);
+}
+
+/* Search box — dark translucent to match the theme */
+.explore-page .discover-search-input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(95, 209, 216, 0.25);
+  color: var(--color-text-primary-dark);
+  box-shadow: none;
+}
+
+.explore-page .discover-search-input::placeholder {
+  color: rgba(230, 251, 252, 0.5);
+}
+
+.explore-page .discover-search-input:focus {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(95, 209, 216, 0.15);
+}
+
+.explore-page .discover-search-icon,
+.explore-page .discover-search-clear-btn {
+  color: rgba(230, 251, 252, 0.6);
+}
+
+/* Sort / filter buttons */
+.explore-page .discover-filter-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(95, 209, 216, 0.25);
+  color: var(--color-text-primary-dark);
+  box-shadow: none;
+}
+
+.explore-page .discover-filter-btn:hover {
+  background: var(--primary-alpha-20);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* Category chips */
+.explore-page .discover-category-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(95, 209, 216, 0.22);
+  color: rgba(230, 251, 252, 0.85);
+}
+
+.explore-page .discover-category-chip:hover {
+  background: var(--primary-alpha-20);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.explore-page .discover-category-chip.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.explore-page .discover-category-chip.active:hover {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+  color: #FFFFFF;
+}
+
+/* Artist result cards — readable on dark bg */
+.explore-page .explore-artist-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(95, 209, 216, 0.22);
+  box-shadow: none;
+}
+
+.explore-page .explore-artist-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(95, 209, 216, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.explore-page .explore-artist-name {
+  color: var(--color-text-primary-dark);
+}
+
+.explore-page .explore-artist-username {
+  color: rgba(230, 251, 252, 0.65);
 }
 
 /* ── Top bar ── */

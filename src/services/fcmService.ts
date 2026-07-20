@@ -2,6 +2,7 @@ import { getMessaging, getToken, onMessage, isSupported, Messaging } from "fireb
 import { doc, setDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { getApp } from "firebase/app";
+import { isNativeApp, getPlatform as getNativePlatform } from "../utils/platform";
 
 let messagingInstance: Messaging | null = null;
 let fcmSupported: boolean | null = null;
@@ -43,6 +44,10 @@ function getVapidKey(): string {
  * Does NOT auto-request — only call this on explicit user action.
  */
 export async function enableNotifications(userId: string): Promise<{ success: boolean; token?: string; error?: string }> {
+  if (isNativeApp()) {
+    return enableNativeNotifications(userId);
+  }
+
   const supported = await checkSupported();
   if (!supported) {
     return { success: false, error: "Push notifications are not supported on this browser/device." };
@@ -90,6 +95,54 @@ export async function enableNotifications(userId: string): Promise<{ success: bo
 }
 
 /**
+ * Native (Capacitor) push registration. Uses the OS push service (FCM on
+ * Android) via @capacitor/push-notifications and stores the resulting token in
+ * the same "userTokens" collection so the existing Cloud Functions delivery
+ * path works unchanged. Requires google-services.json + the google-services
+ * Gradle plugin in the Android project for a token to be issued.
+ */
+async function enableNativeNotifications(
+  userId: string
+): Promise<{ success: boolean; token?: string; error?: string }> {
+  const { PushNotifications } = await import("@capacitor/push-notifications");
+
+  let perm = await PushNotifications.checkPermissions();
+  if (perm.receive === "prompt" || perm.receive === "prompt-with-rationale") {
+    perm = await PushNotifications.requestPermissions();
+  }
+  if (perm.receive !== "granted") {
+    return { success: false, error: "Notification permission was denied." };
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (result: { success: boolean; token?: string; error?: string }) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+
+    PushNotifications.addListener("registration", async (token) => {
+      try {
+        await saveToken(userId, token.value);
+        finish({ success: true, token: token.value });
+      } catch (error: any) {
+        finish({ success: false, error: error?.message || "Failed to save push token." });
+      }
+    });
+
+    PushNotifications.addListener("registrationError", (err) => {
+      const message = typeof err?.error === "string" ? err.error : "Push registration failed.";
+      finish({ success: false, error: message });
+    });
+
+    PushNotifications.register();
+
+    setTimeout(() => finish({ success: false, error: "Timed out retrieving a push token." }), 15000);
+  });
+}
+
+/**
  * Disable notifications: remove the token from Firestore for this device.
  */
 export async function disableNotifications(userId: string): Promise<void> {
@@ -102,6 +155,19 @@ export async function disableNotifications(userId: string): Promise<void> {
  * Check if the current user has notifications enabled on this device.
  */
 export async function isNotificationsEnabled(userId: string): Promise<boolean> {
+  if (isNativeApp()) {
+    try {
+      const { PushNotifications } = await import("@capacitor/push-notifications");
+      const perm = await PushNotifications.checkPermissions();
+      if (perm.receive !== "granted") return false;
+    } catch {
+      return false;
+    }
+    const deviceId = getDeviceId();
+    const snap = await getDoc(doc(db, "userTokens", `${userId}_${deviceId}`));
+    return snap.exists();
+  }
+
   if (!("Notification" in window)) return false;
   if (Notification.permission !== "granted") return false;
 
@@ -152,6 +218,7 @@ function getDeviceId(): string {
 }
 
 function getPlatform(): string {
+  if (isNativeApp()) return getNativePlatform();
   const ua = navigator.userAgent;
   if (/iPad|iPhone|iPod/.test(ua)) return "ios";
   if (/Android/.test(ua)) return "android";

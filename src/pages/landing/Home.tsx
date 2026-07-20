@@ -108,37 +108,6 @@ const Home: React.FC = () => {
     <div className="login-left-section home-container landing-page">
       <Header />
 
-      <div
-        className="home-promo-strip"
-        role="button"
-        tabIndex={0}
-        aria-label="Scroll to free sketch offer"
-        onClick={() => {
-          sectionRefs.current['sketch-offer']?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            sectionRefs.current['sketch-offer']?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        }}
-      >
-        <span className="home-promo-strip-hover-icon" aria-hidden>
-          {MdArrowForward({ size: 14 })}
-        </span>
-        <div className="home-promo-strip-track">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <span className="home-promo-strip-item" key={`promo-${i}`}>
-              <span className="home-promo-strip-icon" aria-hidden>
-                {HiOutlineSparkles({})}
-              </span>
-              <span>Limited Time Offer — Get a <strong>FREE sketch worth ₹1000</strong> on your first order!</span>
-              <span className="home-promo-strip-dot" aria-hidden>•</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
       {/* Main content - starts below header, scrollable */}
       <div className="home-main-content landing-content">
         {/* Geometric pattern overlay */}
@@ -440,44 +409,6 @@ const Home: React.FC = () => {
             </ol>
           </div>
 
-        </div>
-      </section>
-
-      {/* Free Sketch Offer — promotional section */}
-      <section
-        className={`home-sketch-offer-section ${visibleSections.has('sketch-offer') ? 'animate-in' : ''}`}
-        data-section="sketch-offer"
-        ref={(el) => { sectionRefs.current['sketch-offer'] = el; }}
-      >
-        <div className="home-sketch-offer-inner">
-          <span className="home-sketch-offer-badge">
-            {HiOutlineSparkles({ size: 14 })}
-            <span>Limited Time Offer</span>
-          </span>
-          <h2 className="home-sketch-offer-title">
-            Get a <span className="home-sketch-offer-highlight">FREE Sketch</span> worth ₹1000
-          </h2>
-          <p className="home-sketch-offer-sub">
-            On your first order, claim a hand-drawn sketch from your favourite reference.
-          </p>
-
-          <div className="home-sketch-offer-vstage" aria-hidden>
-            <div className="home-sketch-offer-frame home-sketch-offer-frame--left">
-              <img src="/sumedh.jpg" alt="" className="home-sketch-offer-frame-img" loading="lazy" />
-            </div>
-            <div className="home-sketch-offer-frame home-sketch-offer-frame--right">
-              <img src="/muskin.jpg" alt="" className="home-sketch-offer-frame-img" loading="lazy" />
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="login-button primary-cta home-sketch-offer-cta"
-            onClick={() => navigate('/free-sketch')}
-          >
-            <span>Claim Your Free Sketch</span>
-            {MdArrowForward({ size: 14 })}
-          </button>
         </div>
       </section>
 

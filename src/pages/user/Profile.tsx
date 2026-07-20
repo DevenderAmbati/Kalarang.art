@@ -1098,7 +1098,7 @@ const Profile: React.FC = () => {
               <span style={styles.supportLabel}>{IoMdChatbubbles({style: {verticalAlign: 'middle', marginRight: '0.3rem'}})} Support & Suggestions</span>
             </div>
             <p style={styles.supportDescription}>
-              Have feedback or need help? Send us a message and we'll get back to you at kalarang.team@gmail.com
+              Have feedback or need help? Send us a message and we'll get back to you at hello@brushowl.com
             </p>
             <textarea
               value={supportMessage}

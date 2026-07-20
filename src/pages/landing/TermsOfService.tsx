@@ -121,8 +121,8 @@ const TermsOfService: React.FC = () => {
 
             <div className="legal-footer-note">
               <p>For questions regarding these Terms, contact:</p>
-              <a href="mailto:kalarang.team@gmail.com" className="legal-contact-link">
-                kalarang.team@gmail.com
+              <a href="mailto:hello@brushowl.com" className="legal-contact-link">
+                hello@brushowl.com
               </a>
             </div>
           </div>

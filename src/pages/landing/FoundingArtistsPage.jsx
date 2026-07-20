@@ -17,7 +17,7 @@ const steps = [
     ),
   },
   {
-    label: 'Share a screenshot of your BrushOwl portfolio on your Instagram story tagging @kalarang.world, or send it to us via Instagram DM.',
+    label: 'Share a screenshot of your BrushOwl portfolio on your Instagram story tagging @brushowlapp, or send it to us via Instagram DM.',
   },
 ];
 

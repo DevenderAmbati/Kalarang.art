@@ -83,6 +83,90 @@
   margin-right: 1rem;
 }
 
+/* Mobile hamburger — hidden on desktop */
+.landing-page .home-mobile-menu {
+  display: none;
+  position: relative;
+  flex-shrink: 0;
+  z-index: 120;
+}
+
+.landing-page .home-menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.landing-page .home-menu-toggle:active {
+  background: var(--primary-alpha-10);
+}
+
+.landing-page .home-mobile-menu-panel {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 130;
+  min-width: 11.5rem;
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  background: rgba(11, 20, 28, 0.96);
+  border: 1px solid rgba(95, 209, 216, 0.2);
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.landing-page .home-mobile-menu-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.landing-page .home-mobile-menu-item:active {
+  background: var(--primary-alpha-10);
+}
+
+.landing-page .home-mobile-menu-item.is-active {
+  background: rgba(95, 209, 216, 0.1);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.landing-page .home-mobile-menu-signin {
+  margin-top: 0.15rem;
+  border: 1px solid var(--color-primary) !important;
+  font-weight: 600;
+  text-align: center;
+}
+
+.landing-page .home-mobile-menu-signin.is-active {
+  background: rgba(95, 209, 216, 0.14);
+  color: var(--color-primary);
+}
+
+.landing-page .home-nav-link.is-active {
+  background: rgba(95, 209, 216, 0.1) !important;
+  font-weight: 600;
+}
+
 /* Scrollable content: starts below header, ends above footer; scrollbar hidden */
 .landing-page .landing-content {
   flex: 1;
@@ -124,13 +208,15 @@
   box-sizing: border-box;
 }
 
-/* ----- Mobile: different header layout (stacked), more top padding ----- */
+/* ----- Mobile: logo left, hamburger right ----- */
 @media (max-width: 639px) {
   .landing-page .home-header {
     position: sticky !important;
-    flex-direction: column !important;
-    gap: 0.75rem !important;
-    padding: 0.75rem 1rem !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    padding: 0.55rem 1rem !important;
     margin-top: 0 !important;
     transition: transform 0.28s ease, opacity 0.28s ease;
     will-change: transform;
@@ -143,26 +229,31 @@
   }
 
   .landing-page .home-header .home-header-left {
-    width: 100%;
-    flex-direction: column !important;
-    gap: 0.5rem !important;
+    width: auto;
+    flex: 1;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    gap: 0 !important;
   }
 
   .landing-page .home-header .home-logo-section {
-    justify-content: center !important;
+    justify-content: flex-start !important;
+  }
+
+  .landing-page .home-header .home-logo-section .home-logo-icon {
+    height: 28px;
   }
 
   .landing-page .home-header .home-nav-links {
-    gap: 1.25rem !important;
-    margin-left: 0 !important;
-    top: 0 !important;
+    display: none !important;
   }
 
   .landing-page .home-header .home-header-right {
-    width: 100%;
-    justify-content: center !important;
-    gap: 0.5rem !important;
-    padding-left: 2rem;
+    display: none !important;
+  }
+
+  .landing-page .home-mobile-menu {
+    display: block;
   }
 
   .landing-page .home-main-content.landing-content {
