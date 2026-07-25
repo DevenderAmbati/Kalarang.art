@@ -1,10 +1,10 @@
 {
-  "name": "BrushOwl",
-  "short_name": "BrushOwl",
+  "name": "Kalarang",
+  "short_name": "Kalarang",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0B1F2A",
+  "background_color": "#e8eef2",
+  "theme_color": "#12151a",
    "icons": [
     {
       "src": "icon.png",
@@ -27,7 +27,7 @@
   ],
   "orientation": "portrait-primary",
   "scope": "/",
-  "description": "BrushOwl - Get your paintings customized. Discover and share original art with the world.",
+  "description": "Kalarang has moved on. Continue in the BrushOwl app.",
   "categories": ["art", "lifestyle", "shopping"],
   "gcm_sender_id": "103953800507"
 }

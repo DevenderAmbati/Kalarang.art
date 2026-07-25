@@ -1,0 +1,194 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap');
+
+.km-page {
+  --km-ink: #12151a;
+  --km-mist: #e8eef2;
+  --km-fog: #d5dee6;
+  --km-signal: #e11d48;
+  --km-signal-deep: #be123c;
+  --km-muted: #5a6672;
+
+  position: relative;
+  min-height: 100dvh;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1.5rem, 5vw, 3rem);
+  overflow: hidden;
+  background: var(--km-mist);
+  color: var(--km-ink);
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+}
+
+.km-atmosphere {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 60% at 0% 0%, rgba(18, 21, 26, 0.08), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 100% 100%, rgba(225, 29, 72, 0.1), transparent 50%),
+    linear-gradient(160deg, #f2f5f8 0%, #e4ebf1 55%, #d7e0e8 100%);
+  animation: km-wash 14s ease-in-out infinite alternate;
+}
+
+.km-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.22;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+
+.km-stage {
+  position: relative;
+  z-index: 1;
+  width: min(28rem, 100%);
+  text-align: center;
+  animation: km-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.km-eyebrow {
+  margin: 0 0 1.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--km-muted);
+  animation: km-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+}
+
+.km-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1.75rem;
+  animation: km-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+.km-mark {
+  width: clamp(4.25rem, 16vw, 5.25rem);
+  height: auto;
+  filter: drop-shadow(0 10px 24px rgba(18, 21, 26, 0.16));
+}
+
+.km-name {
+  margin: 0;
+  font-family: Syne, 'Arial Narrow', sans-serif;
+  font-size: clamp(2.6rem, 11vw, 3.6rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  color: var(--km-ink);
+}
+
+.km-headline {
+  margin: 0 0 0.85rem;
+  font-family: Syne, 'Arial Narrow', sans-serif;
+  font-size: clamp(1.25rem, 4vw, 1.5rem);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--km-ink);
+  animation: km-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+
+.km-copy {
+  margin: 0 auto 2rem;
+  max-width: 22rem;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--km-muted);
+  animation: km-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both;
+}
+
+.km-dest {
+  color: var(--km-ink);
+  font-weight: 600;
+}
+
+.km-cta {
+  animation: km-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.36s both;
+}
+
+.km-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0.85rem 1.5rem;
+  border-radius: 0.25rem;
+  background: var(--km-signal);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.25s ease, transform 0.2s ease;
+}
+
+.km-button:hover {
+  background: var(--km-signal-deep);
+  transform: translateY(-1px);
+}
+
+.km-button:active {
+  transform: translateY(0);
+}
+
+.km-soon {
+  margin: 0 auto;
+  max-width: 20rem;
+  padding: 1rem 1.15rem;
+  border-top: 1px solid rgba(18, 21, 26, 0.12);
+  border-bottom: 1px solid rgba(18, 21, 26, 0.12);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--km-muted);
+}
+
+.km-footnote {
+  margin: 2rem 0 0;
+  font-size: 0.875rem;
+  color: var(--km-muted);
+  animation: km-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.44s both;
+}
+
+.km-footnote a {
+  color: var(--km-ink);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+@keyframes km-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes km-wash {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.035);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .km-atmosphere,
+  .km-stage,
+  .km-eyebrow,
+  .km-brand,
+  .km-headline,
+  .km-copy,
+  .km-cta,
+  .km-footnote {
+    animation: none;
+  }
+}

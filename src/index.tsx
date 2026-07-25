@@ -7,6 +7,8 @@ import { AuthProvider } from './context/AuthContext';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import { isNativeApp } from './utils/platform';
 import { initNativeApp } from './native/nativeApp';
+import { shouldShowKalarangMigration } from './utils/webMigration';
+import KalarangMigration from './pages/landing/KalarangMigration';
 
 // iOS Safari/PWA overscroll bounce prevention
 const preventIOSBounce = () => {
@@ -75,17 +77,28 @@ preventIOSBounce();
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
+
+const showKalarangMigration = shouldShowKalarangMigration();
+
 root.render(
   <React.StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    {showKalarangMigration ? (
+      <KalarangMigration />
+    ) : (
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    )}
   </React.StrictMode>
 );
 
 if (isNativeApp()) {
   // Native (Capacitor) shell: no PWA service worker; wire up native UX instead.
   initNativeApp();
+} else if (showKalarangMigration) {
+  // Final Kalarang PWA update: keep SW so installed users receive this screen,
+  // then leave the PWA alone — no further product updates on this channel.
+  serviceWorkerRegistration.register();
 } else {
   serviceWorkerRegistration.register({
     onUpdate(registration) {

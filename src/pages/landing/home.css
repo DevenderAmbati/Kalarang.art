@@ -175,8 +175,30 @@
   overflow: visible !important;
 }
 
+.home-hero-eyebrow {
+  margin: 1.25rem auto 0.25rem;
+  font-family: 'Caveat', cursive;
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #E6FBFC;
+  text-align: center;
+  width: 100%;
+  line-height: 1.2;
+  text-shadow: 0 1px 8px rgba(11, 31, 42, 0.35);
+}
+
+/* Mobile: show under header; hide the in-hero copy */
+.home-hero-eyebrow--mobile {
+  display: none;
+}
+
+.home-hero-eyebrow--desktop {
+  display: block;
+}
+
 .home-hero-headline {
-  margin-top: 1.5rem;
+  margin-top: 0.15rem;
   font-family: 'Caveat', cursive;
   font-weight: 800;
   letter-spacing: 0.03em;
@@ -513,6 +535,20 @@
     display: none;
   }
 
+  .home-hero-eyebrow--mobile {
+    display: block;
+    flex-shrink: 0;
+    margin: 0.9rem auto 0.1rem;
+    padding: 0 1rem;
+    font-size: 1.55rem;
+    position: relative;
+    z-index: 5;
+  }
+
+  .home-hero-eyebrow--desktop {
+    display: none;
+  }
+
   /* Reorder header CTAs on mobile so Founding button comes below Explore + Sign In */
   .home-header-right {
     flex-wrap: wrap;
@@ -744,8 +780,15 @@
   .home-content-left .home-hero-headline {
     text-align: left;
     font-size: 3.6rem;
-    margin-top: 0.5rem !important;
+    margin-top: 0.15rem !important;
     white-space: normal;
+  }
+  .home-content-left .home-hero-eyebrow {
+    text-align: center;
+    margin-top: 0.5rem;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 2rem;
   }
   .home-content-left .login-hero-subtext {
     text-align: center;

@@ -108,6 +108,8 @@ const Home: React.FC = () => {
     <div className="login-left-section home-container landing-page">
       <Header />
 
+      <p className="home-hero-eyebrow home-hero-eyebrow--mobile">we paint your ideas</p>
+
       {/* Main content - starts below header, scrollable */}
       <div className="home-main-content landing-content">
         {/* Geometric pattern overlay */}
@@ -189,6 +191,7 @@ const Home: React.FC = () => {
             </div>
           )}
 
+          <p className="home-hero-eyebrow home-hero-eyebrow--desktop">we paint your ideas</p>
           <h3 className="login-hero-headline home-hero-headline">
             <span className="gradient-text">Get your paintings  </span> Customized.
           </h3>

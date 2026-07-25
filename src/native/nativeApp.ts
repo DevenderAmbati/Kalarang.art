@@ -9,6 +9,7 @@ import { getPlatform } from '../utils/platform';
  * missing capability never blocks app startup.
  */
 export function initNativeApp(): void {
+  document.title = 'BrushOwl';
   setupStatusBar();
   setupBackButton();
   setupPushTapNavigation();

@@ -4,19 +4,20 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <meta name="theme-color" content="#0a132c" />
+    <meta name="theme-color" content="#12151a" />
     <meta
       name="description"
-      content="BrushOwl - Get your paintings customized. Discover and share original art with the world."
+      content="Kalarang has moved on. Continue discovering and commissioning art in the BrushOwl app."
     />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Kalarang" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/icon.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet" />
-    <title>BrushOwl</title>
+    <title>Kalarang</title>
     <style>
       /* Prevent browser pull-to-refresh globally */
       html, body {
@@ -127,20 +128,34 @@
       </div>
     </div>
     <script>
-      if (sessionStorage.getItem('brushowl-splash-shown')) {
-        document.getElementById('splash-screen').remove();
-        document.body.style.background = '';
-      } else {
-        sessionStorage.setItem('brushowl-splash-shown', '1');
-        var video = document.querySelector('.splash-video');
-        if (video) {
-          // Ensure playback starts; App.tsx waits for 'ended' before dismissing
-          var playPromise = video.play();
-          if (playPromise && typeof playPromise.catch === 'function') {
-            playPromise.catch(function () {});
+      (function () {
+        var splash = document.getElementById('splash-screen');
+        var isNative =
+          window.Capacitor &&
+          typeof window.Capacitor.isNativePlatform === 'function' &&
+          window.Capacitor.isNativePlatform();
+
+        // Web / PWA never shows the BrushOwl splash — keeps Kalarang migration clean.
+        if (!isNative) {
+          if (splash) splash.remove();
+          document.body.style.background = '';
+          return;
+        }
+
+        if (sessionStorage.getItem('brushowl-splash-shown')) {
+          if (splash) splash.remove();
+          document.body.style.background = '';
+        } else {
+          sessionStorage.setItem('brushowl-splash-shown', '1');
+          var video = document.querySelector('.splash-video');
+          if (video) {
+            var playPromise = video.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+              playPromise.catch(function () {});
+            }
           }
         }
-      }
+      })();
     </script>
 
     <div id="root"></div>
