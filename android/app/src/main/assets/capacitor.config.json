@@ -1,0 +1,26 @@
+{
+	"appId": "art.brushowl.app",
+	"appName": "BrushOwl",
+	"webDir": "build",
+	"plugins": {
+		"SplashScreen": {
+			"launchAutoHide": false,
+			"backgroundColor": "#0a132c",
+			"androidSplashResourceName": "splash",
+			"showSpinner": false
+		},
+		"FirebaseAuthentication": {
+			"skipNativeAuth": true,
+			"providers": [
+				"google.com"
+			]
+		},
+		"PushNotifications": {
+			"presentationOptions": [
+				"badge",
+				"sound",
+				"alert"
+			]
+		}
+	}
+}
