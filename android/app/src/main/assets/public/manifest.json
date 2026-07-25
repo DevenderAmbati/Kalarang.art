@@ -1,0 +1,33 @@
+{
+  "name": "Kalarang",
+  "short_name": "Kalarang",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e8eef2",
+  "theme_color": "#12151a",
+   "icons": [
+    {
+      "src": "icon.png",
+      "type": "image/jpeg",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.png",
+      "type": "image/jpeg",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon.png",
+      "type": "image/jpeg",
+      "sizes": "512x512",
+      "purpose": "any"
+    }
+  ],
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "description": "Kalarang has moved on. Continue in the BrushOwl app.",
+  "categories": ["art", "lifestyle", "shopping"],
+  "gcm_sender_id": "103953800507"
+}
