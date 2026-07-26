@@ -1340,6 +1340,8 @@
   border-bottom: 1px solid rgba(47, 164, 169, 0.2);
   box-shadow: 0 2px 10px rgba(47, 164, 169, 0.1);
   flex-shrink: 0;
+  touch-action: none;
+  cursor: grab;
 }
 
 .commission-chat-modal-header-row {
@@ -1456,6 +1458,13 @@
   gap: 0.75rem;
 }
 
+/* Allow title to shrink so action buttons stay in the card */
+.commission-chat-context-main > div:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
 /* Flat inside reference card — no second box (card-in-card) */
 .commission-chat-context-agreed {
   padding: 0;
@@ -1513,6 +1522,9 @@
   font-size: 0.84rem;
   color: var(--color-royal);
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Match commission card action buttons (Apply / Shortlist) */
@@ -1594,6 +1606,7 @@
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding: 14px 12px;
   display: flex;
   flex-direction: column;

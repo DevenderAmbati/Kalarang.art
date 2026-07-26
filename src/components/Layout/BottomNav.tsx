@@ -34,7 +34,7 @@ interface NavItem {
 const BottomNav: React.FC = () => {
   const location = useLocation();
   const { appUser } = useAuth();
-  const { hasCommissionUnread } = useChatContext();
+  const { hasCommissionUnread, setIsChatDrawerOpen } = useChatContext();
   const [hoveredItem, setHoveredItem] = React.useState<string | null>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
   const navItemRefs = React.useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -131,24 +131,35 @@ const BottomNav: React.FC = () => {
 
   return (
     <div className="bottom-nav-container" ref={containerRef}>
-      {/* Background with dynamic wave based on active item */}
-      <svg
-        className="bottom-nav-curve"
-        viewBox={`0 0 ${containerRef.current?.clientWidth || 375} 65`}
-        preserveAspectRatio="none"
-      >
-        <path
-          d={generatePath()}
-          fill="url(#bottomNavGradient)"
-        />
-        <defs>
-          <linearGradient id="bottomNavGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#0B1F2A" />
-            <stop offset="50%" stopColor="#142F3A" />
-            <stop offset="100%" stopColor="#1F7F8B" />
-          </linearGradient>
-        </defs>
-      </svg>
+      {/* Floating surface: clips the wave; wrap holds the curve-following shadow */}
+      <div className="bottom-nav-surface-wrap">
+        <div className="bottom-nav-surface">
+          {/* Background with dynamic wave based on active item */}
+          <svg
+            className="bottom-nav-curve"
+            viewBox={`0 0 ${containerRef.current?.clientWidth || 375} 65`}
+            preserveAspectRatio="none"
+          >
+            <path
+              d={generatePath()}
+              fill="url(#bottomNavGradient)"
+            />
+            <defs>
+              <linearGradient id="bottomNavGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#0B1F2A" />
+                <stop offset="50%" stopColor="#142F3A" />
+                <stop offset="100%" stopColor="#1F7F8B" />
+              </linearGradient>
+            </defs>
+          </svg>
+
+          {/* Decorative elements matching sidebar design */}
+          <div className="bottom-nav-decorative-shapes">
+            <div className="geometric-shape shape-1"></div>
+            <div className="geometric-shape shape-2"></div>
+          </div>
+        </div>
+      </div>
 
       {/* Navigation items container */}
       <nav className="bottom-nav-items">
@@ -161,6 +172,7 @@ const BottomNav: React.FC = () => {
               key={item.path}
               to={item.path}
               className={`nav-item ${active ? 'active' : ''}`}
+              onClick={() => setIsChatDrawerOpen(false)}
               onMouseEnter={() => setHoveredItem(item.path)}
               onMouseLeave={() => setHoveredItem(null)}
               aria-label={item.label}
@@ -178,12 +190,6 @@ const BottomNav: React.FC = () => {
           );
         })}
       </nav>
-
-      {/* Decorative elements matching sidebar design */}
-      <div className="bottom-nav-decorative-shapes">
-        <div className="geometric-shape shape-1"></div>
-        <div className="geometric-shape shape-2"></div>
-      </div>
     </div>
   );
 };

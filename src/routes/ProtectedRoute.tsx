@@ -1,6 +1,11 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ReactElement } from "react";
+import {
+  shouldSuppressOnboardingRedirect,
+  peekPendingGoogleNoAccount,
+  shouldSuppressAuthHomeRedirect,
+} from "../utils/authFlow";
 
 export default function ProtectedRoute({
   children,
@@ -11,6 +16,20 @@ export default function ProtectedRoute({
 
   if (loading) {
     return <div>Loading...</div>;
+  }
+
+  // Google auth still verifying (e.g. password conflict) — stay out of the app.
+  if (shouldSuppressAuthHomeRedirect()) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Authenticated but no profile yet → finish onboarding (role selection),
+  // unless Sign In is mid "no account" confirmation (must not auto-onboard).
+  if (firebaseUser && !appUser) {
+    if (shouldSuppressOnboardingRedirect()) {
+      return <Navigate to={peekPendingGoogleNoAccount() ? "/login" : "/signup"} replace />;
+    }
+    return <Navigate to="/select-role" replace />;
   }
 
   if (!firebaseUser || !appUser) {

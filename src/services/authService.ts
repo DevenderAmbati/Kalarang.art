@@ -5,6 +5,7 @@ import {
   signInWithPopup,
   signInWithCredential,
   signOut,
+  updateProfile,
   GoogleAuthProvider,
   fetchSignInMethodsForEmail,
   deleteUser,
@@ -12,41 +13,20 @@ import {
   reauthenticateWithCredential,
   reauthenticateWithPopup,
   UserCredential,
+  User,
 } from "firebase/auth";
 import { isNativeApp } from "../utils/platform";
 import { doc, setDoc, getDoc, serverTimestamp, query, collection, where, getDocs, deleteDoc, writeBatch, increment } from "firebase/firestore";
 import { getStorage, ref, deleteObject, listAll } from "firebase/storage";
 import { UserRole } from "../types/user";
 import { cache } from "../utils/cache";
-
-export async function signup(
-  name: string,
-  email: string,
-  password: string,
-  role: UserRole
-) {
-  const userCredential = await createUserWithEmailAndPassword(
-    auth,
-    email,
-    password
-  );
-
-  const user = userCredential.user;
-
-  const userData = {
-    uid: user.uid,
-    name,
-    email,
-    role,
-    createdAt: serverTimestamp(),
-    provider: "password",
-    passwordPolicyVersion: 2,
-    ...(role === "artist" && { isFoundingArtist: false }),
-  };
-  await setDoc(doc(db, "users", user.uid), userData);
-
-  return user;
-}
+import {
+  setAuthFlow,
+  clearAuthFlow,
+  setPendingGoogleNoAccount,
+  setAuthHold,
+  clearAuthHold,
+} from "../utils/authFlow";
 
 export async function login(email: string, password: string) {
   const userCredential = await signInWithEmailAndPassword(
@@ -57,15 +37,33 @@ export async function login(email: string, password: string) {
   return userCredential.user;
 }
 
+async function signOutNativeGoogleIfNeeded(): Promise<void> {
+  if (!isNativeApp()) return;
+  try {
+    const { FirebaseAuthentication } = await import(
+      "@capacitor-firebase/authentication"
+    );
+    await FirebaseAuthentication.signOut();
+  } catch {
+    // Native session may already be cleared.
+  }
+}
+
+/** Sign out JS Auth + native Google session (Capacitor). */
+async function completeSignOut(delayMs = 300): Promise<void> {
+  await signOutNativeGoogleIfNeeded();
+  await signOut(auth);
+  if (delayMs > 0) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+}
+
 export async function logout() {
   // Clear all cached data
   cache.clear();
   
   // Clear auth state
-  await signOut(auth);
-  
-  // Small delay to ensure auth state propagates
-  await new Promise(resolve => setTimeout(resolve, 300));
+  await completeSignOut(300);
 }
 
 /**
@@ -342,7 +340,99 @@ export async function getUserProfile(uid: string) {
   return data;
 }
 
-const googleProvider = new GoogleAuthProvider();
+/**
+ * Like getUserProfile, but returns null when the profile document does not exist
+ * (instead of throwing). Real errors (network/permission) still throw so callers
+ * can distinguish "genuinely no profile yet" from "couldn't read".
+ */
+export async function getUserProfileOrNull(uid: string) {
+  const ref = doc(db, "users", uid);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    return null;
+  }
+
+  const data = snap.data();
+  if (data.createdAt && typeof data.createdAt.toDate === 'function') {
+    data.createdAt = data.createdAt.toDate();
+  }
+  return data;
+}
+
+/**
+ * Register a new Email/Password user with Firebase Auth ONLY.
+ * The Firestore profile is created later, after role selection, via createUserProfile().
+ */
+export async function registerWithEmail(
+  name: string,
+  email: string,
+  password: string
+): Promise<User> {
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  if (name) {
+    try {
+      await updateProfile(userCredential.user, { displayName: name });
+    } catch {
+      // Non-fatal: name is also persisted on the Firestore profile later.
+    }
+  }
+  return userCredential.user;
+}
+
+/**
+ * Create the Firestore user profile for the currently authenticated user.
+ * Called after role selection (and, for artists, after username creation).
+ * Never overwrites an existing profile.
+ */
+export async function createUserProfile(params: {
+  role: UserRole;
+  username?: string;
+  name?: string;
+}): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error("NOT_AUTHENTICATED");
+  }
+
+  const userRef = doc(db, "users", user.uid);
+  const existing = await getDoc(userRef);
+  if (existing.exists()) {
+    // Guard against races/duplicate submits: returning users keep their profile.
+    return;
+  }
+
+  const provider = user.providerData.some((p) => p.providerId === "google.com")
+    ? "google"
+    : "password";
+
+  const userData: Record<string, unknown> = {
+    uid: user.uid,
+    name: params.name || user.displayName || "",
+    email: user.email,
+    role: params.role,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    provider,
+    passwordPolicyVersion: 2,
+  };
+
+  if (params.role === "artist") {
+    userData.isFoundingArtist = false;
+    if (params.username) {
+      userData.username = params.username.toLowerCase();
+    }
+  }
+
+  await setDoc(userRef, userData);
+}
+
+export interface GoogleSignInOptions {
+  /** Force Google to show the account chooser instead of reusing the active session. */
+  forceAccountPicker?: boolean;
+  /** Pre-select an account in the Google chooser. */
+  loginHint?: string;
+}
 
 /**
  * Obtain a Google sign-in against the Firebase JS SDK.
@@ -353,9 +443,22 @@ const googleProvider = new GoogleAuthProvider();
  *   sees a normal Firebase user. Requires google-services.json + a SHA-1/SHA-256
  *   fingerprint registered in the Firebase console for the Android app.
  */
-async function googleSignInCredential(): Promise<UserCredential> {
+async function googleSignInCredential(
+  options: GoogleSignInOptions = {}
+): Promise<UserCredential> {
   if (!isNativeApp()) {
-    return signInWithPopup(auth, googleProvider);
+    const provider = new GoogleAuthProvider();
+    const customParameters: Record<string, string> = {};
+    if (options.forceAccountPicker) {
+      customParameters.prompt = "select_account";
+    }
+    if (options.loginHint) {
+      customParameters.login_hint = options.loginHint;
+    }
+    if (Object.keys(customParameters).length > 0) {
+      provider.setCustomParameters(customParameters);
+    }
+    return signInWithPopup(auth, provider);
   }
 
   const { FirebaseAuthentication } = await import(
@@ -370,101 +473,160 @@ async function googleSignInCredential(): Promise<UserCredential> {
   return signInWithCredential(auth, credential);
 }
 
-export async function signInWithGoogle(defaultRole?: "artist" | "buyer") {
-  let result;
-  let user;
-  
-  try {
-    result = await googleSignInCredential();
-    user = result.user;
+export interface GoogleAuthOutcome {
+  user: User;
+  /** Whether a Firestore profile already exists for this account. */
+  profileExists: boolean;
+}
 
-    // Check if this email already exists with a password-based account in Firestore
+/**
+ * Authenticate with Google against Firebase Auth ONLY.
+ * - Does NOT create a Firestore profile.
+ * - Leaves the user signed in (so onboarding can continue).
+ * - Throws "ACCOUNT_EXISTS_WITH_PASSWORD" if the email is already a password account.
+ */
+export async function authenticateWithGoogle(
+  options: GoogleSignInOptions = {}
+): Promise<GoogleAuthOutcome> {
+  // Hold /home redirects until we finish password-conflict checks (and sign out if needed).
+  setAuthHold();
+  let user: User;
+
+  try {
+    try {
+      const result = await googleSignInCredential(options);
+      user = result.user;
+    } catch (error: any) {
+      await signOutNativeGoogleIfNeeded();
+      if (error.code === "auth/account-exists-with-different-credential") {
+        const email = error.customData?.email || error.email;
+        if (email) {
+          try {
+            const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+            if (signInMethods.includes("password")) {
+              throw new Error("ACCOUNT_EXISTS_WITH_PASSWORD");
+            }
+          } catch (fetchError: any) {
+            if (fetchError.message === "ACCOUNT_EXISTS_WITH_PASSWORD") {
+              throw fetchError;
+            }
+            throw error;
+          }
+        }
+      }
+      throw error;
+    }
+
+    // Reject Google when this email already has a password-based BrushOwl profile
+    // (own doc or another uid). Sign out before releasing the hold so routing never
+    // treats this session as a successful login.
     if (user.email) {
+      const profileSnapEarly = await getDoc(doc(db, "users", user.uid));
+      if (profileSnapEarly.exists() && profileSnapEarly.data()?.provider === "password") {
+        await completeSignOut(800);
+        throw new Error("ACCOUNT_EXISTS_WITH_PASSWORD");
+      }
+
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("email", "==", user.email), where("provider", "==", "password"));
+      const q = query(
+        usersRef,
+        where("email", "==", user.email),
+        where("provider", "==", "password")
+      );
       const querySnapshot = await getDocs(q);
-      
       if (!querySnapshot.empty) {
-        // Email exists with password provider - prevent Google login
-        // Sign out immediately and wait for it to complete
-        await signOut(auth);
-        // Wait for auth state to fully update - increased to ensure complete sign-out
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await completeSignOut(800);
         throw new Error("ACCOUNT_EXISTS_WITH_PASSWORD");
       }
     }
 
-    const userRef = doc(db, "users", user.uid);
-    const snap = await getDoc(userRef);
+    const profileSnap = await getDoc(doc(db, "users", user.uid));
+    return { user, profileExists: profileSnap.exists() };
+  } catch (error) {
+    // Keep hold for password conflicts until Login/SignUp handles the error —
+    // AuthContext may still briefly report the signed-in user after signOut.
+    const isPasswordConflict =
+      error instanceof Error && error.message.includes("ACCOUNT_EXISTS_WITH_PASSWORD");
+    if (!isPasswordConflict) {
+      clearAuthHold();
+    }
+    throw error;
+  }
+}
 
-    // Login flow, but no Firestore user exists
-    if (!snap.exists() && !defaultRole) {
-      // Sign out the user immediately to prevent auto-creation
-      await signOut(auth);
-      // Wait for auth state to fully update
-      await new Promise(resolve => setTimeout(resolve, 800));
-      // Verify sign out completed
+/**
+ * SIGN IN with Google. If no Firestore profile exists, the user is signed out
+ * again and "NO_ACCOUNT" is thrown (with .email/.displayName) so the caller can
+ * confirm before creating a new account. This prevents accidental duplicates and
+ * ensures onboarding never auto-starts from the sign-in screen.
+ */
+export async function signInWithGoogle(
+  options: GoogleSignInOptions = {}
+): Promise<User> {
+  // Prevent App from treating the brief signed-in-no-profile window as onboarding.
+  setAuthFlow("signin");
+
+  try {
+    const { user, profileExists } = await authenticateWithGoogle(options);
+
+    if (!profileExists) {
+      const email = user.email ?? "";
+      const displayName = user.displayName ?? "";
+      // Persist before sign-out so Login can show the modal even if it remounts.
+      setPendingGoogleNoAccount(email, displayName);
+      await completeSignOut(300);
       if (auth.currentUser !== null) {
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise((resolve) => setTimeout(resolve, 300));
       }
-      throw new Error("NO_ACCOUNT");
+      clearAuthHold();
+      const noAccountError: any = new Error("NO_ACCOUNT");
+      noAccountError.email = email;
+      noAccountError.displayName = displayName;
+      throw noAccountError;
     }
 
-    // Signup flow but account already exists
-    if (snap.exists() && defaultRole) {
-      // Sign out the user to prevent automatic login
-      await signOut(auth);
-      // Wait for auth state to fully update
-      await new Promise(resolve => setTimeout(resolve, 800));
-      // Verify sign out completed
-      if (auth.currentUser !== null) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-      }
-      throw new Error("ACCOUNT_EXISTS");
-    }
-
-    // Signup flow - create new account
-    if (!snap.exists() && defaultRole) {
-      const userData = {
-        uid: user.uid,
-        name: user.displayName || "",
-        email: user.email,
-        role: defaultRole,
-        createdAt: serverTimestamp(),
-        provider: "google",
-        passwordPolicyVersion: 2,
-        ...(defaultRole === "artist" && { isFoundingArtist: false }),
-      };
-      await setDoc(userRef, userData);
-    }
-
+    clearAuthHold();
+    clearAuthFlow();
     return user;
-  } catch (error: any) {
-    // Check if the error is because account exists with different credential
-    if (error.code === "auth/account-exists-with-different-credential") {
-      // Get the email from the error
-      const email = error.customData?.email || error.email;
-      
-      if (email) {
-        try {
-          // Check what sign-in methods are available for this email
-          const signInMethods = await fetchSignInMethodsForEmail(auth, email);
-          
-          if (signInMethods.includes("password")) {
-            throw new Error("ACCOUNT_EXISTS_WITH_PASSWORD");
-          }
-        } catch (fetchError: any) {
-          // If fetchError is our custom error, re-throw it
-          if (fetchError.message === "ACCOUNT_EXISTS_WITH_PASSWORD") {
-            throw fetchError;
-          }
-          // Otherwise throw the original error
-          throw error;
-        }
-      }
+  } catch (error) {
+    const isNoAccount = error instanceof Error && error.message.includes("NO_ACCOUNT");
+    const isPasswordConflict =
+      error instanceof Error && error.message.includes("ACCOUNT_EXISTS_WITH_PASSWORD");
+    // Password conflict: leave hold up until Login clears it after showing the toast.
+    if (!isPasswordConflict) {
+      clearAuthHold();
     }
-    
-    // Re-throw the error for other cases
+    // Keep authFlow=signin + pending flag until Login consumes the modal.
+    if (!isNoAccount) {
+      clearAuthFlow();
+    }
+    throw error;
+  }
+}
+
+/**
+ * SIGN UP with Google. Authenticates and stays signed in even when no profile
+ * exists yet, so the caller can continue into role selection. Returns whether a
+ * profile already existed (returning user).
+ */
+export async function signUpWithGoogle(
+  options: GoogleSignInOptions = {}
+): Promise<GoogleAuthOutcome> {
+  setAuthFlow("onboarding");
+  try {
+    const outcome = await authenticateWithGoogle(options);
+    clearAuthHold();
+    if (outcome.profileExists) {
+      clearAuthFlow();
+    }
+    return outcome;
+  } catch (error) {
+    const isPasswordConflict =
+      error instanceof Error && error.message.includes("ACCOUNT_EXISTS_WITH_PASSWORD");
+    if (!isPasswordConflict) {
+      clearAuthHold();
+    }
+    clearAuthFlow();
     throw error;
   }
 }

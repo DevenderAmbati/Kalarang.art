@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Overrides Capacitor's bridge layout so the area behind the transparent
+     status bar matches the app header (setBackgroundColor is a no-op on Android 15+/16). -->
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/status_bar_background"
+    tools:context="com.getcapacitor.BridgeActivity">
+
+    <com.getcapacitor.CapacitorWebView
+        android:id="@+id/webview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/status_bar_background" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

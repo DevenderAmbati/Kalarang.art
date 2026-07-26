@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { MdSmartToy, MdClose, MdImage, MdSend, MdRefresh } from "react-icons/md";
 import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
 import { useArtAdvisor } from "../../context/ArtAdvisorContext";
+import { useChatContext } from "../../context/ChatContext";
 import { useDrawerBackNavigation } from "../../hooks/useDrawerBackNavigation";
+import { useScrollDirection } from "../../hooks/useScrollDirection";
 import {
   AdvisorMessage,
   AdvisorProgressStep,
@@ -24,7 +26,13 @@ const MAX_REFERENCE_IMAGES = 1;
 
 const ArtAdvisorWidget: React.FC = () => {
   const { appUser } = useAuth();
+  const { isChatDrawerOpen } = useChatContext();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { hidden: launcherHidden } = useScrollDirection(8, {
+    root: "layout",
+    resetKey: location.pathname,
+  });
   const {
     isOpen, setIsOpen,
     sessionId, messages, setMessages,
@@ -43,6 +51,10 @@ const ArtAdvisorWidget: React.FC = () => {
   const [isHydrating, setIsHydrating] = useState(false);
   const [isSubmittingCommission, setIsSubmittingCommission] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  // All full-screen overlays (chat drawer, comment sheet, commission chat, modals)
+  // lock body scroll — hide the launcher whenever one of them is open,
+  // since the bottom nav is covered/hidden in those states too.
+  const [overlayOpen, setOverlayOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -70,6 +82,14 @@ const ArtAdvisorWidget: React.FC = () => {
     onExitChat: () => { },
     navigatingAwayRef,
   });
+
+  useEffect(() => {
+    const check = () => setOverlayOpen(document.body.style.overflow === "hidden");
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { attributes: true, attributeFilter: ["style"] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -401,7 +421,7 @@ const ArtAdvisorWidget: React.FC = () => {
   );
 
   return createPortal(
-    <div className="aa-widget-root">
+    <div className={`aa-widget-root${!isOpen && launcherHidden ? " aa-tucked" : ""}`}>
       {isOpen && (
         <>
           <div
@@ -413,7 +433,7 @@ const ArtAdvisorWidget: React.FC = () => {
         </>
       )}
 
-      {!isOpen && (
+      {!isOpen && !isChatDrawerOpen && !overlayOpen && (
         <button
           type="button"
           className="aa-launcher"

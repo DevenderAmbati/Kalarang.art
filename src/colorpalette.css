@@ -52,7 +52,9 @@
   --blue-green: #5FD1D8;
 
   /* Opacity Variants - for overlays and effects */
+  --primary-alpha-5: rgba(47, 164, 169, 0.05);
   --primary-alpha-10: rgba(47, 164, 169, 0.1);
+  --primary-alpha-15: rgba(47, 164, 169, 0.15);
   --primary-alpha-20: rgba(47, 164, 169, 0.2);
   --primary-alpha-50: rgba(47, 164, 169, 0.5);
   --accent-alpha-10: rgba(95, 209, 216, 0.1);

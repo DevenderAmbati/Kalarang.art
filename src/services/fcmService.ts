@@ -114,6 +114,22 @@ async function enableNativeNotifications(
     return { success: false, error: "Notification permission was denied." };
   }
 
+  // Android 8+ requires a channel; FCM android.notification.channelId
+  // must match this id for tray notifications to appear.
+  try {
+    await PushNotifications.createChannel({
+      id: "brushowl_default",
+      name: "BrushOwl",
+      description: "Messages and activity",
+      importance: 5,
+      visibility: 1,
+      sound: "default",
+      vibration: true,
+    });
+  } catch {
+    /* channel may already exist or platform unsupported */
+  }
+
   return new Promise((resolve) => {
     let settled = false;
     const finish = (result: { success: boolean; token?: string; error?: string }) => {

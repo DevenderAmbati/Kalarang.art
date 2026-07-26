@@ -1,15 +1,27 @@
 /* ─── AI Chatbot Widget ─────────────────────────────────────────── */
 
 .aa-widget-root {
+  --aa-launcher-size: 48px;
+  /* Match bottom-nav --bottom-nav-inset (8px) on the right and above the nav */
+  --aa-right-inset: 8px;
+  --aa-above-nav-gap: 8px;
+  --bottom-nav-height: 65px;
+  --bottom-nav-inset: 8px;
   position: fixed;
-  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-  right: 16px;
+  bottom: calc(var(--bottom-nav-height) + var(--bottom-nav-inset) + var(--aa-above-nav-gap));
+  right: var(--aa-right-inset);
   z-index: 10050;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 12px;
   pointer-events: none;
+  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tuck launcher 50% past the right screen edge (inset + half width) */
+.aa-widget-root.aa-tucked {
+  right: calc(var(--aa-launcher-size) / -2);
 }
 
 .aa-widget-root>* {
@@ -18,16 +30,17 @@
 
 @media (min-width: 768px) {
   .aa-widget-root {
+    --aa-launcher-size: 50px;
+    --aa-right-inset: 24px;
     bottom: 24px;
-    right: 24px;
   }
 }
 
 /* Launcher — teal circle, white robot icon */
 .aa-launcher {
   position: relative;
-  width: 48px;
-  height: 48px;
+  width: var(--aa-launcher-size);
+  height: var(--aa-launcher-size);
   padding: 0;
   border: none;
   border-radius: 50%;
@@ -40,6 +53,24 @@
   line-height: 0;
   box-shadow: 0 4px 16px rgba(26, 122, 127, 0.4);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* Keep hit target usable while half-tucked */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Invisible padding so the visible half stays easy to tap when tucked */
+.aa-launcher::after {
+  content: "";
+  position: absolute;
+  top: -12px;
+  bottom: -12px;
+  left: -16px;
+  right: -4px;
+  border-radius: 50%;
+}
+
+.aa-widget-root.aa-tucked .aa-launcher {
+  box-shadow: 0 2px 10px rgba(26, 122, 127, 0.28);
 }
 
 .aa-launcher::before {
@@ -56,12 +87,26 @@
   pointer-events: none;
 }
 
+.aa-widget-root.aa-tucked .aa-launcher::before {
+  opacity: 0.45;
+  animation-play-state: paused;
+}
+
 .aa-launcher:hover {
   transform: scale(1.08);
   box-shadow: 0 6px 22px rgba(26, 122, 127, 0.5);
 }
 
+.aa-widget-root.aa-tucked .aa-launcher:hover {
+  transform: none;
+  box-shadow: 0 4px 14px rgba(26, 122, 127, 0.4);
+}
+
 .aa-launcher:active {
+  transform: scale(0.96);
+}
+
+.aa-widget-root.aa-tucked .aa-launcher:active {
   transform: scale(0.96);
 }
 
@@ -89,11 +134,6 @@
 }
 
 @media (min-width: 768px) {
-  .aa-launcher {
-    width: 50px;
-    height: 50px;
-  }
-
   .aa-launcher svg {
     width: 26px;
     height: 26px;

@@ -11,12 +11,19 @@ import { shouldShowKalarangMigration } from './utils/webMigration';
 import KalarangMigration from './pages/landing/KalarangMigration';
 
 // iOS Safari/PWA overscroll bounce prevention
+const isIOSDevice = () =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+// Class-gated CSS scroll lock (must not use @supports -webkit-touch-callout —
+// that also matches some Android WebViews and chips the right UI edge).
+if (isIOSDevice()) {
+  document.documentElement.classList.add('ios-scroll-lock');
+}
+
 const preventIOSBounce = () => {
   // Only apply for iOS devices
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  
-  if (!isIOS) return;
+  if (!isIOSDevice()) return;
 
   let startY = 0;
   

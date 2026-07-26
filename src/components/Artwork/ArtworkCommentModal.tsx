@@ -10,6 +10,8 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import LazyImage from "../Common/LazyImage";
+import { useHistoryBackClose } from "../../hooks/useHistoryBackClose";
+import { useSheetDragClose } from "../../hooks/useSheetDragClose";
 import {
   subscribeToArtworkComments,
   addArtworkComment,
@@ -77,6 +79,17 @@ const ArtworkCommentModal: React.FC<ArtworkCommentModalProps> = ({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const dragHandleRef = useRef<HTMLDivElement>(null);
+
+  useHistoryBackClose(isOpen, onClose, "modal");
+  useSheetDragClose({
+    isOpen,
+    onClose,
+    sheetRef,
+    handleRef: dragHandleRef,
+    thresholdPx: 90,
+  });
 
   const isArtistOwner =
     Boolean(appUser && artwork && appUser.uid === artwork.artistId);
@@ -277,13 +290,15 @@ const ArtworkCommentModal: React.FC<ArtworkCommentModalProps> = ({
   return createPortal(
     <div className="artwork-comment-modal-overlay" onClick={handleOverlayClick}>
       <div
+        ref={sheetRef}
         className="artwork-comment-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="artwork-comment-modal-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="artwork-comment-modal-header">
+        <div className="artwork-comment-modal-header" ref={dragHandleRef}>
+          <div className="artwork-comment-modal-drag-handle" aria-hidden="true" />
           <h2 id="artwork-comment-modal-title" className="artwork-comment-modal-title">
             Comments
           </h2>

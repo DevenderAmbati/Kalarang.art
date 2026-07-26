@@ -13,7 +13,7 @@ const Header: React.FC = () => {
   const isHome = path === '/' || path === '';
   const isAbout = path === '/about';
   const isExplore = path === '/explore';
-  const isSignIn = path === '/login' || path === '/signin';
+  const isSignUp = path === '/signup';
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -168,11 +168,11 @@ const Header: React.FC = () => {
             </button>
             <button
               type="button"
-              className={`home-mobile-menu-item home-mobile-menu-signin${isSignIn ? ' is-active' : ''}`}
-              aria-current={isSignIn ? 'page' : undefined}
-              onClick={() => go('/login')}
+              className={`home-mobile-menu-item home-mobile-menu-signin${isSignUp ? ' is-active' : ''}`}
+              aria-current={isSignUp ? 'page' : undefined}
+              onClick={() => go('/signup')}
             >
-              Sign In
+              Sign Up
             </button>
           </nav>
         )}
@@ -215,7 +215,7 @@ const Header: React.FC = () => {
         </button>
 
         <button
-          onClick={() => navigate('/login')}
+          onClick={() => navigate('/signup')}
           className="login-button primary-cta home-signin-btn"
           style={{
             padding: '0.65rem 0.85rem',
@@ -228,7 +228,7 @@ const Header: React.FC = () => {
             gap: '0.25rem',
           }}
         >
-          <span>Sign In</span>
+          <span>Sign Up</span>
           {MdArrowForward({ size: 15 })}
         </button>
       </div>

@@ -9,12 +9,16 @@
    ============================================ */
 
 .bottom-nav-container {
-  /* Fixed positioning at bottom of viewport */
+  /* Same gap on left, right, and bottom. Do NOT add safe-area-inset-bottom here:
+     the Android WebView already lays out above system bars
+     (decorFitsSystemWindows), so env(safe-area-inset-bottom) was double-counted
+     and made the bottom gap look larger than the side gaps. */
+  --bottom-nav-inset: 8px;
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
+  bottom: var(--bottom-nav-inset);
+  left: var(--bottom-nav-inset);
+  right: var(--bottom-nav-inset);
+  width: auto;
   height: 65px;
   z-index: 999;
   
@@ -30,6 +34,36 @@
 }
 
 /* ============================================
+   FLOATING SURFACE (rounded left/right edges)
+   ============================================ */
+
+/* Outer wrap holds the shape-following shadow (must sit outside overflow:hidden) */
+.bottom-nav-surface-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  /* Soft side/top shadow only — a downward shadow made the bottom gap look larger */
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.28))
+          drop-shadow(-2px 0 6px rgba(0, 0, 0, 0.12))
+          drop-shadow(2px 0 6px rgba(0, 0, 0, 0.12));
+}
+
+/* Clips the wave background and decorative shapes to a pill shape.
+   Kept separate from the container so lifted active icons are not clipped. */
+.bottom-nav-surface {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 26px;
+  overflow: hidden;
+}
+
+/* ============================================
    SVG CURVED BACKGROUND
    ============================================ */
 
@@ -41,27 +75,8 @@
   width: 100%;
   height: 100%;
   
-  /* Gradient background matching sidebar */
-  filter: drop-shadow(0 -4px 24px rgba(0, 0, 0, 0.3));
-  
   /* Smooth transition for wave animation */
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* Additional shadow overlay for depth */
-.bottom-nav-curve::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(95, 209, 216, 0.3) 50%, 
-    transparent 100%
-  );
-  box-shadow: 0 0 8px rgba(95, 209, 216, 0.5);
 }
 
 /* ============================================
@@ -272,6 +287,10 @@
   
   .bottom-nav-container {
     height: 60px;
+  }
+
+  .bottom-nav-surface {
+    border-radius: 24px;
   }
   
   .icon-wrapper {

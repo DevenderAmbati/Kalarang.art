@@ -4,9 +4,10 @@ import { isNativeApp } from './platform';
  * Production web / installed Kalarang PWA only.
  * Native Capacitor builds keep the full BrushOwl app from the same bundle.
  * Local `npm start` stays on the full app for development.
+ * Dev hosting (`npm run deploy:dev` / `.env.development`) uses REACT_APP_WEB_FULL_APP=true.
  *
- * Preview locally: REACT_APP_FORCE_KALARANG_MIGRATION=true
- * Force full web in prod (rare): REACT_APP_WEB_FULL_APP=true
+ * Preview migration locally: REACT_APP_FORCE_KALARANG_MIGRATION=true
+ * Force full web in a prod build: REACT_APP_WEB_FULL_APP=true
  */
 export function shouldShowKalarangMigration(): boolean {
   if (isNativeApp()) return false;

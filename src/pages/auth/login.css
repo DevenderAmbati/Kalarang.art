@@ -678,9 +678,8 @@ body:has(.login-right-section:not(.signup-page)),
 }
 
 .login-button:disabled {
-  opacity: 0.6;
-  background: var(--gradient-primary-hover);
-  color: var(--color-text-primary-dark);
+  /* Dim only — don't override fill/outline so primary vs secondary CTAs stay consistent */
+  opacity: 0.55;
   box-shadow: none;
   cursor: not-allowed;
   pointer-events: none;
@@ -706,6 +705,572 @@ body:has(.login-right-section:not(.signup-page)),
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+/* Auth stack — Google primary, email secondary */
+.login-auth-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Top row: step back + switch between sign in / sign up */
+.login-account-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.login-account-switch--center {
+  justify-content: center;
+}
+
+.login-account-switch--center .login-account-switch-text {
+  text-align: center;
+}
+
+.login-account-switch-text {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+/* Visual Sign In / Sign Up mode switcher */
+.auth-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  margin: 0 0 1.35rem;
+  background: var(--color-bg-light);
+  border: 1px solid var(--color-border-light);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 2px rgba(11, 31, 42, 0.04);
+}
+
+.auth-mode-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 0.45rem 0.5rem;
+  border-radius: 11px;
+  cursor: pointer;
+  line-height: 1.15;
+  min-height: 2.6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.auth-mode-tab:hover:not(.is-active) {
+  color: var(--color-text-dark);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.auth-mode-tab:active:not(.is-active) {
+  transform: scale(0.98);
+}
+
+.auth-mode-tab.is-active {
+  background: var(--gradient-button);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(31, 127, 139, 0.25);
+}
+
+.auth-mode-tab.is-active:active {
+  transform: scale(0.98);
+}
+
+.auth-card--signup .auth-mode-tab.is-active {
+  color: #fff;
+}
+
+.auth-mode-tab-hint {
+  display: block;
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  line-height: 1.2;
+}
+
+.auth-mode-tab:hover .auth-mode-tab-hint {
+  color: var(--color-text-dark);
+}
+
+.auth-mode-tab-label {
+  display: block;
+}
+
+.auth-mode-hint,
+.auth-mode-hint-link,
+.auth-mode-block {
+  display: none;
+}
+
+.auth-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-card--signin::before,
+.auth-card--signup::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+.auth-card--signin::before {
+  background: var(--color-primary);
+}
+
+.auth-card--signup::before {
+  background: var(--gradient-primary);
+}
+
+.auth-eyebrow {
+  display: inline-block;
+  padding: 0;
+  font-size: 0.68rem !important;
+  letter-spacing: 1px !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.auth-eyebrow--signin {
+  color: var(--color-primary-dark) !important;
+}
+
+.auth-eyebrow--signup {
+  color: var(--color-royal) !important;
+}
+
+.auth-card--signin .login-title {
+  color: var(--color-text-dark);
+}
+
+.auth-card--signup .login-title {
+  color: var(--color-text-dark);
+}
+
+.login-step-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem 0.3rem 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+  border-radius: 500px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.login-step-back:hover {
+  background: var(--primary-alpha-10);
+}
+
+.login-method-chip {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 0.4rem;
+  max-width: 100%;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--primary-alpha-10);
+  border: 1px solid var(--primary-alpha-20);
+  border-radius: 500px;
+}
+
+.login-method-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.login-google-primary,
+.login-primary-action {
+  width: 100%;
+  padding: 0.9rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-primary-dark);
+  background: var(--gradient-button);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--transition-smooth);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  letter-spacing: 0.3px;
+  box-shadow: var(--shadow-md);
+}
+
+.login-google-primary:hover:not(:disabled),
+.login-primary-action:hover:not(:disabled) {
+  background: var(--gradient-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px var(--dark-alpha-10);
+}
+
+.login-google-primary:active:not(:disabled),
+.login-primary-action:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-google-primary:disabled,
+.login-primary-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+.login-google-hint {
+  margin: -0.35rem 0 0;
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.login-email-secondary {
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1.5px solid var(--color-border-light);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.login-email-secondary:hover {
+  border-color: var(--color-primary);
+  background: var(--primary-alpha-10);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.login-email-form {
+  animation: loginEmailReveal 0.25s ease-out;
+}
+
+@keyframes loginEmailReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-error-banner {
+  padding: 0.75rem 1rem;
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #DC2626;
+  font-size: 0.875rem;
+  animation: loginEmailReveal 0.3s ease-out;
+}
+
+.login-role-card {
+  padding: 0.65rem 0.5rem;
+  border: 2px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg-white);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.login-role-card:hover {
+  border-color: var(--color-primary);
+  background: var(--primary-alpha-5);
+}
+
+.login-role-card-active {
+  border-color: var(--color-primary);
+  background: var(--primary-alpha-10);
+}
+
+.login-role-card-title {
+  font-weight: 600;
+  color: var(--color-primary);
+  font-size: 0.8rem;
+}
+
+.login-role-card-desc {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.login-spin {
+  animation: loginSpin 1s linear infinite;
+}
+
+@keyframes loginSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Onboarding — role selection (select + continue) */
+.role-select-card {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.role-hero {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+.role-hero-illustration {
+  width: 140px;
+  height: auto;
+  display: block;
+}
+
+.role-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.role-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--color-text-dark);
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.role-title-brand {
+  color: var(--color-primary);
+}
+
+.role-subtitle {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.onboarding-role-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.onboarding-role-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  text-align: left;
+  padding: 1rem 1rem;
+  border: 1.5px solid var(--color-border-light);
+  border-radius: 16px;
+  background: var(--color-bg-white);
+  cursor: pointer;
+  transition: border-color var(--transition-base), background var(--transition-base), box-shadow var(--transition-base);
+}
+
+.onboarding-role-card:hover:not(:disabled):not(.is-selected) {
+  border-color: var(--color-border);
+  background: var(--color-bg-light);
+}
+
+.onboarding-role-card.is-selected {
+  border-color: var(--color-primary);
+  background: var(--primary-alpha-5);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.onboarding-role-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.onboarding-role-icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.onboarding-role-icon--artist {
+  background: var(--primary-alpha-15);
+  color: var(--color-primary-dark);
+}
+
+.onboarding-role-icon--buyer {
+  background: rgba(245, 158, 11, 0.15);
+  color: #D97706;
+}
+
+.onboarding-role-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.onboarding-role-title {
+  display: block;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--color-text-dark);
+  line-height: 1.3;
+}
+
+.onboarding-role-desc {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.onboarding-role-radio {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: transparent;
+  position: relative;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.onboarding-role-radio.is-checked {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  box-shadow: inset 0 0 0 3px var(--color-bg-white);
+}
+
+.onboarding-role-spinner {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--primary-alpha-20);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: loginSpin 0.8s linear infinite;
+  vertical-align: middle;
+}
+
+.role-continue-btn {
+  margin-top: 2.75rem !important;
+}
+
+.role-signed-in {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 480px) {
+  .role-title {
+    font-size: 1.2rem;
+  }
+
+  .role-hero-illustration {
+    width: 120px;
+  }
+
+  .onboarding-role-card {
+    padding: 0.9rem;
+  }
+
+  .onboarding-role-icon {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Username auto-suggestions */
+.username-suggestions {
+  margin-top: -0.5rem;
+}
+
+.username-suggestions-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.username-suggestions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.username-suggestion-chip {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--primary-alpha-10);
+  border: 1px solid var(--primary-alpha-20);
+  border-radius: 500px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.username-suggestion-chip:hover:not(:disabled) {
+  background: var(--primary-alpha-20);
+  transform: translateY(-1px);
+}
+
+.username-suggestion-chip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Social Buttons */

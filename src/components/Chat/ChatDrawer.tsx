@@ -38,6 +38,25 @@ function avatarSrc(avatar?: string): string {
   return avatar || '/icon.png';
 }
 
+/** Reliable fallback when a commission/reach-out has no reference image. */
+const CHAT_ARTWORK_FALLBACK = '/icon.png';
+
+function resolveArtworkThumb(url?: string | null): string {
+  const trimmed = (url || '').trim();
+  if (!trimmed || trimmed === 'undefined' || trimmed === 'null') {
+    return CHAT_ARTWORK_FALLBACK;
+  }
+  return trimmed;
+}
+
+/** Swap to app icon if the stored URL 404s / is broken (avoids alt-text "Comm…" leak). */
+function handleArtworkThumbError(e: React.SyntheticEvent<HTMLImageElement>) {
+  const el = e.currentTarget;
+  if (el.dataset.fallbackApplied === '1') return;
+  el.dataset.fallbackApplied = '1';
+  el.src = CHAT_ARTWORK_FALLBACK;
+}
+
 export interface ReachOutMetadata {
   artworkId: string;
   artworkTitle: string;
@@ -726,7 +745,11 @@ const ChatView: React.FC<{
           return (
             <React.Fragment key={card.artworkId}>
               <div className={`cd-reachout-context-card${showShipmentBtn ? ' cd-reachout-context-card--locked' : ''}`}>
-                <img src={card.artworkImage || '/logobong.png'} alt={card.artworkTitle} />
+                <img
+                  src={resolveArtworkThumb(card.artworkImage)}
+                  alt=""
+                  onError={handleArtworkThumbError}
+                />
                 <div className="cd-reachout-context-stack">
                   <div className="cd-reachout-context-main">
                     <div>
@@ -942,7 +965,11 @@ const ChatView: React.FC<{
                       {msg.messageType !== 'reachout_offer' && msg.messageType !== 'address_card' && msg.artworkId && msg.artworkTitle && (
                         <div className="cd-message-artwork-banner">
                           <div className="cd-message-artwork-image">
-                            <img src={msg.artworkImage || '/logobong.png'} alt={msg.artworkTitle} />
+                            <img
+                              src={resolveArtworkThumb(msg.artworkImage)}
+                              alt=""
+                              onError={handleArtworkThumbError}
+                            />
                           </div>
                           <div className="cd-message-artwork-details">
                             <span className="cd-message-artwork-title">{msg.artworkTitle}</span>
@@ -1013,7 +1040,11 @@ const ChatView: React.FC<{
         {reachOutMetadata && !artworkSent && (
           <div className="cd-artwork-banner">
             <div className="cd-artwork-banner-image">
-              <img src={reachOutMetadata.artworkImage || '/logobong.png'} alt={reachOutMetadata.artworkTitle} />
+              <img
+                src={resolveArtworkThumb(reachOutMetadata.artworkImage)}
+                alt=""
+                onError={handleArtworkThumbError}
+              />
             </div>
             <div className="cd-artwork-banner-details">
               <span className="cd-artwork-banner-label">Reaching out about</span>
@@ -1532,11 +1563,16 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ isOpen, onClose, initialContact
 
   const showingChat = !!activeContact;
   const showListPanel = !initialContact; // hide list when opened as a direct chat
+  // Keep bottom nav visible/usable on the conversation list (header entry point)
+  const showBottomNavGap = showListPanel && !showingChat;
 
   return createPortal(
-    <div className={`cd-overlay ${isClosing ? 'cd-overlay-closing' : ''}`} onClick={handleClose}>
+    <div
+      className={`cd-overlay${showBottomNavGap ? ' cd-overlay--with-bottom-nav' : ''}${isClosing ? ' cd-overlay-closing' : ''}`}
+      onClick={handleClose}
+    >
       <aside
-        className={`cd-drawer ${showingChat && showListPanel ? 'cd-drawer-expanded' : ''} ${isClosing ? 'cd-drawer-closing' : ''}`}
+        className={`cd-drawer${showingChat && showListPanel ? ' cd-drawer-expanded' : ''}${showBottomNavGap ? ' cd-drawer--with-bottom-nav' : ''}${isClosing ? ' cd-drawer-closing' : ''}`}
         onClick={(e) => e.stopPropagation()}
         style={{
           ['--cd-layout-header-height' as any]: layoutHeaderHeight ? `${layoutHeaderHeight}px` : undefined,

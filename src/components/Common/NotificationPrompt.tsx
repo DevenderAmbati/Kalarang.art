@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { enableNotifications, isNotificationsEnabled } from "../../services/fcmService";
 import { isSupported } from "firebase/messaging";
+import { isNativeApp } from "../../utils/platform";
 import { toast } from "react-toastify";
 
 function storageKey(uid: string, key: string) {
@@ -50,22 +51,29 @@ const NotificationPrompt: React.FC = () => {
     async function shouldShow() {
       if (!appUser?.uid) return;
       const uid = appUser.uid;
+      const native = isNativeApp();
 
-      // Only show on PWAs, not in browsers
-      if (!isPWA()) return;
+      // Show on Capacitor apps and installed PWAs — not in a normal browser tab
+      if (!native && !isPWA()) return;
 
       if (localStorage.getItem(storageKey(uid, "banner_stop")) === "true") return;
 
-      if (!("Notification" in window)) return;
-      if (Notification.permission === "denied") return;
+      // Web/PWA path uses the Notification API; native uses Capacitor permissions
+      if (!native) {
+        if (!("Notification" in window)) return;
+        if (Notification.permission === "denied") return;
 
-      if (Notification.permission === "granted") {
+        if (Notification.permission === "granted") {
+          const alreadyEnabled = await isNotificationsEnabled(uid);
+          if (alreadyEnabled) return;
+        }
+
+        const supported = await isSupported().catch(() => false);
+        if (!supported) return;
+      } else {
         const alreadyEnabled = await isNotificationsEnabled(uid);
         if (alreadyEnabled) return;
       }
-
-      const supported = await isSupported().catch(() => false);
-      if (!supported) return;
 
       const visits = parseInt(localStorage.getItem(storageKey(uid, "visits")) || "0", 10);
       if (visits < 1) return;

@@ -61,13 +61,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 0.5rem 1rem 0.5rem 1.25rem;
+  /* Push header content below the status bar (Capacitor edge-to-edge) */
+  padding: calc(0.5rem + env(safe-area-inset-top, 0px)) 1rem 0.5rem 1.25rem;
   background: linear-gradient(90deg, #E8F4F5 0%, #c1f8fdff 100%);
   border-bottom: 1px solid rgba(47, 164, 169, 0.2);
   box-shadow: 0 4px 16px rgba(47, 164, 169, 0.15);
   flex-shrink: 0;
   box-sizing: border-box;
-  min-height: var(--cd-layout-header-height, 0px);
 }
 
 .cd-drawer-title {
@@ -111,6 +111,7 @@
   object-fit: cover;
   border: 2px solid var(--color-primary);
   flex-shrink: 0;
+  display: block;
 }
 
 .cd-drawer-name {
@@ -120,6 +121,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .cd-drawer-name-link {
@@ -137,6 +139,7 @@
   text-decoration: underline;
   text-underline-offset: 2px;
   transition: opacity var(--transition-fast);
+  line-height: 1.2;
 }
 
 .cd-drawer-name-link:hover {
@@ -176,7 +179,8 @@
 
 .cd-panel-list {
   width: 100%;
-  flex-shrink: 0;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   transition: transform 0.28s ease, opacity 0.28s ease;
   border-left: 1px solid var(--color-border-light);
@@ -239,6 +243,13 @@
   border-left: 3px solid var(--color-primary);
 }
 
+.cd-list-avatar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  line-height: 0;
+}
+
 .cd-list-avatar img {
   width: 46px;
   height: 46px;
@@ -246,6 +257,7 @@
   object-fit: cover;
   border: 2px solid var(--color-border-light);
   transition: border-color var(--transition-fast);
+  display: block;
 }
 
 .cd-list-item:hover .cd-list-avatar img {
@@ -255,12 +267,15 @@
 .cd-list-meta {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .cd-list-row {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
 }
 
@@ -271,12 +286,15 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.25;
+  margin: 0;
 }
 
 .cd-list-time {
   font-size: 0.68rem;
   color: var(--color-text-secondary);
   flex-shrink: 0;
+  line-height: 1.25;
 }
 
 .cd-list-row-bottom {
@@ -514,6 +532,8 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  color: transparent;
+  font-size: 0;
 }
 
 .cd-message-artwork-details {
@@ -604,6 +624,8 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  color: transparent;
+  font-size: 0;
 }
 
 .cd-artwork-banner-details {
@@ -722,6 +744,11 @@
   border-radius: 8px;
   object-fit: cover;
   flex-shrink: 0;
+  background: var(--color-bg-white, #fff);
+  /* Hide browser broken-image alt text (was leaking "Comm…" over the thumb) */
+  color: transparent;
+  font-size: 0;
+  overflow: hidden;
 }
 
 .cd-reachout-context-stack {
@@ -739,6 +766,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+}
+
+/* Allow title to shrink so “Send offer” stays in the card */
+.cd-reachout-context-main > div {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .cd-reachout-context-label {
@@ -1564,5 +1598,35 @@
     max-width: 100%;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
+  }
+
+  /*
+   * Conversation list (from header): fill the screen with white.
+   * Sit under the bottom nav (nav z-index is raised) so there’s no gap.
+   */
+  .cd-overlay--with-bottom-nav {
+    bottom: 0;
+    z-index: 998; /* below .bottom-nav-container (999) */
+  }
+
+  .cd-drawer--with-bottom-nav {
+    bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    background: var(--color-bg-white, #fff);
+  }
+
+  .cd-drawer--with-bottom-nav .cd-body,
+  .cd-drawer--with-bottom-nav .cd-panel-list {
+    background: var(--color-bg-white, #fff);
+  }
+
+  /* Keep last rows clear of the floating bottom nav */
+  .cd-drawer--with-bottom-nav .cd-panel-list {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    padding-bottom: calc(65px + 8px + 8px);
+    box-sizing: border-box;
   }
 }

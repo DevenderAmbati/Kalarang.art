@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "88807694030",
+    "project_id": "kalarang-eff3c",
+    "storage_bucket": "kalarang-eff3c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:88807694030:android:0785151a15f3256d7e3a9f",
+        "android_client_info": {
+          "package_name": "art.brushowl.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "88807694030-c45f7iu23ddoumm4g719tlffg608c9tv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_f0-Dehu4TlygC4lPuhk3KmzQNwvZBbs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "88807694030-c45f7iu23ddoumm4g719tlffg608c9tv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

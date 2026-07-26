@@ -424,7 +424,10 @@ const styles = {
   container: {
     display: 'flex',
     minHeight: '0',
-  },
+    width: '100%',
+    maxWidth: '100%',
+    overflowX: 'hidden',
+  } as React.CSSProperties,
   header: {
     display: 'flex',
     flexDirection: 'column',
@@ -436,6 +439,8 @@ const styles = {
     left: 0,
     right: 0,
     width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
     zIndex: 100,
   } as React.CSSProperties,
   headerRow: {
@@ -567,6 +572,8 @@ const styles = {
   main: {
     marginLeft: '260px',
     flex: 1,
+    minWidth: 0,
+    maxWidth: '100%',
     backgroundColor: 'var(--color-bg-light)',
     height: '100dvh',
     maxHeight: '100dvh',
@@ -574,7 +581,10 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
+    overflowX: 'hidden',
     position: 'relative',
+    /* translateZ kept so position:fixed header/tabs stay inside the main
+       column (not under the desktop sidebar). Do not put transform on body. */
     transform: 'translateZ(0)',
     backfaceVisibility: 'hidden',
   } as React.CSSProperties,
@@ -607,6 +617,9 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
     overflowY: 'auto',
     overflowX: 'hidden',
     scrollBehavior: 'auto',

@@ -83,6 +83,18 @@ Both features use the native Firebase SDK, so they need one file:
 automatically when this file is present, so no manual Gradle edits are needed.
 Without the file, email/password login still works for testing.
 
+### Push notifications not showing on the installed app?
+
+1. **Deploy Cloud Functions** after pull — Android needs an `android.notification`
+   payload (data-only works for the PWA service worker, not the native tray).
+2. On the phone: open BrushOwl → **Profile → Notifications → Enable**, and allow
+   the system permission prompt (Android 13+).
+3. Confirm a token exists: Firestore → `userTokens` → a doc like
+   `{yourUid}_{deviceId}` with `platform: "android"`.
+4. Put the app in the background, then trigger a chat/like from another account.
+5. Phone settings → Apps → BrushOwl → Notifications must be allowed.
+6. Emulators often lack Google Play Services — use a real device for push tests.
+
 ## Store readiness (after local QA is green)
 
 ### Icons and splash

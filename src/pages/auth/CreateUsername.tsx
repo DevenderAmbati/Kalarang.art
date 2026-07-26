@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
 import { MdPerson } from 'react-icons/md';
@@ -13,7 +13,8 @@ const CreateUsername: React.FC = () => {
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { appUser, refreshUserProfile } = useAuth();
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const { appUser, firebaseUser, refreshUserProfile } = useAuth();
   const navigate = useNavigate();
 
   // Instagram username rules:
@@ -38,6 +39,73 @@ const CreateUsername: React.FC = () => {
       return 'Username cannot contain consecutive periods';
     }
     return null;
+  };
+
+  // Lightweight availability check used for auto-suggestions (no state side effects).
+  const isUsernameAvailable = async (value: string): Promise<boolean> => {
+    if (validateUsername(value)) return false;
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('username', '==', value.toLowerCase()));
+    const snap = await getDocs(q);
+    return snap.empty;
+  };
+
+  // Build candidate usernames from the user's display name.
+  const buildCandidates = (rawName: string): string[] => {
+    const base = rawName
+      .toLowerCase()
+      .replace(/[^a-z0-9._]/g, '')
+      .replace(/\.{2,}/g, '.')
+      .replace(/^\.+|\.+$/g, '');
+
+    const clamp = (v: string) => v.slice(0, 18);
+    const candidates = new Set<string>();
+
+    if (base) {
+      candidates.add(clamp(base));
+      candidates.add(clamp(`${base}.art`));
+      candidates.add(clamp(`${base}${Math.floor(10 + Math.random() * 89)}`));
+      candidates.add(clamp(`${base}${Math.floor(100 + Math.random() * 899)}`));
+    }
+    // Always include a couple of generic fallbacks so we can show something.
+    candidates.add(`artist${Math.floor(1000 + Math.random() * 8999)}`);
+    candidates.add(`creator${Math.floor(1000 + Math.random() * 8999)}`);
+
+    return Array.from(candidates).filter((c) => validateUsername(c) === null);
+  };
+
+  // Auto-suggest available usernames based on the display name.
+  useEffect(() => {
+    const rawName = appUser?.name || firebaseUser?.displayName || '';
+    const candidates = buildCandidates(rawName);
+    let cancelled = false;
+
+    (async () => {
+      const available: string[] = [];
+      for (const candidate of candidates) {
+        if (available.length >= 3) break;
+        try {
+          if (await isUsernameAvailable(candidate)) {
+            available.push(candidate);
+          }
+        } catch {
+          // Ignore individual lookup failures for suggestions.
+        }
+      }
+      if (!cancelled) setSuggestions(available);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appUser?.name, firebaseUser?.displayName]);
+
+  const applySuggestion = (value: string) => {
+    setUsername(value);
+    setError('');
+    setIsAvailable(null);
+    checkUsernameAvailability(value);
   };
 
   const checkUsernameAvailability = async (value: string) => {
@@ -124,13 +192,14 @@ const CreateUsername: React.FC = () => {
       const userRef = doc(db, 'users', appUser.uid);
       await updateDoc(userRef, {
         username: username.toLowerCase(),
+        updatedAt: serverTimestamp(),
       });
       
       // Refresh user profile to get updated data
       await refreshUserProfile();
       
       setIsSubmitting(false);
-      navigate('/artist');
+      navigate('/home', { replace: true });
     } catch (err) {
       toast.error('Failed to create username. Please try again.');
       setIsSubmitting(false);
@@ -166,9 +235,12 @@ const CreateUsername: React.FC = () => {
 
         <div className="login-form-container">
           <div className="login-header">
-            <div className="login-welcome-back">One More Step</div>
-            <h2 className="login-title">Create Your Artist Identity</h2>
-            <p className="login-subtitle">Choose a unique username that represents you as an artist</p>
+            <div className="login-welcome-back">One last step</div>
+            <h2 className="login-title">Choose your artist username</h2>
+            <p className="login-subtitle">
+              Your username is your public identity on BrushOwl and will be used in your profile URL
+              (e.g. <strong>@johnart</strong>). You can change it later in Profile Settings.
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="login-form">
@@ -232,6 +304,25 @@ const CreateUsername: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {suggestions.length > 0 && (
+              <div className="username-suggestions">
+                <span className="username-suggestions-label">Suggestions</span>
+                <div className="username-suggestions-list">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className="username-suggestion-chip"
+                      onClick={() => applySuggestion(s)}
+                      disabled={isSubmitting}
+                    >
+                      @{s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {error && (
               <div style={{

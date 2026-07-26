@@ -1,7 +1,6 @@
 import { App } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
-import { getPlatform } from '../utils/platform';
 
 /**
  * One-time native setup for the Capacitor shell. Safe to call only when
@@ -10,6 +9,18 @@ import { getPlatform } from '../utils/platform';
  */
 export function initNativeApp(): void {
   document.title = 'BrushOwl';
+  // Match the transparent status-bar region to the header (Android 15+/16
+  // ignores StatusBar.setBackgroundColor; the strip shows the page/window bg).
+  document.documentElement.style.backgroundColor = '#E8F4F5';
+  document.body.style.backgroundColor = '#E8F4F5';
+  // Keep the document box tied to the layout width (not 100vw) so fixed
+  // chrome cannot chip past the visible right edge on some Android WebViews.
+  document.documentElement.style.width = '100%';
+  document.documentElement.style.maxWidth = '100%';
+  document.documentElement.style.overflowX = 'hidden';
+  document.body.style.width = '100%';
+  document.body.style.maxWidth = '100%';
+  document.body.style.overflowX = 'hidden';
   setupStatusBar();
   setupBackButton();
   setupPushTapNavigation();
@@ -17,14 +28,11 @@ export function initNativeApp(): void {
 }
 
 async function setupStatusBar(): Promise<void> {
-  // iOS status bar cannot change its background color; only Android does.
   try {
-    // Light content (white icons/text) over the dark brand background.
-    await StatusBar.setStyle({ style: Style.Dark });
-    if (getPlatform() === 'android') {
-      await StatusBar.setBackgroundColor({ color: '#0a132c' });
-      await StatusBar.setOverlaysWebView({ overlay: false });
-    }
+    // Dark icons/text over the light header. On Android 15+/16 (targetSdk 36),
+    // setBackgroundColor / setOverlaysWebView are no-ops — color comes from the
+    // native window background in MainActivity / styles.xml instead.
+    await StatusBar.setStyle({ style: Style.Light });
   } catch {
     /* status bar not available on this platform */
   }
@@ -33,11 +41,17 @@ async function setupStatusBar(): Promise<void> {
 function setupBackButton(): void {
   try {
     App.addListener('backButton', ({ canGoBack }) => {
-      if (canGoBack && window.history.length > 1) {
+      // Capacitor's canGoBack can be false even after history.pushState() for
+      // drawers/sheets — always prefer SPA history when we have entries.
+      const hasOverlayState =
+        Boolean(window.history.state?.drawer) ||
+        Boolean(window.history.state?.sheet) ||
+        Boolean(window.history.state?.modal);
+      if (hasOverlayState || canGoBack || window.history.length > 1) {
         window.history.back();
-      } else {
-        App.exitApp();
+        return;
       }
+      App.exitApp();
     });
   } catch {
     /* app plugin not available */

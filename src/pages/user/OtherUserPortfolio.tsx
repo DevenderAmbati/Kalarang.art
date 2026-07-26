@@ -432,7 +432,7 @@ const OtherUserPortfolio: React.FC = () => {
             reachOutMetadata={{ 
               artworkId: 'commission', 
               artworkTitle: 'Commission Inquiry',
-              artworkImage: '/logobong.png' 
+              artworkImage: '/icon.png' 
             }}
           />
         )}

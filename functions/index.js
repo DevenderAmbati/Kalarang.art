@@ -772,6 +772,10 @@ async function getUserFcmTokens(userId) {
 /**
  * Send an FCM notification to all of a user's devices.
  * Automatically removes stale/expired tokens.
+ *
+ * Web (PWA): data-only payload — firebase-messaging-sw.js displays it.
+ * Android (Capacitor): also set android.notification so the system tray
+ * shows when the app is backgrounded/killed (data-only does not).
  */
 async function sendPushToUser(userId, notification, data = {}, collapseKey = null) {
   const tokenEntries = await getUserFcmTokens(userId);
@@ -780,13 +784,29 @@ async function sendPushToUser(userId, notification, data = {}, collapseKey = nul
     return;
   }
 
-  const fcmData = {
-    ...data,
-    title: notification.title || "BrushOwl",
-    body: notification.body || "You have a new notification",
-  };
+  const title = notification.title || "BrushOwl";
+  const body = notification.body || "You have a new notification";
 
-  const msg = {data: fcmData};
+  // FCM data values must all be strings
+  const fcmData = {};
+  const rawData = {...data, title, body};
+  for (const [key, value] of Object.entries(rawData)) {
+    if (value === undefined || value === null) continue;
+    fcmData[key] = String(value);
+  }
+
+  const msg = {
+    data: fcmData,
+    android: {
+      priority: "high",
+      notification: {
+        title,
+        body,
+        sound: "default",
+        channelId: "brushowl_default",
+      },
+    },
+  };
   if (collapseKey) {
     msg.webpush = {headers: {Topic: collapseKey}};
   }

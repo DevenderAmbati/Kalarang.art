@@ -7,7 +7,10 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  max-width: 100vw;
+  /* Use 100% (not 100vw): 100vw can exceed the visible layout width on some
+     Android WebViews and clips fixed chrome on the right edge. */
+  width: 100%;
+  max-width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
   height: 100%;
@@ -52,7 +55,8 @@ img {
 }
 
 #root {
-  max-width: 100vw;
+  width: 100%;
+  max-width: 100%;
   min-height: 100%;
   overflow: visible;
   /* Disable browser pull-to-refresh */
@@ -61,6 +65,8 @@ img {
 
 body {
   margin: 0;
+  width: 100%;
+  max-width: 100%;
   height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
@@ -73,10 +79,10 @@ body {
   color: var(--color-text-dark);
   line-height: 1.6;
   scroll-behavior: smooth;
-  /* GPU acceleration */
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  perspective: 1000px;
+  /* NOTE: Do NOT add `transform` or `perspective` here. Either one turns
+     <body> into the containing block for every `position: fixed` descendant
+     (header, feed tabs, scroll container, bottom nav), which anchors them to
+     body's box instead of the viewport and clips them on the right edge. */
   /* Disable browser pull-to-refresh */
   overscroll-behavior-y: contain;
   overscroll-behavior-x: none;
@@ -85,34 +91,32 @@ body {
 }
 
 /* iOS Safari/PWA Overscroll Prevention.
-   MUST come after the base #root/body rules so the cascade picks these up;
-   otherwise the regular `#root { overflow: visible }` cancels the scroll
-   container and the page becomes un-scrollable on iOS. */
-@supports (-webkit-touch-callout: none) {
-  html {
-    position: fixed !important;
-    width: 100%;
-    height: 100%;
-    overflow: hidden !important;
-  }
+   Gated by `.ios-scroll-lock` (set from UA detection) — NOT `@supports
+   (-webkit-touch-callout)`, which also matches some Android WebViews and
+   causes right-edge UI chipping when html/body become position:fixed. */
+html.ios-scroll-lock {
+  position: fixed !important;
+  width: 100%;
+  height: 100%;
+  overflow: hidden !important;
+}
 
-  body {
-    position: fixed !important;
-    width: 100%;
-    height: 100%;
-    overflow: hidden !important;
-    -webkit-overflow-scrolling: touch;
-  }
+html.ios-scroll-lock body {
+  position: fixed !important;
+  width: 100%;
+  height: 100%;
+  overflow: hidden !important;
+  -webkit-overflow-scrolling: touch;
+}
 
-  #root {
-    position: fixed !important;
-    width: 100%;
-    height: 100%;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: none;
-  }
+html.ios-scroll-lock #root {
+  position: fixed !important;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
 }
 
 code {

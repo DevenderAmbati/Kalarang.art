@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#2FA4A9</color>
+    <color name="colorPrimaryDark">#E8F4F5</color>
+    <color name="colorAccent">#5FD1D8</color>
+    <!-- Matches app header gradient start; shows behind transparent status bar on Android 15+ -->
+    <color name="status_bar_background">#E8F4F5</color>
+    <!-- Matches launcher icon navy; used for Android 12+ splash screen fill -->
+    <color name="splash_background">#010A2B</color>
+</resources>

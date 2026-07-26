@@ -8,7 +8,7 @@ import {
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db } from "../firebase";
 import { doc, onSnapshot } from "firebase/firestore";
-import { getUserProfile } from "../services/authService";
+import { getUserProfile, getUserProfileOrNull } from "../services/authService";
 import { AppUser } from "../types/user";
 import { cache, cacheKeys } from "../utils/cache";
 
@@ -16,6 +16,8 @@ interface AuthContextType {
   firebaseUser: User | null;
   appUser: AppUser | null;
   loading: boolean;
+  /** Authenticated with Firebase but no Firestore profile yet (needs role selection). */
+  isOnboarding: boolean;
   refreshUserProfile: () => Promise<void>;
 }
 
@@ -49,34 +51,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setFirebaseUser(currentUser);
 
       if (currentUser) {
-        try {
-          // Retry logic to handle Firestore write propagation delay
-          let profile = null;
-          let retries = 3;
-          
-          while (retries > 0 && !profile) {
-            try {
-              profile = await getUserProfile(currentUser.uid);
-              setAppUser(profile as AppUser);
-              break;
-            } catch (error) {
-              retries--;
-              if (retries > 0) {
-                // Wait before retrying (increasing delay)
-                await new Promise(resolve => setTimeout(resolve, 500));
-              } else {
-                throw error; // Throw on final retry
-              }
+        // Fetch the profile. A missing profile is NOT an error here: it means the
+        // user has authenticated but hasn't completed onboarding (role selection).
+        // Only transient read failures are retried.
+        let profile: AppUser | null = null;
+        let retries = 3;
+
+        while (retries > 0) {
+          try {
+            profile = (await getUserProfileOrNull(currentUser.uid)) as AppUser | null;
+            break;
+          } catch {
+            retries--;
+            if (retries > 0) {
+              await new Promise((resolve) => setTimeout(resolve, 500));
             }
           }
-        } catch (error) {
-          // User is authenticated with Firebase but has no Firestore profile
-          // This can happen during Google sign-in when account doesn't exist
-          setAppUser(null);
-          // Sign out the user if they don't have a profile
-          await auth.signOut();
-          setFirebaseUser(null);
         }
+
+        // profile === null → onboarding (keep the user signed in so they can
+        // choose a role); a real profile → fully onboarded.
+        setAppUser(profile);
       } else {
         setAppUser(null);
       }
@@ -117,8 +112,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, [firebaseUser]);
 
+  const isOnboarding = firebaseUser !== null && appUser === null;
+
   return (
-    <AuthContext.Provider value={{ firebaseUser, appUser, loading, refreshUserProfile }}>
+    <AuthContext.Provider value={{ firebaseUser, appUser, loading, isOnboarding, refreshUserProfile }}>
       {children}
     </AuthContext.Provider>
   );

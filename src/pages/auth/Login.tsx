@@ -6,7 +6,14 @@ import Lottie from 'lottie-react';
 import { toast } from 'react-toastify';
 import './login.css';
 import { login } from "../../services/authService";
-import { signInWithGoogle } from "../../services/authService";
+import { signInWithGoogle, signUpWithGoogle } from "../../services/authService";
+import NewGoogleAccountModal from "../../components/Modals/NewGoogleAccountModal";
+import {
+  peekPendingGoogleNoAccount,
+  clearPendingGoogleNoAccount,
+  clearAuthFlow,
+  clearAuthHold,
+} from "../../utils/authFlow";
 
 // Import all animations
 import africanAmericanArt from '../../animations/African American Art.json';
@@ -25,9 +32,20 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [newAccountEmail, setNewAccountEmail] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [randomAnimation, setRandomAnimation] = useState<any>(null);
   const lottieRef = useRef<any>(null);
+
+  // Restore confirmation modal if Sign In remounted during the auth race.
+  useEffect(() => {
+    const pending = peekPendingGoogleNoAccount();
+    if (pending) {
+      setNewAccountEmail(pending.email);
+      setGoogleLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!randomAnimation) return;
@@ -35,35 +53,26 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     return () => clearTimeout(t);
   }, [randomAnimation]);
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async (forceAccountPicker = false) => {
     try {
       setGoogleLoading(true);
       setErrorMessage('');
-      const result = await signInWithGoogle();
-      // Only if we reach here, login was successful
-      // Navigation will be handled by AuthContext
+      clearPendingGoogleNoAccount();
+      setNewAccountEmail(null);
+      await signInWithGoogle({ forceAccountPicker });
+      // Profile exists — AuthContext will route the user into the app.
     } catch (err: any) {
-      
-      // Handle different error cases
+      setGoogleLoading(false);
+
       if (err.message === "NO_ACCOUNT" || err.message.includes("NO_ACCOUNT")) {
-        // Stop loading before navigating
-        setGoogleLoading(false);
-        toast.error("No account found. Please sign up first to join BrushOwl!", {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
-        // Redirect to signup page after showing the message
-        setTimeout(() => {
-          navigate("/signup");
-        }, 500);
+        // Prefer email from the error; fall back to sessionStorage (survives remounts).
+        const pending = peekPendingGoogleNoAccount();
+        setNewAccountEmail(err.email || pending?.email || '');
       } else if (err.message === "ACCOUNT_EXISTS_WITH_PASSWORD" || err.code === "auth/account-exists-with-different-credential") {
-        // Stop loading and stay on page
-        setGoogleLoading(false);
-        toast.error("This account already exists. Please continue with password.", {
+        clearAuthHold();
+        clearAuthFlow();
+        clearPendingGoogleNoAccount();
+        toast.error("This account already exists. Please continue with email and password.", {
           position: "top-right",
           autoClose: 4000,
           hideProgressBar: false,
@@ -71,11 +80,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           pauseOnHover: true,
           draggable: true,
         });
-        // Explicitly stay on login page - do nothing, just show the error
-        return;
+        setShowEmailForm(true);
+      } else if (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request") {
+        clearAuthFlow();
+        clearPendingGoogleNoAccount();
       } else {
-        // Stop loading for other errors
-        setGoogleLoading(false);
+        clearAuthFlow();
+        clearPendingGoogleNoAccount();
         toast.error("Google login failed. Please try again.", {
           position: "top-right",
           autoClose: 3000,
@@ -84,7 +95,54 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     }
   };
 
-  // Array of animations
+  // User confirmed they want to create a new account with this Google account.
+  // Re-authenticate the same account (staying signed in) and continue onboarding.
+  const handleContinueToSignUp = async () => {
+    const pendingEmail = newAccountEmail || peekPendingGoogleNoAccount()?.email || undefined;
+    clearPendingGoogleNoAccount();
+    setNewAccountEmail(null);
+    try {
+      setGoogleLoading(true);
+      setErrorMessage('');
+      await signUpWithGoogle({ loginHint: pendingEmail });
+      // signUpWithGoogle leaves authFlow=onboarding for new users.
+      navigate('/select-role', { replace: true });
+    } catch (err: any) {
+      setGoogleLoading(false);
+      clearAuthFlow();
+      if (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request") {
+        return;
+      }
+      if (err.message === "ACCOUNT_EXISTS_WITH_PASSWORD") {
+        clearAuthHold();
+        toast.error("This account already exists. Please continue with email and password.", {
+          position: "top-right",
+          autoClose: 4000,
+        });
+        setShowEmailForm(true);
+        return;
+      }
+      toast.error("Google sign up failed. Please try again.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    }
+  };
+
+  const handleUseAnotherGoogleAccount = () => {
+    clearPendingGoogleNoAccount();
+    clearAuthFlow();
+    setNewAccountEmail(null);
+    handleGoogleLogin(true);
+  };
+
+  const handleCloseNoAccountModal = () => {
+    clearPendingGoogleNoAccount();
+    clearAuthFlow();
+    setNewAccountEmail(null);
+    setGoogleLoading(false);
+  };
+
   const animations = [
     africanAmericanArt,
     laptopDrawing,
@@ -92,31 +150,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     lineArt2
   ];
 
-
-
-  
-  // Email validation regex
   const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  // Check if form is valid
   const isFormValid = isValidEmail(email) && password.length >= 6;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isFormValid) {
       try {
-        // Select random animation and show loading
         const randomIndex = Math.floor(Math.random() * animations.length);
         setRandomAnimation(animations[randomIndex]);
         setIsLoading(true);
         setErrorMessage('');
         
         await login(email, password);
-        // Navigation will be handled by AuthContext automatically
-        // Keep loading state to show animation until redirect happens
       } catch (error: any) {
         setIsLoading(false);
         setErrorMessage(" Oops! Those credentials don't match our records. Try again?");
@@ -175,7 +225,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   return (
     <div className="login-right-section" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', width: '100%', position: 'relative' }}>
-      {/* Decorative geometric background shapes */}
       <div className="login-bg-shape-1"></div>
       <div className="login-bg-shape-2"></div>
       <div className="login-bg-shape-3"></div>
@@ -184,10 +233,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       <div className="login-bg-circle-1"></div>
       <div className="login-bg-circle-2"></div>
       <div className="login-bg-dot-pattern"></div>
+
+      <NewGoogleAccountModal
+        isOpen={newAccountEmail !== null}
+        email={newAccountEmail || undefined}
+        isLoading={googleLoading}
+        onClose={handleCloseNoAccountModal}
+        onContinue={handleContinueToSignUp}
+        onUseAnotherAccount={handleUseAnotherGoogleAccount}
+      />
       
-      {/* Login Form Section */}
-      <div style={{ maxWidth: '500px', width: '100%', zIndex: 10 }}>
-        {/* Back to Home Button */}
+      <div style={{ maxWidth: '500px', width: '100%', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <button 
           className="login-home-button"
           onClick={() => navigate('/')}
@@ -219,7 +275,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <span>Home</span>
       </button>
         
-        {/* Mobile Header - visible only on mobile */}
         <div className="login-mobile-header">
           <div className="login-brand-stack login-mobile-logo">
             <img src="/logobong.png" alt="BrushOwl Logo" className="login-brand-icon" />
@@ -231,143 +286,158 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <p className="login-mobile-subtext">Discover and share original art with the world.</p>
         </div>
 
-        <div className="login-form-container">
-          <div className="login-header">
-            <div className="login-welcome-back">Welcome back</div>
-            <h2 className="login-title">Continue your creative journey</h2>
-            <p className="login-subtitle">Sign in to access your personalized BrushOwl experience</p>
+        <div className="login-form-container auth-card auth-card--signin">
+          <div className="auth-mode-switch" role="tablist" aria-label="Authentication mode">
+            <button
+              type="button"
+              role="tab"
+              aria-selected="true"
+              className="auth-mode-tab is-active"
+            >
+              <span className="auth-mode-tab-label">Sign In</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected="false"
+              className="auth-mode-tab"
+              onClick={() => navigate('/signup')}
+            >
+              <span className="auth-mode-tab-hint">New to BrushOwl?</span>
+              <span className="auth-mode-tab-label">Sign Up</span>
+            </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="login-form">
-            <div className="login-input-group">
-              <div className="login-input-wrapper">
-                {MdEmail({ className: "login-input-svg-icon", size: 20 })}
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="login-input"
-                  required
-                />
-                <label className={`login-floating-label ${email ? 'login-floating-label-active' : ''}`}>
-                  Email Address
-                </label>
-              </div>
-            </div>
+          <div className="login-header">
+            <div className="login-welcome-back auth-eyebrow auth-eyebrow--signin">Continue your creative journey</div>
+            <h2 className="login-title">Sign in to BrushOwl</h2>
+            <p className="login-subtitle">Pick up where you left off with your art community</p>
+          </div>
 
-            <div className="login-input-group">
-              <div className="login-input-wrapper">
-                {MdLock({ className: "login-input-svg-icon", size: 20 })}
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="login-input"
-                  required
-                />
-                <label className={`login-floating-label ${password ? 'login-floating-label-active' : ''}`}>
-                  Password
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="login-password-toggle"
+          <div className="login-auth-stack">
+            <button
+              type="button"
+              className="login-google-primary"
+              onClick={() => handleGoogleLogin()}
+              disabled={googleLoading || isLoading}
+            >
+              {googleLoading ? (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="login-spin"
                 >
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
-                </button>
-              </div>
-            </div>
-
-            <div className="login-remember-forgot">
-              <label className="login-checkbox-label">
-                <input type="checkbox" className="login-checkbox" />
-                <span className="login-checkbox-text">Remember me</span>
-              </label>
-              <a href="#" onClick={(e) => { e.preventDefault(); navigate('/forgot-password'); }} className="login-forgot-link">Forgot Password?</a>
-            </div>
-
-            {errorMessage && (
-              <div style={{
-                padding: '0.75rem 1rem',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                borderRadius: '8px',
-                color: '#DC2626',
-                fontSize: '0.875rem',
-                animation: 'slideIn 0.3s ease-out'
-              }}>
-                {errorMessage}
-              </div>
-            )}
-            <style>{`
-              @keyframes slideIn {
-                from {
-                  opacity: 0;
-                  transform: translateY(-10px);
-                }
-                to {
-                  opacity: 1;
-                  transform: translateY(0);
-                }
-              }
-            `}</style>
-
-            <button type="submit" className="login-button primary-cta" disabled={!isFormValid || isLoading}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
-                Enter BrushOwl {isLoading ? (
-                  <svg 
-                    width="18" 
-                    height="18" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                    style={{ animation: 'spin 1s linear infinite' }}
-                  >
-                    <circle cx="12" cy="12" r="10" opacity="0.25"/>
-                    <path d="M12 2a10 10 0 0 1 10 10" opacity="0.75"/>
-                  </svg>
-                ) : '→'}
-              </span>
+                  <circle cx="12" cy="12" r="10" opacity="0.25"/>
+                  <path d="M12 2a10 10 0 0 1 10 10" opacity="0.75"/>
+                </svg>
+              ) : (
+                FaGoogle({ size: 18 })
+              )}
+              <span>{googleLoading ? 'Connecting…' : 'Sign in with Google'}</span>
             </button>
-            <style>{`
-              @keyframes spin {
-                from { transform: rotate(0deg); }
-                to { transform: rotate(360deg); }
-              }
-            `}</style>
 
             <div className="login-divider-wrapper">
               <div className="login-divider-line"></div>
-              <span className="login-divider-text">or continue with</span>
+              <span className="login-divider-text">or</span>
               <div className="login-divider-line"></div>
             </div>
 
-            <div className="login-social-buttons-group">
-              <button type="button" className="login-social-button social-btn" onClick={handleGoogleLogin}>
-                {FaGoogle({ size: 18 })}
-                <span>Google</span>
+            {!showEmailForm ? (
+              <button
+                type="button"
+                className="login-email-secondary"
+                onClick={() => setShowEmailForm(true)}
+              >
+                {MdEmail({ size: 18 })}
+                <span>Sign in with email</span>
               </button>
-              {/* <button type="button" className="login-social-button social-btn">
-                <svg width="18" height="18" viewBox="0 0 20 20" fill="#1877F2">
-                  <path d="M20 10c0-5.523-4.477-10-10-10S0 4.477 0 10c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V10h2.54V7.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V10h2.773l-.443 2.89h-2.33v6.988C16.343 19.128 20 14.991 20 10z"/>
-                </svg>
-                <span>Facebook</span>
-              </button> */}
-            </div>
-          </form>
+            ) : (
+              <form onSubmit={handleSubmit} className="login-form login-email-form">
+                <div className="login-input-group">
+                  <div className="login-input-wrapper">
+                    {MdEmail({ className: "login-input-svg-icon", size: 20 })}
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="login-input"
+                      required
+                      autoFocus
+                    />
+                    <label className={`login-floating-label ${email ? 'login-floating-label-active' : ''}`}>
+                      Email Address
+                    </label>
+                  </div>
+                </div>
 
+                <div className="login-input-group">
+                  <div className="login-input-wrapper">
+                    {MdLock({ className: "login-input-svg-icon", size: 20 })}
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="login-input"
+                      required
+                    />
+                    <label className={`login-floating-label ${password ? 'login-floating-label-active' : ''}`}>
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="login-password-toggle"
+                    >
+                      {showPassword ? '👁️' : '👁️‍🗨️'}
+                    </button>
+                  </div>
+                </div>
 
-          <div className="login-footer">
-            <p className="login-footer-text">
-              Don't have an account? <a href="#" onClick={(e) => { e.preventDefault(); navigate('/signup'); }} className="login-signup-link">Sign up for free</a>
-            </p>
+                <div className="login-remember-forgot">
+                  <label className="login-checkbox-label">
+                    <input type="checkbox" className="login-checkbox" />
+                    <span className="login-checkbox-text">Remember me</span>
+                  </label>
+                  <a href="#" onClick={(e) => { e.preventDefault(); navigate('/forgot-password'); }} className="login-forgot-link">Forgot Password?</a>
+                </div>
+
+                {errorMessage && (
+                  <div className="login-error-banner">
+                    {errorMessage}
+                  </div>
+                )}
+
+                <button type="submit" className="login-button primary-cta" disabled={!isFormValid || isLoading}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
+                    Enter BrushOwl {isLoading ? (
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="login-spin"
+                      >
+                        <circle cx="12" cy="12" r="10" opacity="0.25"/>
+                        <path d="M12 2a10 10 0 0 1 10 10" opacity="0.75"/>
+                      </svg>
+                    ) : '→'}
+                  </span>
+                </button>
+              </form>
+            )}
           </div>
         </div>
 
-        {/* Decorative corner elements */}
         <div className="login-corner-decor-1"></div>
         <div className="login-corner-decor-2"></div>
       </div>

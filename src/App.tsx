@@ -25,6 +25,7 @@ import Commissions from "./pages/user/Commissions";
 import AccountHub from "./pages/user/AccountHub";
 import CardDetail from "./pages/artwork/CardDetail";
 import CreateUsername from "./pages/auth/CreateUsername";
+import RoleSelection from "./pages/auth/RoleSelection";
 import Explore from "./pages/feed/Explore";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -35,9 +36,9 @@ import { ChatProvider } from "./context/ChatContext";
 import { Permission } from "./utils/permissions";
 import { ThemeProvider } from "./context/ThemeContext";
 import { logout } from "./services/authService";
-import ArtistLanding from "./pages/landing/ArtistLanding";
+import { shouldSuppressOnboardingRedirect, peekPendingGoogleNoAccount, shouldSuppressAuthHomeRedirect } from "./utils/authFlow";
+import { isNativeApp } from "./utils/platform";
 import FoundingArtistsPage from "./pages/landing/FoundingArtistsPage";
-import BuyerLanding from "./pages/landing/BuyerLanding";
 import ClaimSketch from "./pages/landing/ClaimSketch";
 import { ScrollToTop } from "./components/Common/ScrollToTop";
 import PwaUpdatePrompt from "./components/PwaUpdatePrompt";
@@ -129,7 +130,7 @@ const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 };
 
 function App() {
-  const { firebaseUser, appUser, loading } = useAuth();
+  const { firebaseUser, appUser, loading, isOnboarding } = useAuth();
 
   // Prevent pinch-zoom and gesture zoom across the app globally.
   // Pinch-zoom is prevented at the platform layer via:
@@ -272,7 +273,16 @@ function App() {
               {/* Public routes */}
               <Route
                 path="/"
-                element={isAuthenticated() ? <Navigate to="/home" /> : <Home />}
+                element={
+                  isAuthenticated()
+                    ? <Navigate to="/home" />
+                    : isOnboarding && !shouldSuppressOnboardingRedirect()
+                      ? <Navigate to="/select-role" replace />
+                      /* Native app has no marketing landing page — open on signup */
+                      : isNativeApp()
+                        ? <Navigate to="/signup" replace />
+                        : <Home />
+                }
               />
 
               <Route path="/about" element={<About />} />
@@ -292,12 +302,42 @@ function App() {
 
               <Route
                 path="/login"
-                element={isAuthenticated() ? <Navigate to={postAuthRedirect ?? "/home"} replace /> : <Login onLogin={handleLogin} />}
+                element={
+                  isAuthenticated() && !shouldSuppressAuthHomeRedirect()
+                    ? <Navigate to={postAuthRedirect ?? "/home"} replace />
+                    : (
+                      isOnboarding && !shouldSuppressOnboardingRedirect()
+                        ? <Navigate to="/select-role" replace />
+                        : <Login onLogin={handleLogin} />
+                    )
+                }
               />
 
               <Route
                 path="/signup"
-                element={isAuthenticated() ? <Navigate to={postAuthRedirect ?? (appUser!.role === "artist" ? "/artist" : appUser!.role === "buyer" ? "/buyer" : "/home")} replace /> : <SignUp onSignUp={handleSignUp} />}
+                element={
+                  isAuthenticated() && !shouldSuppressAuthHomeRedirect()
+                    ? <Navigate to={postAuthRedirect ?? "/home"} replace />
+                    : (
+                      isOnboarding && !shouldSuppressOnboardingRedirect()
+                        ? <Navigate to="/select-role" replace />
+                        : <SignUp onSignUp={handleSignUp} />
+                    )
+                }
+              />
+
+              {/* Onboarding: choose Buyer/Artist after authentication, before entering the app */}
+              <Route
+                path="/select-role"
+                element={
+                  isAuthenticated()
+                    ? <Navigate to={appUser!.role === "artist" && !appUser!.username ? "/create-username" : "/home"} replace />
+                    : (
+                      isOnboarding && !shouldSuppressOnboardingRedirect()
+                        ? <RoleSelection />
+                        : <Navigate to={peekPendingGoogleNoAccount() ? "/login" : "/signup"} replace />
+                    )
+                }
               />
 
               {/* Username creation route for artists */}
@@ -321,7 +361,7 @@ function App() {
 
               <Route
                 path="/forgot-password"
-                element={isAuthenticated() ? <Navigate to={appUser!.role === "artist" ? "/artist" : appUser!.role === "buyer" ? "/buyer" : "/dashboard"} /> : <ResetPassword />}
+                element={isAuthenticated() ? <Navigate to="/home" replace /> : <ResetPassword />}
               />
 
               <Route
@@ -373,37 +413,9 @@ function App() {
                 }
               />
 
-              <Route
-                path="/artist"
-                element={
-                  <ProtectedRoute>
-                    <PermissionGuard 
-                      permission={Permission.VIEW_ARTIST_PROFILE}
-                      redirectTo="/home"
-                    >
-                      {needsUsernameCreation() ? (
-                        <Navigate to="/create-username" replace />
-                      ) : (
-                        <ArtistLanding />
-                      )}
-                    </PermissionGuard>
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/buyer"
-                element={
-                  <ProtectedRoute>
-                    <PermissionGuard 
-                      permission={Permission.VIEW_BUYER_PROFILE}
-                      redirectTo="/home"
-                    >
-                      <BuyerLanding />
-                    </PermissionGuard>
-                  </ProtectedRoute>
-                }
-              />
+              {/* Legacy post-signup landing routes → app home */}
+              <Route path="/artist" element={<Navigate to="/home" replace />} />
+              <Route path="/buyer" element={<Navigate to="/home" replace />} />
 
               <Route
                 path="/my-artworks"

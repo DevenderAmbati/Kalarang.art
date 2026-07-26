@@ -10,6 +10,8 @@ import CustomDropdown from '../../components/Filters/CustomDropdown';
 import UploadDropzone from '../../components/Forms/UploadDropzone';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
+import { useHistoryBackClose } from '../../hooks/useHistoryBackClose';
+import { useSheetDragClose } from '../../hooks/useSheetDragClose';
 import {
   CommissionRequest,
   COMMISSION_LISTS_UPDATED_EVENT,
@@ -350,6 +352,17 @@ const CommissionChatModal: React.FC<{
     }
   }, [isOpen, autoOpenOfferForm, showSendOfferButton, onAutoOpenOfferFormConsumed]);
 
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const dragHandleRef = useRef<HTMLDivElement>(null);
+  useHistoryBackClose(isOpen, onClose, 'sheet');
+  useSheetDragClose({
+    isOpen,
+    onClose,
+    sheetRef,
+    handleRef: dragHandleRef,
+    thresholdPx: 90,
+  });
+
   useEffect(() => {
     if (isOpen && chatId) {
       notifyServiceWorkerActiveChatId(chatId);
@@ -661,8 +674,12 @@ const CommissionChatModal: React.FC<{
   return createPortal(
     <>
     <div className="commission-chat-modal-overlay" onClick={onClose}>
-      <div className="commission-chat-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="commission-chat-modal-header">
+      <div
+        ref={sheetRef}
+        className="commission-chat-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="commission-chat-modal-header" ref={dragHandleRef}>
           <div className="commission-chat-modal-drag-handle" aria-hidden="true" />
           <div className="commission-chat-modal-header-row">
           <div className="commission-chat-user">
@@ -2528,7 +2545,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
         {
           artworkId: item.id,
           artworkTitle: item.title,
-          artworkImage: item.referenceImages?.[0],
+          artworkImage: item.referenceImages?.[0] || '/icon.png',
           agreedFinalPrice: item.agreedFinalPrice,
           agreedAdvanceAmount: item.agreedAdvanceAmount,
           agreedDeliveryDate: item.agreedDeliveryDate,
@@ -2641,7 +2658,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
         {
           artworkId: item.id,
           artworkTitle: item.title,
-          artworkImage: item.referenceImages?.[0],
+          artworkImage: item.referenceImages?.[0] || '/icon.png',
           agreedFinalPrice: item.agreedFinalPrice,
           agreedAdvanceAmount: item.agreedAdvanceAmount,
           agreedDeliveryDate: item.agreedDeliveryDate,
@@ -2683,7 +2700,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
       {
         artworkId: item.id,
         artworkTitle: item.title,
-        artworkImage: item.referenceImages?.[0],
+        artworkImage: item.referenceImages?.[0] || '/icon.png',
         agreedFinalPrice: item.agreedFinalPrice,
         agreedAdvanceAmount: item.agreedAdvanceAmount,
         agreedDeliveryDate: item.agreedDeliveryDate,
@@ -4034,7 +4051,7 @@ const Commissions: React.FC<CommissionsProps> = ({ mode = 'form' }) => {
                                         setCommissionChatMetadata({
                                           artworkId: item.id,
                                           artworkTitle: item.title,
-                                          artworkImage: item.referenceImages?.[0],
+                                          artworkImage: item.referenceImages?.[0] || '/icon.png',
                                           agreedFinalPrice: item.agreedFinalPrice,
                                           agreedAdvanceAmount: item.agreedAdvanceAmount,
                                           agreedDeliveryDate: item.agreedDeliveryDate,
